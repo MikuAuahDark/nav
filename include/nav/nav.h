@@ -34,6 +34,14 @@ extern "C" {
 #endif
 
 /**
+ * @brief Get last error message from last invocation of NAV functions.
+ * @return Pointer to the error message, or NULL if there are no errors.
+ * @note Error messages are local to the caller thread.
+ * @warning The error message pointer will be invalid when calling another NAV function!
+ */
+NAV_API const char *nav_error();
+
+/**
  * @brief Populate pointer of nav_input to read input data from memory.
  * @param input Allocated, but uninitialized pointer to nav_input.
  * @param buf Memory buffer.
@@ -53,191 +61,172 @@ NAV_API nav_bool nav_input_populate_from_file(nav_input *input, const char *file
 /**
  * @brief Open new NAV instance.
  * @param input Pointer to "input data". This function will take the ownership of the input.
+ * @param filename Filename hint that will be used to improve probing. This can be NULL.
  * @return Pointer to NAV instance, or NULL on failure.
  * @note When the function errors, the input onership will be given back to the caller.
+ * @note It's strongly recommended to specify `filename` hint as some backends requires it.
  */
-NAV_API nav_t *nav_open(nav_input *input);
+NAV_API nav_t *nav_open(nav_input *input, const char *filename);
 
 /**
  * @brief Close existing NAV instance.
  * @param nav Pointer to NAV instance.
- * @warning Ensure all existing NAV audio and video instances were closed before calling this function!
- * @sa nav_audio_close
- * @sa nav_video_close
  */
 NAV_API void nav_close(nav_t *nav);
 
 /**
- * @brief Get last error message from last invocation of NAV functions.
- * @return Pointer to the error message, or NULL if there are no errors.
- * @note Error messages are local to the caller thread.
+ * @brief Get amount of streams in the NAV instance.
+ * @param nav Pointer to NAV instance.
+ * @return Amount of streams. 
  */
-NAV_API const char *nav_error();
+NAV_API size_t nav_nstreams(nav_t *nav);
 
 /**
- * @brief Get amount of audio streams.
+ * @brief Get stream information
  * @param nav Pointer to NAV instance.
- * @return Amount of audio streams in the instance.
+ * @param index Stream index.
+ * @return Pointer to NAV stream information.
  */
-NAV_API size_t nav_naudio(nav_t *nav);
+NAV_API nav_streaminfo_t *nav_stream_info(nav_t *nav, size_t index);
 
 /**
- * @brief Get amount of video streams.
+ * @brief Get media position.
  * @param nav Pointer to NAV instance.
- * @return Amount of video streams in the instance.
+ * @return Current media position in seconds, or -1 if unknown.
  */
-NAV_API size_t nav_nvideo(nav_t *nav);
+NAV_API double nav_tell(nav_t *nav);
 
 /**
- * @brief Open new audio instance of existing NAV instance.
+ * @brief Get media duration.
  * @param nav Pointer to NAV instance.
- * @param index Audio index.
- * @return Pointer to NAV audio instance, or NULL on failure.
+ * @return Media duration, or -1 on unknown.
  */
-NAV_API nav_audio_t *nav_open_audio(nav_t *nav, size_t index);
+NAV_API double nav_duration(nav_t *nav);
+
+/**
+ * @brief Set media position
+ * @param nav Pointer to NAV instance.
+ * @param position Position in seconds, relative to the beginning of the media.
+ * @return New (re-adjusted) position, or -1 on failure.
+ */
+NAV_API double nav_seek(nav_t *nav, double position);
+
+/**
+ * @brief Read NAV packet from NAV instance.
+ * @param nav Pointer to NAV instance.
+ * @return Pointer to the NAV packet instance.
+ */
+NAV_API nav_packet_t *nav_read(nav_t *nav);
+
+/**
+ * @brief Get stream type.
+ * @param streaminfo Pointer to NAV stream information.
+ * @return Stream type. 
+ */
+NAV_API nav_streamtype nav_streaminfo_type(nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Calculate the size in bytes of single audio sample frame.
- * @param nchannels Amount of audio channels.
- * @param format Audio format from nav_audio_format.
+ * @param streaminfo Pointer to NAV stream information.
  * @return Size of 1 sample frame, in bytes.
  */
-NAV_API size_t nav_audio_size(int nchannels, nav_audioformat format);
+NAV_API size_t nav_audio_size(nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get audio sample rate.
- * @param a Pointer to NAV audio instance.
+ * @param streaminfo Pointer to NAV stream information.
  * @return Audio sample rate.
+ * @note This call only return meaningful value if the stream is an audio.
  */
-NAV_API uint32_t nav_audio_sample_rate(nav_audio_t *a);
+NAV_API uint32_t nav_audio_sample_rate(nav_streaminfo_t *streaminfo);
 
 /**
- * @brief Get number of channels.
- * @param a Pointer to NAV audio instance.
+ * @brief Get number of audio channels.
+ * @param streaminfo Pointer to NAV stream information.
  * @return Number of audio channels.
+ * @note This call only return meaningful value if the stream is an audio.
  */
-NAV_API uint32_t nav_audio_nchannels(nav_audio_t *a);
-
-/**
- * @brief Get amount of audio samples.
- * @param a Pointer to NAV audio instance.
- * @return Amount of audio samples, or (uint64_t)-1 if unknown.
- * @note This function may be an approximate.
- * @note To get the audio duration in seconds, divide the return value of this function by the sample rate.
- * @sa nav_audio_sample_rate
- */
-NAV_API uint64_t nav_audio_nsamples(nav_audio_t *a);
+NAV_API uint32_t nav_audio_nchannels(nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get the bitwise audio format.
- * @param a Pointer to NAV audio instance.
+ * @param streaminfo Pointer to NAV stream information.
  * @return Bitwise audio format.
  * @note The bitwise audio format is same as [SDL's AudioFormat](https://wiki.libsdl.org/SDL3/SDL_AudioFormat)
+ * @note This call only return meaningful value if the stream is an audio.
  */
-NAV_API nav_audioformat nav_audio_format(nav_audio_t *a);
-
-/**
- * @brief Get current sample position.
- * @param a Pointer to NAV audio instance.
- * @return current sample position or (uint64_t)-1 if unknown.
- */
-NAV_API uint64_t nav_audio_tell(nav_audio_t *a);
-
-/**
- * @brief Seek to specific sample position.
- * @param a Pointer to NAV audio instance.
- * @param off Sample offset, relative to the beginning of the audio.
- * @return 1 if success, 0 otherwise.
- */
-NAV_API nav_bool nav_audio_seek(nav_audio_t *a, uint64_t off);
-
-/**
- * @brief Decode samples.
- * @param a Pointer to NAV audio instance.
- * @param buffer Destination buffer. The data type depends on `nav_audioformat`.
- * @param nsamples Size of the buffer in **samples**.
- * @return Amount of sample written to buffer, or 0 on EOF, or (size_t)-1 on failure.
- */
-NAV_API size_t nav_audio_get_samples(nav_audio_t *a, void *buffer, size_t nsamples);
-
-/**
- * @brief Close the audio stream instance.
- * @param a Pointer to NAV audio instance.
- */
-NAV_API void nav_audio_close(nav_audio_t *a);
-
-/**
- * @brief Open new video instance of existing NAV instance.
- * @param nav Pointer to NAV instance.
- * @param index Video index.
- * @return Pointer to NAV video instance, or NULL on failure.
- */
-NAV_API nav_video_t *nav_open_video(nav_t *nav, size_t index);
+NAV_API nav_audioformat nav_audio_format(nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Calculate the size of uncompressed video frame.
- * 
- * @param width Video width.
- * @param height Video height.
- * @param format Video format from nav_video_pixel_format.
+ * @param streaminfo Pointer to NAV stream information.
  * @return Size of 1 video frame, in bytes.
+ * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API size_t nav_video_size(uint32_t width, uint32_t height, nav_pixelformat format);
+NAV_API size_t nav_video_size(nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get video dimensions.
- * @param v Pointer to NAV video instance.
+ * @param streaminfo Pointer to NAV stream information.
  * @param width Pointer to store the video width.
  * @param height Pointer to store the video height.
+ * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API void nav_video_dimensions(nav_video_t *v, uint32_t *width, uint32_t *height);
+NAV_API void nav_video_dimensions(nav_streaminfo_t *streaminfo, uint32_t *width, uint32_t *height);
 
 /**
  * @brief Get video decode pixel format.
- * @param v Pointer to NAV video instance.
+ * @param streaminfo Pointer to NAV stream information.
  * @return Video pixel format.
+ * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API nav_pixelformat nav_video_pixel_format(nav_video_t *v);
+NAV_API nav_pixelformat nav_video_pixel_format(nav_streaminfo_t *streaminfo);
 
 /**
- * @brief Get video duration in seconds.
- * @param v Pointer to NAV video instance.
- * @return Video duration in seconds, or -1 if unknown.
+ * @brief Get video frames per second.
+ * @param streaminfo Pointer to NAV stream information.
+ * @return Video FPS, or 0 if unknown.
  * @note This function may be an approximate.
+ * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API double nav_video_duration(nav_video_t *v);
+NAV_API double nav_video_fps(nav_streaminfo_t *streaminfo);
 
 /**
- * @brief Get video position in seconds.
- * @param v Pointer to NAV video instance.
- * @return Current video position or -1 if unknown.
+ * @brief Free the NAV packet instance.
+ * @param packet Pointer to the NAV packet instance.
  */
-NAV_API double nav_video_tell(nav_video_t *v);
+NAV_API void nav_packet_free(nav_packet_t *packet);
 
 /**
- * @brief Seek to specific position in seconds.
- * @param v Pointer to NAV video instance.
- * @param off Position in seconds, relative to the beginning of the video.
+ * @brief Get stream index correspond to the NAV packet instance.
+ * @param packet Pointer to the NAV packet instance.
+ * @return Stream index of the NAV packet. 
+ */
+NAV_API size_t nav_packet_streamindex(nav_packet_t *packet);
+
+/**
+ * @brief Get stream type correspond to the NAV packet instance.
+ * @param packet Pointer to the NAV packet instance.
+ * @return Stream type of the NAV packet. 
+ */
+NAV_API nav_streamtype nav_packet_streamtype(nav_packet_t *packet);
+
+/**
+ * @brief Get decoded data size.
+ * @param packet Pointer to the NAV packet instance.
+ * @return Decoded data size, in bytes.
+ */
+NAV_API size_t nav_packet_size(nav_packet_t *packet);
+
+/**
+ * @brief Decode NAV packet instance.
+ * @param packet Pointer to the NAV packet instance.
+ * @param dest Pointer where to store the decoded data. Use nav_packet_size(), nav_audio_size(), or nav_video_size()
+ *             to calculate amount of memory to allocate.
  * @return 1 if success, 0 otherwise.
- * @note nav_video_tell() may not return same value as `off` as this function will try to find nearest (next) video
- *       frame.
+ * @warning Most backend only allows you to decode the packet once.
  */
-NAV_API nav_bool nav_video_seek(nav_video_t *v, double off);
-
-/**
- * @brief Decode video frame.
- * @param v Pointer to NAV video instance.
- * @param dst Pointer to destination video frame buffer. Use nav_video_size() to calculate buffer size.
- * @return Current video position or -1 if unknown or failure. nav_error() will return non-null string on failure.
- * @sa nav_video_size
- */
-NAV_API double nav_video_get_frame(nav_video_t *v, void *dst);
-
-/**
- * @brief Close the video stream instance.
- * @param v Pointer to NAV video instance.
- */
-NAV_API void nav_video_close(nav_video_t *v);
+NAV_API nav_bool nav_packet_decode(nav_packet_t *packet, void *dest);
 
 #ifdef __cplusplus
 } /* extern "C" */
