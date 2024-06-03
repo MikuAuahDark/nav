@@ -46,6 +46,13 @@ typedef struct nav_input
 	 */
 	uint64_t (*tell)(void *userdata);
 
+	/**
+	 * @brief Function to get "input stream" size. Stream must support this!
+	 * @param userdata Function-specific userdata.
+	 * @return Stream size in bytes.
+	 */
+	uint64_t (*size)(void *userdata);
+
 #ifdef __cplusplus
 	inline void closef()
 	{
@@ -65,6 +72,11 @@ typedef struct nav_input
 	inline uint64_t tellf()
 	{
 		return tell(userdata);
+	}
+
+	inline uint64_t sizef()
+	{
+		return size(userdata);
 	}
 #endif /* __cplusplus */
 } nav_input;

@@ -39,6 +39,7 @@ DynLib &DynLib::operator=(DynLib&& other)
 	close();
 	mod = other.mod;
 	other.mod = nullptr;
+	return *this;
 }
 
 DynLib::~DynLib()

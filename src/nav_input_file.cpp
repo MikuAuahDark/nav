@@ -22,6 +22,23 @@ static void closefile(void **userdata)
 	*f = nullptr;
 }
 
+inline int seekimpl(FILE *f, int64_t pos, int origin)
+{
+#ifdef _MSC_VER
+	return _fseeki64(f, pos, origin);
+#else
+	return fseeko(f, (off_t) pos, origin);
+#endif
+}
+
+inline uint64_t tellimpl(FILE *f)
+{
+#ifdef _MSC_VER
+	return (uint64_t) _ftelli64(f);
+#else
+	return (uint64_t) ftello(f);
+#endif
+}
 
 static size_t readfile(void *userdata, void *dest, size_t size)
 {
@@ -30,20 +47,24 @@ static size_t readfile(void *userdata, void *dest, size_t size)
 
 static nav_bool seekfile(void *userdata, uint64_t pos)
 {
-#ifdef _MSC_VER
-	return _fseeki64((FILE*) userdata, (int64_t) pos, SEEK_SET) == 0;
-#else
-	return fseeko((FILE*) userdata, (off_t) pos, SEEK_SET) == 0;
-#endif
+	return seekimpl((FILE*) userdata, (int64_t) pos, SEEK_SET) == 0;
 }
 
 static uint64_t tellfile(void *userdata)
 {
-#ifdef _MSC_VER
-	return (uint64_t) _ftelli64((FILE*) userdata);
-#else
-	return (uint64_t) ftello((FILE*) userdata);
-#endif
+	return tellimpl((FILE*) userdata);
+}
+
+static uint64_t sizefile(void *userdata)
+{
+	FILE *f = (FILE*) userdata;
+	uint64_t curpos = tellimpl(f);
+	if (seekimpl(f, 0, SEEK_END) != 0)
+		return 0;
+	
+	uint64_t size = tellimpl(f);
+	seekimpl(f, curpos, SEEK_SET);
+	return size;
 }
 
 bool populate(nav_input *input, const std::string &filename)
@@ -94,6 +115,7 @@ bool populate(nav_input *input, const std::string &filename)
 	input->read = readfile;
 	input->seek = seekfile;
 	input->tell = tellfile;
+	input->size = sizefile;
 	return true;
 }
 

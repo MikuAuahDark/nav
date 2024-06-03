@@ -3,6 +3,8 @@
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 
 #include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
 #include <windows.h>
 
 #include "nav_internal.hpp"
@@ -24,10 +26,12 @@ private:
 
 	DynLib mfplat, mfreadwrite;
 
-#define NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
-	NAV_PROXY_FUNCTION_POINTER(MFStartup);
-	NAV_PROXY_FUNCTION_POINTER(MFShutdown);
-#undef NAV_PROXY_FUNCTION_POINTER
+#define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
+	_NAV_PROXY_FUNCTION_POINTER(MFStartup);
+	_NAV_PROXY_FUNCTION_POINTER(MFShutdown);
+	_NAV_PROXY_FUNCTION_POINTER(MFCreateMFByteStreamOnStream);
+	_NAV_PROXY_FUNCTION_POINTER(MFCreateSourceReaderFromByteStream);
+#undef _NAV_PROXY_FUNCTION_POINTER
 };
 
 MediaFoundationBackend *create();

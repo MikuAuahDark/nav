@@ -1,21 +1,115 @@
 #include <exception>
+#include <mutex>
+#include <numeric>
+#include <vector>
 
 #include "nav_internal.hpp"
+#include "nav_backend.hpp"
+#include "nav_backend_mediafoundation.hpp"
 #include "nav_error.hpp"
 #include "nav_input_file.hpp"
 #include "nav_input_memory.hpp"
 
 #include "nav.h"
 
+static class BackendContainer
+{
+public:
+	BackendContainer(std::initializer_list<nav::Backend*(*)()> backendlist)
+	: initialized(false)
+	, activeBackend()
+	, factory(backendlist)
+	, mutex()
+	{}
+
+	~BackendContainer()
+	{
+		for (nav::Backend *b: activeBackend)
+			delete b;
+	}
+
+	void init()
+	{
+		std::lock_guard lg(mutex);
+
+		if (!initialized)
+		{
+			for (auto func: factory)
+			{
+				if (func)
+				{
+					nav::Backend *b = func();
+
+					if (b != nullptr)
+						activeBackend.push_back(b);
+				}
+			}
+		}
+	}
+
+	nav::State *open(nav_input *input)
+	{
+		if (!initialized)
+			init();
+
+		std::vector<std::string> errors;
+
+		for (nav::Backend *b: activeBackend)
+		{
+			try
+			{
+				return b->open(input);
+			}
+			catch (const std::exception &e)
+			{
+				errors.push_back(e.what());
+			}
+		}
+
+		if (errors.empty())
+			nav::error::set("No backend available");
+		else
+			nav::error::set(std::reduce(errors.begin(), errors.end(), std::string("\n")));
+		return nullptr;
+	}
+
+private:
+	bool initialized;
+	std::vector<nav::Backend*> activeBackend;
+	std::vector<nav::Backend*(*)()> factory;
+	std::mutex mutex;
+} backendContainer {
+
+	nullptr
+}
+
 template<typename T, typename C, typename... Args, typename... UArgs>
 T wrapcall(C *c, T(C::*m)(Args...), T defval, UArgs... args)
 {
     try
 	{
-		return (c->*m)(args...);
+		T result = (c->*m)(args...);
+		nav::error::set("");
+		return result;
 	}
     catch (const std::exception &e)
 	{
+		nav::error::set(e.what());
+		return defval;
+	}
+}
+
+template<typename C, typename... Args, typename... UArgs>
+void wrapcall(C *c, void(C::*m)(Args...), UArgs... args)
+{
+    try
+	{
+		(c->*m)(args...);
+		nav::error::set("");
+	}
+    catch (const std::exception &e)
+	{
+		nav::error::set(e.what());
 		return defval;
 	}
 }
@@ -32,7 +126,7 @@ extern "C" nav_bool nav_input_populate_from_file(nav_input *input, const char *f
 
 extern "C" nav_t *nav_open(nav_input *input)
 {
-	return nullptr;
+	return wrapcall<nav_t*>(&backendContainer, BackendContainer::open, nullptr, input);
 }
 
 extern "C" void nav_close(nav_t *state)

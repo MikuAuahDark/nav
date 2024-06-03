@@ -53,6 +53,12 @@ static uint64_t tell(void *userdata)
 	return (uint64_t) mem->pos;
 }
 
+static uint64_t fsize(void *userdata)
+{
+	Memory *mem = (Memory*) userdata;
+	return (uint64_t) mem->size;
+}
+
 void populate(nav_input *input, void *buf, size_t size)
 {
 	Memory *mem = new Memory();
@@ -65,6 +71,7 @@ void populate(nav_input *input, void *buf, size_t size)
 	input->read = read;
 	input->seek = seek;
 	input->tell = tell;
+	input->size = fsize;
 }
 
 }
