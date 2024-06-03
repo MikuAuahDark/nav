@@ -14,7 +14,7 @@ T wrapcall(C *c, T(C::*m)(Args...), T defval, UArgs... args)
 	{
 		return (c->*m)(args...);
 	}
-    catch (std::exception &e)
+    catch (const std::exception &e)
 	{
 		return defval;
 	}

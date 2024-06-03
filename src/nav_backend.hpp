@@ -3,7 +3,7 @@
 
 #include "nav_internal.hpp"
 
-#include "nav.h"
+#include "nav/nav.h"
 
 namespace nav
 {
