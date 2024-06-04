@@ -14,47 +14,75 @@ namespace nav
 {
 
 typedef nav_t State;
-typedef nav_audio_t AudioState;
-typedef nav_video_t VideoState;
+typedef nav_streaminfo_t StreamInfo;
+typedef nav_packet_t Packet;
 
 }
 
-struct nav_audio_t
-{
-public:
-	virtual ~nav_audio_t() = 0;
-
-	virtual uint32_t getSampleRate() noexcept = 0;
-	virtual uint32_t getChannelCount() noexcept = 0;
-	virtual uint64_t getSampleCount() = 0;
-	virtual nav_audioformat getFormat() = 0;
-	virtual uint64_t tell() = 0;
-	virtual bool seek(uint64_t off) = 0;
-	virtual size_t decode(void *dest, size_t nsamples) = 0;
-};
-
-struct nav_video_t
-{
-public:
-	virtual ~nav_video_t() = 0;
-
-	virtual void getDimensions(uint32_t &width, uint32_t &height) noexcept = 0;
-	virtual nav_pixelformat getPixelFormat() noexcept = 0;
-	virtual double getDuration() = 0;
-	virtual double tell() = 0;
-	virtual bool seek(double off) = 0;
-	virtual double decode(void *dest) = 0;
-};
-
 struct nav_t
 {
-public:
 	virtual ~nav_t() = 0;
 
-	virtual size_t getAudioStreamCount() noexcept = 0;
-	virtual size_t getVideoStreamCount() noexcept = 0;
-	virtual nav::AudioState *openAudioStream(size_t index) = 0;
-	virtual nav::VideoState *openVideoStream(size_t index) = 0;
+	virtual size_t getStreamCount() noexcept = 0;
+	virtual nav_streaminfo_t *getStreamInfo(size_t index) noexcept = 0;
+	virtual double getDuration() noexcept = 0;
+	virtual double getPosition() noexcept = 0;
+	virtual double setPosition(double off) = 0;
+	virtual nav_packet_t *read() = 0;
+};
+
+struct nav_streaminfo_t
+{
+	struct AudioStreamInfo
+	{
+		uint32_t nchannels;
+		uint32_t sample_rate;
+		nav_audioformat format;
+
+		inline size_t size()
+		{
+			return NAV_AUDIOFORMAT_BYTESIZE(format) * (size_t) nchannels;
+		}
+	};
+
+	struct VideoStreamInfo
+	{
+		double fps;
+		uint32_t width, height;
+		nav_pixelformat format;
+
+		inline size_t size()
+		{
+			size_t dimensions = (size_t) width * (size_t) height;
+
+			switch (format)
+			{
+				case NAV_PIXELFORMAT_UNKNOWN:
+				default:
+					return 0;
+				case NAV_PIXELFORMAT_RGB8:
+				case NAV_PIXELFORMAT_YUV444:
+					return 3 * dimensions;
+				case NAV_PIXELFORMAT_YUV420:
+					return dimensions + 2 * (width + 1) / 2 * (height + 1) / 2;
+			}
+		}
+	};
+
+	nav_streamtype type;
+	union
+	{
+		AudioStreamInfo audio;
+		VideoStreamInfo video;
+	};
+};
+
+struct nav_packet_t
+{
+	virtual ~nav_packet_t() = 0;
+	virtual size_t getStreamIndex() const noexcept = 0;
+	virtual nav_streaminfo_t *getStreamInfo() const noexcept = 0;
+	virtual double decode(void *dest) = 0;
 };
 
 #endif /* _NAV_INTERNAL_HPP_ */

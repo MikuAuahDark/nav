@@ -7,8 +7,10 @@
 #include <type_traits>
 #include <vector>
 
+#include <mfapi.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
+#include <windows.h>
 
 namespace MFID
 {
@@ -307,17 +309,10 @@ public:
 	~MediaFoundationState() override
 	{}
 	
-	size_t getAudioStreamCount() noexcept override
+	size_t getStreamCount() noexcept override
 	{
-		return 0;
+		return streamInfo.size();
 	}
-	size_t getVideoStreamCount() noexcept override
-	{
-		return 0;
-	}
-
-	nav::AudioState *openAudioStream(size_t index) override;
-	nav::VideoState *openVideoStream(size_t index) override;
 
 private:
 	MediaFoundationBackend *backend;
@@ -327,62 +322,78 @@ private:
 	ComPtr<IMFByteStream> mfByteStream;
 	ComPtr<IMFSourceReader> mfSourceReader;
 
-	std::vector<DWORD> videoStreamMap, audioStreamMap;
+	std::vector<nav::StreamInfo> streamInfo;
 };
 
-MediaFoundationBackend::MediaFoundationBackend()
-: mfplat("mfplat.dll")
-, mfreadwrite("mfreadwrite.dll")
-, MFStartup(nullptr)
-, MFShutdown(nullptr)
-, MFCreateMFByteStreamOnStream(nullptr)
-, MFCreateSourceReaderFromByteStream(nullptr)
+class MediaFoundationBackend: public Backend
 {
-	if (
-		!mfplat.get("MFStartup", &MFStartup) ||
-		!mfplat.get("MFShutdown", &MFShutdown) ||
-		!mfplat.get("MFCreateMFByteStreamOnStream", &MFCreateMFByteStreamOnStream) ||
-		!mfreadwrite.get("MFCreateSourceReaderFromByteStream", &MFCreateSourceReaderFromByteStream)
-	)
-		throw std::runtime_error("cannot load MediaFoundation function pointer");
-
-	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
-		throw std::runtime_error("CoInitializeEx failed");
-
-	if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET)))
+public:
+	~MediaFoundationBackend() override	
 	{
+		MFShutdown();
 		CoUninitialize();
-		throw std::runtime_error("MFStartup failed");
 	}
-}
 
-MediaFoundationBackend::~MediaFoundationBackend()
-{
-	MFShutdown();
-	CoUninitialize();
-}
+	State *open(nav_input *input, const char *filename) override
+	{
+		input->seekf(0);
 
-State *MediaFoundationBackend::open(nav_input *input)
-{
-	input->seekf(0);
+		ComPtr<NavInputStream> istream(new NavInputStream(input), false);
+		
+		IMFByteStream *byteStream_noguard;
+		if (FAILED(MFCreateMFByteStreamOnStream(istream.get(), &byteStream_noguard)))
+			throw std::runtime_error("MFCreateMFByteStreamOnStream failed");
+		ComPtr<IMFByteStream> byteStream(byteStream_noguard, false);
 
-	ComPtr<NavInputStream> istream(new NavInputStream(input), false);
-	
-	IMFByteStream *byteStream_noguard;
-	if (FAILED(MFCreateMFByteStreamOnStream(istream.get(), &byteStream_noguard)))
-		throw std::runtime_error("MFCreateMFByteStreamOnStream failed");
-	ComPtr<IMFByteStream> byteStream(byteStream_noguard, false);
+		IMFSourceReader *sourceReader_noguard;
+		if (FAILED(MFCreateSourceReaderFromByteStream(byteStream.get(), nullptr, &sourceReader_noguard)))
+			throw std::runtime_error("MFCreateSourceReaderFromByteStream failed");
+		ComPtr<IMFSourceReader> sourceReader(sourceReader_noguard, false);
 
-	IMFSourceReader *sourceReader_noguard;
-	if (FAILED(MFCreateSourceReaderFromByteStream(byteStream.get(), nullptr, &sourceReader_noguard)))
-		throw std::runtime_error("MFCreateSourceReaderFromByteStream failed");
-	ComPtr<IMFSourceReader> sourceReader(sourceReader_noguard, false);
+		/* All good */
+		return new MediaFoundationState(this, input, istream, byteStream, sourceReader);
+	}
 
-	/* All good */
-	return new MediaFoundationState(this, input, istream, byteStream, sourceReader);
-}
+private:
+	friend Backend *create();
 
-MediaFoundationBackend *create()
+	MediaFoundationBackend::MediaFoundationBackend()
+	: mfplat("mfplat.dll")
+	, mfreadwrite("mfreadwrite.dll")
+	, MFStartup(nullptr)
+	, MFShutdown(nullptr)
+	, MFCreateMFByteStreamOnStream(nullptr)
+	, MFCreateSourceReaderFromByteStream(nullptr)
+	{
+		if (
+			!mfplat.get("MFStartup", &MFStartup) ||
+			!mfplat.get("MFShutdown", &MFShutdown) ||
+			!mfplat.get("MFCreateMFByteStreamOnStream", &MFCreateMFByteStreamOnStream) ||
+			!mfreadwrite.get("MFCreateSourceReaderFromByteStream", &MFCreateSourceReaderFromByteStream)
+		)
+			throw std::runtime_error("cannot load MediaFoundation function pointer");
+
+		if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
+			throw std::runtime_error("CoInitializeEx failed");
+
+		if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET)))
+		{
+			CoUninitialize();
+			throw std::runtime_error("MFStartup failed");
+		}
+	}
+
+	DynLib mfplat, mfreadwrite;
+
+#define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
+	_NAV_PROXY_FUNCTION_POINTER(MFStartup);
+	_NAV_PROXY_FUNCTION_POINTER(MFShutdown);
+	_NAV_PROXY_FUNCTION_POINTER(MFCreateMFByteStreamOnStream);
+	_NAV_PROXY_FUNCTION_POINTER(MFCreateSourceReaderFromByteStream);
+#undef _NAV_PROXY_FUNCTION_POINTER
+};
+
+Backend *create()
 {
 	try
 	{

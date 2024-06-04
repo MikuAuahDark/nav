@@ -61,7 +61,7 @@ NAV_API nav_bool nav_input_populate_from_file(nav_input *input, const char *file
 /**
  * @brief Open new NAV instance.
  * @param input Pointer to "input data". This function will take the ownership of the input.
- * @param filename Filename hint that will be used to improve probing. This can be NULL.
+ * @param filename Pseudo-filename that will be used to improve probing. The file doesn't have to exist. This can be NULL.
  * @return Pointer to NAV instance, or NULL on failure.
  * @note When the function errors, the input onership will be given back to the caller.
  * @note It's strongly recommended to specify `filename` hint as some backends requires it.
@@ -107,7 +107,8 @@ NAV_API double nav_duration(nav_t *nav);
  * @brief Set media position
  * @param nav Pointer to NAV instance.
  * @param position Position in seconds, relative to the beginning of the media.
- * @return New (re-adjusted) position, or -1 on failure.
+ * @return New (re-adjusted) position, or -1 on unknown or failure.
+ * @note nav_error() will return NULL on success but new position can't be determined, non-NULL otherwise.
  */
 NAV_API double nav_seek(nav_t *nav, double position);
 
@@ -115,6 +116,8 @@ NAV_API double nav_seek(nav_t *nav, double position);
  * @brief Read NAV packet from NAV instance.
  * @param nav Pointer to NAV instance.
  * @return Pointer to the NAV packet instance.
+ * @sa nav_packet_free
+ * @sa nav_packet_decode
  */
 NAV_API nav_packet_t *nav_read(nav_t *nav);
 
@@ -215,6 +218,8 @@ NAV_API nav_streamtype nav_packet_streamtype(nav_packet_t *packet);
  * @brief Get decoded data size.
  * @param packet Pointer to the NAV packet instance.
  * @return Decoded data size, in bytes.
+ * @sa nav_audio_size
+ * @sa nav_video_size
  */
 NAV_API size_t nav_packet_size(nav_packet_t *packet);
 
@@ -223,10 +228,11 @@ NAV_API size_t nav_packet_size(nav_packet_t *packet);
  * @param packet Pointer to the NAV packet instance.
  * @param dest Pointer where to store the decoded data. Use nav_packet_size(), nav_audio_size(), or nav_video_size()
  *             to calculate amount of memory to allocate.
- * @return 1 if success, 0 otherwise.
+ * @return Presentation time of the decoded data in seconds, or -1 on EOS or failure.
+ * @note nav_error() will return NULL when EOS is reached, otherwise non-NULL is returned.
  * @warning Most backend only allows you to decode the packet once.
  */
-NAV_API nav_bool nav_packet_decode(nav_packet_t *packet, void *dest);
+NAV_API double nav_packet_decode(nav_packet_t *packet, void *dest);
 
 #ifdef __cplusplus
 } /* extern "C" */

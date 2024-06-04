@@ -6,8 +6,6 @@
 typedef struct nav_t nav_t;
 typedef struct nav_streaminfo_t nav_streaminfo_t;
 typedef struct nav_packet_t nav_packet_t;
-typedef struct nav_audio_t nav_audio_t;
-typedef struct nav_video_t nav_video_t;
 typedef uint8_t nav_bool;
 
 typedef enum nav_pixelformat

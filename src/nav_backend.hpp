@@ -12,7 +12,7 @@ class Backend
 {
 public:
 	virtual ~Backend() = 0;
-	virtual State *open(nav_input *input) = 0;
+	virtual State *open(nav_input *input, const char *filename) = 0;
 };
 
 }
