@@ -10,7 +10,7 @@
 #include "nav_input_file.hpp"
 #include "nav_input_memory.hpp"
 
-#include "nav.h"
+#include "nav/nav.h"
 
 static class BackendContainer
 {
@@ -101,21 +101,6 @@ T wrapcall(C *c, T(C::*m)(Args...), T defval, UArgs... args)
 	}
 }
 
-template<typename C, typename... Args, typename... UArgs>
-void wrapcall(C *c, void(C::*m)(Args...), UArgs... args)
-{
-    try
-	{
-		(c->*m)(args...);
-		nav::error::set("");
-	}
-    catch (const std::exception &e)
-	{
-		nav::error::set(e.what());
-		return defval;
-	}
-}
-
 extern "C" const char *nav_error()
 {
 	return nav::error::get();
@@ -135,7 +120,7 @@ extern "C" nav_bool nav_input_populate_from_file(nav_input *input, const char *f
 
 extern "C" nav_t *nav_open(nav_input *input, const char *filename)
 {
-	return wrapcall<nav_t*>(&backendContainer, BackendContainer::open, nullptr, input, filename);
+	return wrapcall<nav_t*>(&backendContainer, &BackendContainer::open, nullptr, input, filename);
 }
 
 extern "C" void nav_close(nav_t *state)
@@ -164,7 +149,7 @@ extern "C" nav_bool nav_stream_is_enabled(nav_t *state, size_t index)
 
 extern "C" nav_bool nav_stream_enable(nav_t *state, size_t index, nav_bool enable)
 {
-	return (nav_bool) wrapcall(state, nav::State::setStreamEnabled, false, index, enable);
+	return (nav_bool) wrapcall(state, &nav::State::setStreamEnabled, false, index, enable);
 }
 
 extern "C" double nav_tell(nav_t *state)
@@ -181,12 +166,12 @@ extern "C" double nav_duration(nav_t *state)
 
 extern "C" double nav_seek(nav_t *state, double position)
 {
-	return wrapcall(state, nav::State::setPosition, -1., position);
+	return wrapcall(state, &nav::State::setPosition, -1., position);
 }
 
 extern "C" nav_packet_t *nav_read(nav_t *state)
 {
-	return wrapcall<nav_packet_t*>(state, nav::State::read, nullptr);
+	return wrapcall<nav_packet_t*>(state, &nav::State::read, nullptr);
 }
 
 extern "C" nav_streamtype nav_streaminfo_type(nav_streaminfo_t *sinfo)
@@ -335,9 +320,9 @@ extern "C" size_t nav_packet_size(nav_packet_t *packet)
 	}
 }
 
-extern "C" nav_frame_t *nav_packet_decode(nav_packet_t *packet, void *dest)
+extern "C" nav_frame_t *nav_packet_decode(nav_packet_t *packet)
 {
-	return wrapcall<nav_frame_t*>(packet, nav::Packet::decode, nullptr, dest);
+	return wrapcall<nav_frame_t*>(packet, &nav::Packet::decode, nullptr);
 }
 
 extern "C" size_t nav_frame_size(nav_frame_t *frame)

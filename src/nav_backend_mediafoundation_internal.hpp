@@ -107,7 +107,7 @@ private:
 class NavInputStream: public IStream
 {
 public:
-	NavInputStream(nav_input *input, const char *filename, void *(*__stdcall CoTaskMemAlloc)(size_t));
+	NavInputStream(nav_input *input, const char *filename, void *(__stdcall *CoTaskMemAlloc)(size_t));
 
 	/* IUnknown */
 	ULONG STDMETHODCALLTYPE AddRef() override;
@@ -131,7 +131,7 @@ public:
 private:
 	std::string filename;
 	nav_input *input;
-	void *(*__stdcall CoTaskMemAlloc)(size_t);
+	void *(__stdcall *CoTaskMemAlloc)(size_t);
 	ULONG refc;
 };
 

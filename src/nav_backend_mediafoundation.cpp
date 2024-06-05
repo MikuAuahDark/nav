@@ -65,7 +65,7 @@ struct WrappedPropVariant: public PROPVARIANT
 namespace nav::mediafoundation
 {
 
-NavInputStream::NavInputStream(nav_input *input, const char *filename, void *(*__stdcall CoTaskMemAlloc)(size_t))
+NavInputStream::NavInputStream(nav_input *input, const char *filename, void *(__stdcall *CoTaskMemAlloc)(size_t))
 : filename(filename ? filename : "")
 , input(input)
 , refc(1)
@@ -497,7 +497,7 @@ nav_frame_t *MediaFoundationPacket::decode()
 	if (FAILED(mfSample->GetBufferCount(&bufcount)))
 		throw std::runtime_error("MediaFoundation assertion failed");
 
-	std::unique_ptr<nav::FrameVector> frame = std::make_unique<nav::FrameVector>(new nav::FrameVector(nullptr, bufsize));
+	std::unique_ptr<nav::FrameVector> frame = std::make_unique<nav::FrameVector>(nullptr, bufsize);
 	uint8_t *buf = (uint8_t*) frame->data();
 	size_t bufpos = 0;
 

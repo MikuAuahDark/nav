@@ -28,7 +28,7 @@ static size_t read(void *userdata, void *dest, size_t size)
 
 	if (readed > 0)
 	{
-		std::copy((uint8_t *) dest, mem->data + mem->pos, readed);
+		std::copy(mem->data + mem->pos, mem->data + mem->pos + readed, (uint8_t*) dest);
 		mem->pos = nextpos;
 	}
 

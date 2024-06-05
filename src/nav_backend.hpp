@@ -11,7 +11,7 @@ namespace nav
 class Backend
 {
 public:
-	virtual ~Backend() = 0;
+	virtual ~Backend();
 	virtual State *open(nav_input *input, const char *filename) = 0;
 };
 

@@ -22,8 +22,7 @@ typedef nav_frame_t Frame;
 
 struct nav_t
 {
-	virtual ~nav_t() = 0;
-
+	virtual ~nav_t();
 	virtual size_t getStreamCount() noexcept = 0;
 	virtual nav_streaminfo_t *getStreamInfo(size_t index) noexcept = 0;
 	virtual bool isStreamEnabled(size_t index) noexcept = 0;
@@ -82,7 +81,7 @@ struct nav_streaminfo_t
 
 struct nav_packet_t
 {
-	virtual ~nav_packet_t() = 0;
+	virtual ~nav_packet_t();
 	virtual size_t getStreamIndex() const noexcept = 0;
 	virtual nav_streaminfo_t *getStreamInfo() const noexcept = 0;
 	virtual double tell() const noexcept = 0;
@@ -91,7 +90,7 @@ struct nav_packet_t
 
 struct nav_frame_t
 {
-	virtual ~nav_frame_t() = 0;
+	virtual ~nav_frame_t();
 	virtual size_t size() const noexcept = 0;
 	virtual void *data() noexcept = 0;
 };
