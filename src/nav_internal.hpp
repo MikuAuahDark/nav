@@ -16,6 +16,7 @@ namespace nav
 typedef nav_t State;
 typedef nav_streaminfo_t StreamInfo;
 typedef nav_packet_t Packet;
+typedef nav_frame_t Frame;
 
 }
 
@@ -25,6 +26,8 @@ struct nav_t
 
 	virtual size_t getStreamCount() noexcept = 0;
 	virtual nav_streaminfo_t *getStreamInfo(size_t index) noexcept = 0;
+	virtual bool isStreamEnabled(size_t index) noexcept = 0;
+	virtual bool setStreamEnabled(size_t index, bool enabled) = 0;
 	virtual double getDuration() noexcept = 0;
 	virtual double getPosition() noexcept = 0;
 	virtual double setPosition(double off) = 0;
@@ -82,7 +85,15 @@ struct nav_packet_t
 	virtual ~nav_packet_t() = 0;
 	virtual size_t getStreamIndex() const noexcept = 0;
 	virtual nav_streaminfo_t *getStreamInfo() const noexcept = 0;
-	virtual double decode(void *dest) = 0;
+	virtual double tell() const noexcept = 0;
+	virtual nav_frame_t *decode() = 0;
+};
+
+struct nav_frame_t
+{
+	virtual ~nav_frame_t() = 0;
+	virtual size_t size() const noexcept = 0;
+	virtual void *data() noexcept = 0;
 };
 
 #endif /* _NAV_INTERNAL_HPP_ */

@@ -123,11 +123,13 @@ extern "C" const char *nav_error()
 
 extern "C" void nav_input_populate_from_memory(nav_input *input, void *buf, size_t size)
 {
+	nav::error::set("");
 	nav::input::memory::populate(input, buf, size);
 }
 
 extern "C" nav_bool nav_input_populate_from_file(nav_input *input, const char *filename)
 {
+	nav::error::set("");
 	return (nav_bool) nav::input::file::populate(input, filename);
 }
 
@@ -138,26 +140,42 @@ extern "C" nav_t *nav_open(nav_input *input, const char *filename)
 
 extern "C" void nav_close(nav_t *state)
 {
+	nav::error::set("");
 	delete state;
 }
 
 extern "C" size_t nav_nstreams(nav_t *state)
 {
+	nav::error::set("");
 	return state->getStreamCount();
 }
 
 extern "C" nav_streaminfo_t *nav_stream_info(nav_t *state, size_t index)
 {
+	nav::error::set("");
 	return state->getStreamInfo(index);
+}
+
+extern "C" nav_bool nav_stream_is_enabled(nav_t *state, size_t index)
+{
+	nav::error::set("");
+	return (nav_bool) state->isStreamEnabled(index);
+}
+
+extern "C" nav_bool nav_stream_enable(nav_t *state, size_t index, nav_bool enable)
+{
+	return (nav_bool) wrapcall(state, nav::State::setStreamEnabled, false, index, enable);
 }
 
 extern "C" double nav_tell(nav_t *state)
 {
+	nav::error::set("");
 	return state->getPosition();
 }
 
 extern "C" double nav_duration(nav_t *state)
 {
+	nav::error::set("");
 	return state->getDuration();
 }
 
@@ -317,7 +335,22 @@ extern "C" size_t nav_packet_size(nav_packet_t *packet)
 	}
 }
 
-extern "C" double nav_packet_decode(nav_packet_t *packet, void *dest)
+extern "C" nav_frame_t *nav_packet_decode(nav_packet_t *packet, void *dest)
 {
-	return wrapcall(packet, nav::Packet::decode, -1.0, dest);
+	return wrapcall<nav_frame_t*>(packet, nav::Packet::decode, nullptr, dest);
+}
+
+extern "C" size_t nav_frame_size(nav_frame_t *frame)
+{
+	return frame->size();
+}
+
+extern "C" const void *nav_frame_buffer(nav_frame_t *frame)
+{
+	return frame->data();
+}
+
+extern "C" void nav_frame_free(nav_frame_t *frame)
+{
+	delete frame;
 }

@@ -60,11 +60,15 @@ NAV_API nav_bool nav_input_populate_from_file(nav_input *input, const char *file
 
 /**
  * @brief Open new NAV instance.
+ * 
+ * The `filename` parameter acts as a "hint" to backends to try best possible format or to deduce the media format
+ * directly. While it's not required, some backends require it, so it's recommended to specify one if possible. When
+ * `filename` is specified, it must be valid UTF-8 string.
+ * 
  * @param input Pointer to "input data". This function will take the ownership of the input.
- * @param filename Pseudo-filename that will be used to improve probing. The file doesn't have to exist. This can be NULL.
+ * @param filename Pseudo-filename that will be used to improve probing. This can be NULL.
  * @return Pointer to NAV instance, or NULL on failure.
- * @note When the function errors, the input onership will be given back to the caller.
- * @note It's strongly recommended to specify `filename` hint as some backends requires it.
+ * @note When the function errors, the input ownership will be given back to the caller.
  */
 NAV_API nav_t *nav_open(nav_input *input, const char *filename);
 
@@ -88,6 +92,31 @@ NAV_API size_t nav_nstreams(nav_t *nav);
  * @return Pointer to NAV stream information.
  */
 NAV_API nav_streaminfo_t *nav_stream_info(nav_t *nav, size_t index);
+
+/**
+ * @brief Check if stream at specific index is enabled.
+ * 
+ * Disabled stream won't generate data during nav_read().
+ * 
+ * @param nav Pointer to NAV instance.
+ * @param index Stream index.
+ * @return 1 if enabled, 0 otherwise.
+ * @sa nav_stream_enable
+ */
+NAV_API nav_bool nav_stream_is_enabled(nav_t *nav, size_t index);
+
+/**
+ * @brief Set if specific stream should be enabled.
+ * 
+ * Disabled stream won't generate data during nav_read(). This can serve as optimization.
+ * 
+ * @param nav Pointer to NAV instance.
+ * @param index Stream index.
+ * @param enable 1 to enable, 0 to disable.
+ * @return 1 if the change success, 0 otherwise.
+ * @sa nav_stream_enabled
+ */
+NAV_API nav_bool nav_stream_enable(nav_t *nav, size_t index, nav_bool enable);
 
 /**
  * @brief Get media position.
@@ -215,24 +244,45 @@ NAV_API size_t nav_packet_streamindex(nav_packet_t *packet);
 NAV_API nav_streamtype nav_packet_streamtype(nav_packet_t *packet);
 
 /**
- * @brief Get decoded data size.
+ * @brief Get presentation timestamp of this packet.
  * @param packet Pointer to the NAV packet instance.
+ * @return Presentation time of the decoded data in seconds, or -1 if unknown.
+ */
+NAV_API double nav_packet_tell(nav_packet_t *packet);
+
+/**
+ * @brief Decode NAV packet instance.
+ * 
+ * @param packet Pointer to the NAV packet instance.
+ * @param dest Pointer where to store the decoded data. Use nav_packet_size() to calculate amount of memory to
+ *             allocate which doesn't require intermediate buffer. This parameter can be NULL.
+ * @param size Size of `dest` buffer in bytes.
+ * @return New NAV decoded frame instance, or NULL on failure.
+ * @warning Most backend only allows you to decode the packet once.
+ */
+NAV_API nav_frame_t *nav_packet_decode(nav_packet_t *packet);
+
+/**
+ * @brief Get decoded data size.
+ * @param packet Pointer to the NAV frame instance.
  * @return Decoded data size, in bytes.
  * @sa nav_audio_size
  * @sa nav_video_size
  */
-NAV_API size_t nav_packet_size(nav_packet_t *packet);
+NAV_API size_t nav_frame_size(nav_frame_t *frame);
 
 /**
- * @brief Decode NAV packet instance.
- * @param packet Pointer to the NAV packet instance.
- * @param dest Pointer where to store the decoded data. Use nav_packet_size(), nav_audio_size(), or nav_video_size()
- *             to calculate amount of memory to allocate.
- * @return Presentation time of the decoded data in seconds, or -1 on EOS or failure.
- * @note nav_error() will return NULL when EOS is reached, otherwise non-NULL is returned.
- * @warning Most backend only allows you to decode the packet once.
+ * @brief Get decoded data buffer.
+ * @param packet Pointer to the NAV frame instance.
+ * @return Decoded data buffer.
  */
-NAV_API double nav_packet_decode(nav_packet_t *packet, void *dest);
+NAV_API const void *nav_frame_buffer(nav_frame_t *frame);
+
+/**
+ * @brief Free the NAV frame instance.
+ * @param packet Pointer to the NAV frame instance.
+ */
+NAV_API void nav_frame_free(nav_frame_t *frame);
 
 #ifdef __cplusplus
 } /* extern "C" */

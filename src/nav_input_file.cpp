@@ -10,6 +10,7 @@
 #endif
 
 #include "nav_input_file.hpp"
+#include "nav_common.hpp"
 #include "nav_error.hpp"
 
 namespace nav::input::file
@@ -81,23 +82,8 @@ bool populate(nav_input *input, const std::string &filename)
 		f = fopen(filename.c_str(), "rb");
 	else
 	{
-		// Do conversion from UTF-8 to UTF-16.
-		int wsize = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filename.c_str(), filename.length(), nullptr, 0);
-		if (wsize == 0)
-		{
-			nav::error::set("Invalid filename");
-			return false;
-		}
-
-		std::vector<wchar_t> wide(wsize + 1, 0);
-		int result = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filename.c_str(), filename.length(), wide.data(), wsize);
-		if (!result)
-		{
-			nav::error::set("Invalid filename");
-			return false;
-		}
-
-		f = _wfopen(wide.data(), L"rb");
+		std::wstring wide = nav::fromUTF8(filename);
+		f = _wfopen(wide.c_str(), L"rb");
 	}
 #else
 	f = fopen(filename.c_str(), "rb");

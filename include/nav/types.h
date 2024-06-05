@@ -6,7 +6,14 @@
 typedef struct nav_t nav_t;
 typedef struct nav_streaminfo_t nav_streaminfo_t;
 typedef struct nav_packet_t nav_packet_t;
-typedef uint8_t nav_bool;
+typedef struct nav_frame_t nav_frame_t;
+
+#ifdef __cplusplus
+typedef bool nav_bool;
+#else
+#include <stdbool.h>
+typedef _Bool nav_bool;
+#endif
 
 typedef enum nav_pixelformat
 {
