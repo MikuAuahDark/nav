@@ -65,11 +65,10 @@ struct WrappedPropVariant: public PROPVARIANT
 namespace nav::mediafoundation
 {
 
-NavInputStream::NavInputStream(nav_input *input, const char *filename, void *(__stdcall *CoTaskMemAlloc)(size_t))
+NavInputStream::NavInputStream(nav_input *input, const char *filename)
 : filename(filename ? filename : "")
 , input(input)
 , refc(1)
-, CoTaskMemAlloc(CoTaskMemAlloc)
 {}
 
 ULONG STDMETHODCALLTYPE NavInputStream::AddRef()
@@ -524,8 +523,7 @@ nav_frame_t *MediaFoundationPacket::decode()
 }
 
 MediaFoundationBackend::MediaFoundationBackend()
-: ole32("ole32.dll")
-, mfplat("mfplat.dll")
+: mfplat("mfplat.dll")
 , mfreadwrite("mfreadwrite.dll")
 , MFStartup(nullptr)
 , MFShutdown(nullptr)
@@ -533,9 +531,6 @@ MediaFoundationBackend::MediaFoundationBackend()
 , MFCreateSourceReaderFromByteStream(nullptr)
 {
 	if (
-		!ole32.get("CoInitializeEx", &CoInitializeEx) ||
-		!ole32.get("CoUninitialize", &CoUninitialize) ||
-		!ole32.get("CoTaskMemAlloc", &CoTaskMemAlloc) ||
 		!mfplat.get("MFStartup", &MFStartup) ||
 		!mfplat.get("MFShutdown", &MFShutdown) ||
 		!mfplat.get("MFCreateMediaType", &MFCreateMediaType) ||
@@ -564,7 +559,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 {
 	input->seekf(0);
 
-	ComPtr<NavInputStream> istream(new NavInputStream(input, filename, CoTaskMemAlloc), false);		
+	ComPtr<NavInputStream> istream(new NavInputStream(input, filename), false);		
 	ComPtr<IMFByteStream> byteStream;
 
 	if (FAILED(MFCreateMFByteStreamOnStream(istream.get(), byteStream.dptr())))

@@ -107,7 +107,7 @@ private:
 class NavInputStream: public IStream
 {
 public:
-	NavInputStream(nav_input *input, const char *filename, void *(__stdcall *CoTaskMemAlloc)(size_t));
+	NavInputStream(nav_input *input, const char *filename);
 
 	/* IUnknown */
 	ULONG STDMETHODCALLTYPE AddRef() override;
@@ -131,7 +131,6 @@ public:
 private:
 	std::string filename;
 	nav_input *input;
-	void *(__stdcall *CoTaskMemAlloc)(size_t);
 	ULONG refc;
 };
 
@@ -190,13 +189,10 @@ private:
 	friend Backend *create();
 	MediaFoundationBackend::MediaFoundationBackend();
 
-	DynLib ole32, mfplat, mfreadwrite;
+	DynLib mfplat, mfreadwrite;
 
 public:
 #define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
-	_NAV_PROXY_FUNCTION_POINTER(CoInitializeEx);
-	_NAV_PROXY_FUNCTION_POINTER(CoUninitialize);
-	_NAV_PROXY_FUNCTION_POINTER(CoTaskMemAlloc);
 	_NAV_PROXY_FUNCTION_POINTER(MFStartup);
 	_NAV_PROXY_FUNCTION_POINTER(MFShutdown);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateMediaType);
