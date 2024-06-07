@@ -2,6 +2,7 @@
 
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 
+#include <iostream>
 #include <memory>
 #include <new>
 #include <stdexcept>
@@ -28,6 +29,19 @@ namespace
 // Don't use GUID_NULL, it needs linking to uuid.lib which is no-no.
 constexpr GUID NULL_GUID = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 constexpr GUID IMFAttributes_GUID = {0x2cd2d921, 0xc447, 0x44a7, {0xa1, 0x3c, 0x4a, 0xda, 0xbf, 0xc2, 0x47, 0xe3}};
+constexpr GUID IMFTransform_GUID = {0xbf94c121, 0x5b05, 0x4e6f, {0x80, 0x00, 0xba, 0x59, 0x89, 0x61, 0x41, 0x4d}};
+
+struct MediaTypeCombination
+{
+	GUID guid;
+	nav_pixelformat pixfmt;
+} mediaTypeCombination[] = {
+	{MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
+	{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
+	{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
+	{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8},
+	{NULL_GUID, NAV_PIXELFORMAT_UNKNOWN}
+};
 
 inline void unixTimestampToFILETIME(FILETIME &ft, uint64_t t = 0LL)
 {
@@ -59,6 +73,119 @@ struct WrappedPropVariant: public PROPVARIANT
 		PropVariantClear(this);
 	}
 };
+
+// static std::ostream &operator<<(std::ostream &st, const GUID &guid)
+// {
+// 	char buf[64];
+// 	std::fill(buf, buf + 64, '\0');
+
+// 	sprintf(
+// 		buf,
+// 		"{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+// 		guid.Data1,
+// 		guid.Data2,
+// 		guid.Data3,
+// 		guid.Data4[0],
+// 		guid.Data4[1],
+// 		guid.Data4[2],
+// 		guid.Data4[3],
+// 		guid.Data4[4],
+// 		guid.Data4[5],
+// 		guid.Data4[6],
+// 		guid.Data4[7]
+// 	);
+// 	return st << buf;
+// }
+
+// static void dumpIMFAttributes(IMFAttributes *attr)
+// {
+// 	UINT32 count = 0;
+// 	if (SUCCEEDED(attr->GetCount(&count)))
+// 	{
+// 		for (UINT32 i = 0; i < count; i++)
+// 		{
+// 			GUID key = NULL_GUID;
+// 			WrappedPropVariant value;
+
+// 			if (SUCCEEDED(attr->GetItemByIndex(i, &key, &value)))
+// 			{
+// 				std::cout << key << ": ";
+// 				if (value.vt == VT_CLSID)
+// 					std::cout << *value.puuid;
+// 				else
+// 					std::cout << value.uhVal.QuadPart;
+// 				std::cout << std::endl;
+// 			}
+// 		}
+// 	}
+// }
+
+// static GUID getBestPixelFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType)
+// {
+// 	using namespace nav::mediafoundation;
+
+// 	GUID inputMediaType;
+// 	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &inputMediaType)))
+// 		return NULL_GUID;
+
+// 	MFT_REGISTER_TYPE_INFO input = {MFMediaType_Video, inputMediaType};
+// 	IMFActivate **activator = nullptr;
+// 	UINT32 numDecoders;
+
+// 	if (FAILED(MFTEnumEx(
+// 		MFT_CATEGORY_VIDEO_DECODER,
+// 		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_HARDWARE,
+// 		&input,
+// 		nullptr,
+// 		&activator,
+// 		&numDecoders
+// 	)))
+// 		return NULL_GUID;
+
+// 	GUID result = NULL_GUID;
+// 	bool found = false;
+
+// 	for (UINT32 i = 0; i < numDecoders; i++)
+// 	{
+// 		ComPtr<IMFActivate> act(activator[i], false);
+
+// 		if (!found)
+// 		{
+// 			// https://www.winehq.org/pipermail/wine-devel/2020-March/162153.html
+// 			ComPtr<IMFTransform> transform;
+
+// 			if (FAILED(act->ActivateObject(IMFTransform_GUID, (void**) transform.dptr())))
+// 				continue;
+
+// 			if (FAILED(transform->SetInputType(0, mediaType, 0)))
+// 			{
+// 				act->ShutdownObject();
+// 				continue;
+// 			}
+
+// 			for (UINT32 j = 0;; j++)
+// 			{
+// 				ComPtr<IMFMediaType> outputType;
+
+// 				if (FAILED(transform->GetOutputAvailableType(0, j, outputType.dptr())))
+// 					continue;
+				
+// 				GUID outputMediaType;
+
+// 				if (SUCCEEDED(outputType->GetGUID(MF_MT_SUBTYPE, &outputMediaType)))
+// 				{
+// 					result = outputMediaType;
+// 					found = true;
+// 				}
+// 			}
+
+// 			act->ShutdownObject();
+// 		}
+// 	}
+
+// 	CoTaskMemFree(activator);
+// 	return result;
+// }
 
 }
 
@@ -252,14 +379,14 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 	// Find how many streams
 	for (DWORD i = 0; i < 0xFFFFFFFCU; i++)
 	{
-		ComPtr<IMFMediaType> mfMediaType;
+		ComPtr<IMFMediaType> mfMediaType, mfNativeMediaType;
 		HRESULT hr = mfsr->GetCurrentMediaType(i, mfMediaType.dptr());
 
 		if (hr == MF_E_INVALIDSTREAMNUMBER)
 			break;
 		else if (FAILED(hr))
 			throw std::runtime_error("IMFSourceReader::GetCurrentMediaType failed");
-		
+
 		nav::StreamInfo streamInfo {NAV_STREAMTYPE_UNKNOWN};
 		GUID majorType;
 
@@ -308,16 +435,44 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 			else if (majorType == MFMediaType_Video)
 			{
 				failed = FAILED(backend->MFCreateMediaType(partialType.dptr()));
+				nav_pixelformat pixfmt = NAV_PIXELFORMAT_UNKNOWN;
 
 				if (!failed)
 				{
-					partialType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-					partialType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_I420);
-					failed = failed || FAILED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get()));
+					// GUID encodedType = NULL_GUID;
+					// mfMediaType->GetGUID(MF_MT_SUBTYPE, &encodedType);
+
+					// GUID bestPixelFormat = getBestPixelFormat(backend->MFTEnumEx, mfMediaType.get());
+					// if (bestPixelFormat != NULL_GUID)
+					// {
+					// 	mfMediaType->CopyAllItems(partialType.get());
+					// 	partialType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_I420);
+					// 	hr = mfsr->SetCurrentMediaType(i, nullptr, partialType.get());
+					// 	failed = failed || FAILED(hr);
+					// }
+					// else
+					// 	failed = true;
+					mfMediaType->CopyAllItems(partialType.get());
+
+					for (const MediaTypeCombination &comb: mediaTypeCombination)
+					{
+						if (comb.pixfmt == NAV_PIXELFORMAT_UNKNOWN)
+							continue;
+
+						partialType->SetGUID(MF_MT_SUBTYPE, comb.guid);
+						if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
+						{
+							pixfmt = comb.pixfmt;
+							break;
+						}
+					}
+
 				}
 
+				failed = failed || pixfmt == NAV_PIXELFORMAT_UNKNOWN;
+
 				if (!failed)
-					{
+				{
 					ULARGE_INTEGER fps, dimensions;
 
 					// Dimensions
@@ -535,6 +690,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 		!mfplat.get("MFShutdown", &MFShutdown) ||
 		!mfplat.get("MFCreateMediaType", &MFCreateMediaType) ||
 		!mfplat.get("MFCreateMFByteStreamOnStream", &MFCreateMFByteStreamOnStream) ||
+		!mfplat.get("MFTEnumEx", &MFTEnumEx) ||
 		!mfreadwrite.get("MFCreateSourceReaderFromByteStream", &MFCreateSourceReaderFromByteStream)
 	)
 		throw std::runtime_error("cannot load MediaFoundation function pointer");

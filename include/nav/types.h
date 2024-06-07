@@ -25,6 +25,8 @@ typedef enum nav_pixelformat
 	NAV_PIXELFORMAT_YUV420,
 	/* YUV 4:4:4 subsampling, planar. */
 	NAV_PIXELFORMAT_YUV444,
+	/* YUV 4:2:0 subsampling, Y is planar, UV is packed. */
+	NAV_PIXELFORMAT_NV12
 } nav_pixelformat;
 
 typedef enum nav_streamtype

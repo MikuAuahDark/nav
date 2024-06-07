@@ -37,9 +37,6 @@ public:
 
 	ComPtr(const ComPtr<T> &other)
 	{
-		if (ptr)
-			ptr->Release();
-
 		ptr = other.ptr;
 		if (ptr)
 			ptr->AddRef();
@@ -59,8 +56,13 @@ public:
 
 	ComPtr &operator=(const ComPtr<T> &other)
 	{
+		if (other.ptr)
+			other.ptr->AddRef();
+
+		if (ptr)
+			ptr->Release();
+
 		ptr = other.ptr
-		ptr->AddRef();
 		return *this;
 	}
 
@@ -197,6 +199,7 @@ public:
 	_NAV_PROXY_FUNCTION_POINTER(MFShutdown);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateMediaType);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateMFByteStreamOnStream);
+	_NAV_PROXY_FUNCTION_POINTER(MFTEnumEx);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateSourceReaderFromByteStream);
 #undef _NAV_PROXY_FUNCTION_POINTER
 };
