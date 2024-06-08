@@ -73,7 +73,7 @@ public:
 		return *this;
 	}
 
-	T *operator->()
+	T *operator->() const
 	{
 		return ptr;
 	}
@@ -199,7 +199,6 @@ public:
 	_NAV_PROXY_FUNCTION_POINTER(MFShutdown);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateMediaType);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateMFByteStreamOnStream);
-	_NAV_PROXY_FUNCTION_POINTER(MFTEnumEx);
 	_NAV_PROXY_FUNCTION_POINTER(MFCreateSourceReaderFromByteStream);
 #undef _NAV_PROXY_FUNCTION_POINTER
 };

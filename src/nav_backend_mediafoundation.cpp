@@ -40,7 +40,16 @@ struct MediaTypeCombination
 	{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
 	{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
 	{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8},
-	{NULL_GUID, NAV_PIXELFORMAT_UNKNOWN}
+};
+
+struct KnownBestCombination
+{
+	GUID codec;
+	GUID rawformat;
+	nav_pixelformat pixfmt;
+} knownBestCombination[] = {
+	{MFVideoFormat_H264, MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
+	{MFVideoFormat_VP90, MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
 };
 
 inline void unixTimestampToFILETIME(FILETIME &ft, uint64_t t = 0LL)
@@ -452,21 +461,42 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 					// }
 					// else
 					// 	failed = true;
+					bool gotCodec = false;
+					GUID codec = NULL_GUID;
+
+					mfMediaType->GetGUID(MF_MT_SUBTYPE, &codec);
 					mfMediaType->CopyAllItems(partialType.get());
+					mfMediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
 
-					for (const MediaTypeCombination &comb: mediaTypeCombination)
+					// Try best known combination first
+					for (const KnownBestCombination &comb: knownBestCombination)
 					{
-						if (comb.pixfmt == NAV_PIXELFORMAT_UNKNOWN)
-							continue;
-
-						partialType->SetGUID(MF_MT_SUBTYPE, comb.guid);
-						if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
+						if (comb.codec != NULL_GUID && comb.codec == codec)
 						{
-							pixfmt = comb.pixfmt;
+							partialType->SetGUID(MF_MT_SUBTYPE, comb.rawformat);
+
+							if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
+							{
+								gotCodec = true;
+								pixfmt = comb.pixfmt;
+							}
+
 							break;
 						}
 					}
 
+					if (!gotCodec)
+					{
+						for (const MediaTypeCombination &comb: mediaTypeCombination)
+						{
+							partialType->SetGUID(MF_MT_SUBTYPE, comb.guid);
+							if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
+							{
+								pixfmt = comb.pixfmt;
+								break;
+							}
+						}
+					}
 				}
 
 				failed = failed || pixfmt == NAV_PIXELFORMAT_UNKNOWN;
@@ -485,12 +515,11 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 
 					if (!failed)
 					{
-						// FIXME: Assume YUV420P for now
 						streamInfo.type = NAV_STREAMTYPE_VIDEO;
 						streamInfo.video.fps = fps.LowPart == 0 ? 0.0 : ((double) fps.HighPart / (double) fps.LowPart);
 						streamInfo.video.width = dimensions.HighPart;
 						streamInfo.video.height = dimensions.LowPart;
-						streamInfo.video.format = NAV_PIXELFORMAT_YUV420;
+						streamInfo.video.format = pixfmt;
 					}
 				}
 			}
@@ -605,11 +634,12 @@ nav_packet_t *MediaFoundationState::read()
 			return nullptr;
 		if (mfSample)
 		{
-			DWORD totalbufsize;
+			ComPtr<IMFMediaBuffer> testbuf;
+			DWORD bufcount;
 
-			if (FAILED(mfSample->GetTotalLength(&totalbufsize)))
+			if (FAILED(mfSample->GetBufferCount(&bufcount)))
 				throw std::runtime_error("MediaFoundation assertion failed");
-			if (totalbufsize > 0)
+			if (bufcount > 0)
 				return new MediaFoundationPacket(this, mfSample, streamIndex, timestamp);
 		}
 	}
@@ -643,38 +673,18 @@ double MediaFoundationPacket::tell() const noexcept
 
 nav_frame_t *MediaFoundationPacket::decode()
 {
-	DWORD bufsize, bufcount;
-
-	if (FAILED(mfSample->GetTotalLength(&bufsize)))
+	DWORD bufsize, tempbufsize;
+	ComPtr<IMFMediaBuffer> mfMediaBuffer;
+	if (FAILED(mfSample->ConvertToContiguousBuffer(mfMediaBuffer.dptr())))
 		throw std::runtime_error("MediaFoundation assertion failed");
 
-	if (FAILED(mfSample->GetBufferCount(&bufcount)))
+	BYTE *source;
+	if (FAILED(mfMediaBuffer->Lock(&source, &bufsize, &tempbufsize)))
 		throw std::runtime_error("MediaFoundation assertion failed");
 
-	std::unique_ptr<nav::FrameVector> frame = std::make_unique<nav::FrameVector>(nullptr, bufsize);
-	uint8_t *buf = (uint8_t*) frame->data();
-	size_t bufpos = 0;
-
-	for (DWORD i = 0; i < bufcount; i++)
-	{
-		ComPtr<IMFMediaBuffer> mfMediaBuffer;
-		BYTE *mediaBuffer = nullptr;
-		DWORD mediaBufferSize = 0;
-
-		if (FAILED(mfSample->GetBufferByIndex(i, mfMediaBuffer.dptr())))
-			throw std::runtime_error("IMFSample::GetBufferByIndex failed");
-		
-		if (FAILED(mfMediaBuffer->Lock(&mediaBuffer, nullptr, &mediaBufferSize)))
-			throw std::runtime_error("IMFMediaBuffer::Lock failed");
-		
-		std::copy(mediaBuffer, mediaBuffer + mediaBufferSize, buf + bufpos);
-		bufpos += mediaBufferSize;
-
-		if (FAILED(mfMediaBuffer->Unlock()))
-			throw std::runtime_error("IMFMediaBuffer::Unlock failed (inconsistent state)");
-	}
-
-	return frame.release();
+	nav::FrameVector *frame = new nav::FrameVector(source, bufsize);
+	mfMediaBuffer->Unlock();
+	return frame;
 }
 
 MediaFoundationBackend::MediaFoundationBackend()
@@ -682,6 +692,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 , mfreadwrite("mfreadwrite.dll")
 , MFStartup(nullptr)
 , MFShutdown(nullptr)
+, MFCreateMediaType(nullptr)
 , MFCreateMFByteStreamOnStream(nullptr)
 , MFCreateSourceReaderFromByteStream(nullptr)
 {
@@ -690,7 +701,6 @@ MediaFoundationBackend::MediaFoundationBackend()
 		!mfplat.get("MFShutdown", &MFShutdown) ||
 		!mfplat.get("MFCreateMediaType", &MFCreateMediaType) ||
 		!mfplat.get("MFCreateMFByteStreamOnStream", &MFCreateMFByteStreamOnStream) ||
-		!mfplat.get("MFTEnumEx", &MFTEnumEx) ||
 		!mfreadwrite.get("MFCreateSourceReaderFromByteStream", &MFCreateSourceReaderFromByteStream)
 	)
 		throw std::runtime_error("cannot load MediaFoundation function pointer");

@@ -52,8 +52,9 @@ void *DynLib::_get(const std::string &name, bool &err)
 	void *result = nullptr;
 
 #ifdef _WIN32
+	SetLastError(0);
 	result = GetProcAddress((HMODULE) mod, name.c_str());
-	err = GetLastError() != 0;
+	err = GetLastError() == 0;
 #else
 	dlerror();
 	result = dlsym(mod, name.c_str());
