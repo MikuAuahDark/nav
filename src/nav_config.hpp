@@ -14,7 +14,7 @@
 	// Test for __has_include support
 #	if (defined(_MSC_VER) && _MSC_VER >= 1911) || defined(__GNUC__) || defined(__clang__)
 		// __has_include is supported
-#		if __has_include(<avcodec/avcodec.h>)
+#		if __has_include(<libavcodec/avcodec.h>)
 #			define NAV_BACKEND_FFMPEG
 #		endif
 #	endif /* (defined(_MSC_VER) && _MSC_VER >= 1911) || defined(__GNUC__) || defined(__clang__) */

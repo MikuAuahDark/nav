@@ -601,15 +601,15 @@ nav_packet_t *MediaFoundationState::read()
 
 		currentPosition = (UINT64) timestamp;
 
-		if (streamFlags | MF_SOURCE_READERF_ENDOFSTREAM)
+		if (streamFlags & MF_SOURCE_READERF_ENDOFSTREAM)
 			return nullptr;
 		if (mfSample)
 		{
-			DWORD bufcount;
+			DWORD totalbufsize;
 
-			if (FAILED(mfSample->GetBufferCount(&bufcount)))
+			if (FAILED(mfSample->GetTotalLength(&totalbufsize)))
 				throw std::runtime_error("MediaFoundation assertion failed");
-			if (bufcount > 0)
+			if (totalbufsize > 0)
 				return new MediaFoundationPacket(this, mfSample, streamIndex, timestamp);
 		}
 	}

@@ -296,6 +296,12 @@ extern "C" nav_streamtype nav_packet_streamtype(nav_packet_t *packet)
 	return packet->getStreamInfo()->type;
 }
 
+extern "C" double nav_packet_tell(nav_packet_t *packet)
+{
+	nav::error::set("");
+	return packet->tell();
+}
+
 extern "C" size_t nav_packet_size(nav_packet_t *packet)
 {
 	nav_streaminfo_t *sinfo = packet->getStreamInfo();

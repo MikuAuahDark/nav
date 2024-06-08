@@ -144,7 +144,8 @@ NAV_API double nav_seek(nav_t *nav, double position);
 /**
  * @brief Read NAV packet from NAV instance.
  * @param nav Pointer to NAV instance.
- * @return Pointer to the NAV packet instance.
+ * @return Pointer to the NAV packet instance, or NULL on failure.
+ * @note nav_error() will return NULL on EOS, non-NULL otherwise.
  * @sa nav_packet_free
  * @sa nav_packet_decode
  */

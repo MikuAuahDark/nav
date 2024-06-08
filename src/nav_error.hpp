@@ -9,7 +9,7 @@ namespace nav::error
 
 const char *get();
 void set(const std::string &err);
-inline void set(std::exception &e)
+inline void set(const std::exception &e)
 {
 	set(e.what());
 }
