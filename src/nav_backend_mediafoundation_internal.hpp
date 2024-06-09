@@ -91,11 +91,25 @@ public:
 	T *release(bool callRelease)
 	{
 		T *p = ptr;
-		if (callRelease)
+		if (callRelease && ptr)
 			ptr->Release();
 
 		ptr = nullptr;
 		return p;
+	}
+
+	template<typename U>
+	HRESULT cast(const GUID &iid, ComPtr<U> &dest) const
+	{
+		U *a;
+		HRESULT hr = ptr->QueryInterface(iid, (void**) &a);
+		if (SUCCEEDED(hr))
+		{
+			dest.release(true);
+			dest.ptr = a;
+		}
+
+		return hr;
 	}
 
 	operator bool()
@@ -103,6 +117,7 @@ public:
 		return ptr;
 	}
 private:
+	template<typename> friend class ComPtr;
 	T *ptr;
 };
 
@@ -152,6 +167,8 @@ private:
 	nav_streaminfo_t *streamInfo;
 	ComPtr<IMFSample> mfSample;
 	DWORD streamIndex;
+
+	nav_frame_t *decode2D(ComPtr<IMF2DBuffer> &buf2d);
 };
 
 class MediaFoundationState: public State

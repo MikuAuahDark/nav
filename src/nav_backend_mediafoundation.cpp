@@ -30,6 +30,7 @@ namespace
 constexpr GUID NULL_GUID = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 constexpr GUID IMFAttributes_GUID = {0x2cd2d921, 0xc447, 0x44a7, {0xa1, 0x3c, 0x4a, 0xda, 0xbf, 0xc2, 0x47, 0xe3}};
 constexpr GUID IMFTransform_GUID = {0xbf94c121, 0x5b05, 0x4e6f, {0x80, 0x00, 0xba, 0x59, 0x89, 0x61, 0x41, 0x4d}};
+constexpr GUID IMF2DBuffer_GUID = {0x7DC9D5F9, 0x9ED9, 0x44ec, {0x9B, 0xBF, 0x06, 0x00, 0xBB, 0x58, 0x9F, 0xBB}};
 
 struct MediaTypeCombination
 {
@@ -195,6 +196,50 @@ struct WrappedPropVariant: public PROPVARIANT
 // 	CoTaskMemFree(activator);
 // 	return result;
 // }
+
+static size_t bruteForceExtraHeight(uint32_t width, uint32_t height, size_t contigSize, nav_pixelformat pixelformat)
+{
+	constexpr size_t MAX_ADD_HEIGHT = 32;
+	size_t w = width, h = height;
+
+	switch (pixelformat)
+	{
+		case NAV_PIXELFORMAT_YUV420:
+		{
+			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
+			{
+				size_t size = w * (h + i) + 2 * ((w + 1) / 2) * ((h + i + 1) / 2);
+				if (size == contigSize)
+					return i;
+			}
+			break;
+		}
+		case NAV_PIXELFORMAT_YUV444:
+		{
+			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
+			{
+				size_t size = w * (h + i) * 3;
+				if (size == contigSize)
+					return i;
+			}
+			break;
+		}
+		case NAV_PIXELFORMAT_NV12:
+		{
+			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
+			{
+				size_t size = w * (h + i) + w * (h + i + 1) / 2;
+				if (size == contigSize)
+					return i;
+			}
+			break;
+		}
+		default:
+			break;
+	}
+
+	return 0;
+}
 
 }
 
@@ -673,17 +718,83 @@ double MediaFoundationPacket::tell() const noexcept
 
 nav_frame_t *MediaFoundationPacket::decode()
 {
-	DWORD bufsize, tempbufsize;
+	DWORD maxbufsize, bufsize;
+
 	ComPtr<IMFMediaBuffer> mfMediaBuffer;
-	if (FAILED(mfSample->ConvertToContiguousBuffer(mfMediaBuffer.dptr())))
-		throw std::runtime_error("MediaFoundation assertion failed");
+	if (FAILED(mfSample->GetBufferByIndex(0, mfMediaBuffer.dptr())))
+		throw std::runtime_error("IMFSample::GetBufferByIndex failed");
+	
+	ComPtr<IMF2DBuffer> buf2d;
+	if (SUCCEEDED(mfMediaBuffer.cast(IMF2DBuffer_GUID, buf2d)))
+		return decode2D(buf2d);
 
 	BYTE *source;
-	if (FAILED(mfMediaBuffer->Lock(&source, &bufsize, &tempbufsize)))
-		throw std::runtime_error("MediaFoundation assertion failed");
+	if (FAILED(mfMediaBuffer->Lock(&source, &maxbufsize, &bufsize)))
+		throw std::runtime_error("IMFMediaBuffer::Lock failed");
+	
+	if (bufsize == 0)
+		bufsize = maxbufsize;
 
 	nav::FrameVector *frame = new nav::FrameVector(source, bufsize);
 	mfMediaBuffer->Unlock();
+	return frame;
+}
+
+nav_frame_t *MediaFoundationPacket::decode2D(ComPtr<IMF2DBuffer> &buf2d)
+{
+	BYTE *source = nullptr;
+	size_t dstStride = streamInfo->video.stride();
+	LONG stride = (LONG) dstStride;
+	DWORD contSize = 0;
+
+	buf2d->GetContiguousLength(&contSize);
+
+	if (FAILED(buf2d->Lock2D(&source, &stride)))
+		throw std::runtime_error("IMF2DBuffer::Lock2D failed");
+
+	nav::FrameVector *frame = new (std::nothrow) nav::FrameVector(source, streamInfo->video.size());
+	uint8_t *frameData = (uint8_t*) frame->data();
+
+	for (size_t y = 0; y < streamInfo->video.height; y++)
+		std::copy(source + y * stride, source + (y + 1) * stride, frameData + y * dstStride);
+	
+	// HACK: Some pixel format doesn't provide a way to know additional padding at height.
+	size_t extraHeight = bruteForceExtraHeight((uint32_t) stride, streamInfo->video.height, contSize, streamInfo->video.format);
+
+	LONG chromaStride = stride;
+	size_t chromaDstStride = dstStride;
+	uint32_t chromaHeight = streamInfo->video.height;
+	size_t chromaRealHeight = chromaHeight + extraHeight;
+
+	switch (streamInfo->video.format)
+	{
+		case NAV_PIXELFORMAT_RGB8:
+			buf2d->Unlock2D();
+			return frame; // We're done
+		case NAV_PIXELFORMAT_YUV420:
+			chromaStride = (chromaStride + 1) / 2;
+			chromaDstStride = (chromaDstStride + 1) / 2;
+			[[fallthrough]];
+		case NAV_PIXELFORMAT_NV12:
+			chromaHeight = (chromaHeight + 1) / 2;
+			chromaRealHeight = (chromaRealHeight + 1) / 2;
+			break;
+	}
+
+	BYTE *uvSource = source + (streamInfo->video.height + extraHeight) * stride;
+	BYTE *uvDest = frameData + streamInfo->video.height * dstStride;
+
+	for (int i = 0; i < (streamInfo->video.format == NAV_PIXELFORMAT_NV12 ? 1 : 2); i++)
+	{
+		// Copy U plane (or UV for NV12)
+		for (size_t y = 0; y < chromaHeight; y++)
+			std::copy(uvSource + y * chromaStride, uvSource + (y + 1) * chromaStride, uvDest + y * chromaDstStride);
+
+		uvSource += chromaRealHeight * chromaStride;
+		uvDest += chromaHeight * chromaDstStride;
+	}
+
+	buf2d->Unlock2D();
 	return frame;
 }
 
@@ -736,7 +847,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 		// Try set the filename
 		ComPtr<IMFAttributes> attrs;
 
-		if (SUCCEEDED(byteStream->QueryInterface(IMFAttributes_GUID, (void**) attrs.dptr())))
+		if (SUCCEEDED(byteStream.cast(IMFAttributes_GUID, attrs)))
 		{
 			std::wstring wfilename = nav::fromUTF8(filename);
 			attrs->SetString(MF_BYTESTREAM_ORIGIN_NAME, wfilename.c_str());

@@ -41,7 +41,7 @@ struct nav_streaminfo_t
 		uint32_t sample_rate;
 		nav_audioformat format;
 
-		inline size_t size()
+		inline size_t size() const
 		{
 			return NAV_AUDIOFORMAT_BYTESIZE(format) * (size_t) nchannels;
 		}
@@ -53,7 +53,7 @@ struct nav_streaminfo_t
 		uint32_t width, height;
 		nav_pixelformat format;
 
-		inline size_t size()
+		inline size_t size() const
 		{
 			size_t dimensions = (size_t) width * (size_t) height;
 
@@ -66,7 +66,24 @@ struct nav_streaminfo_t
 				case NAV_PIXELFORMAT_YUV444:
 					return 3 * dimensions;
 				case NAV_PIXELFORMAT_YUV420:
+				case NAV_PIXELFORMAT_NV12:
 					return dimensions + 2 * (width + 1) / 2 * (height + 1) / 2;
+			}
+		}
+
+		// For YUV, only the Y plane is considered.
+		inline size_t stride() const
+		{
+			switch (format)
+			{
+				case NAV_PIXELFORMAT_UNKNOWN:
+				case NAV_PIXELFORMAT_YUV420:
+				case NAV_PIXELFORMAT_YUV444:
+				case NAV_PIXELFORMAT_NV12:
+				default:
+					return width;
+				case NAV_PIXELFORMAT_RGB8:
+					return ((size_t) width) * 3;
 			}
 		}
 	};
