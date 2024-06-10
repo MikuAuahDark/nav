@@ -1,6 +1,14 @@
 #ifndef _NAV_BACKEND_FFMPEG_INTERNAL_
 #define _NAV_BACKEND_FFMPEG_INTERNAL_
 
+#include <memory>
+#include <vector>
+
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
 
 #include "nav_internal.hpp"
 #include "nav_backend.hpp"
@@ -9,9 +17,31 @@
 namespace nav::ffmpeg
 {
 
+template<typename T>
+struct DoublePointerDeleter
+{
+	inline void operator()(T *ptr)
+	{
+		if (ptr)
+		{
+			T *temp = ptr;
+			deleter(&temp);
+		}
+	}
+
+	void(*deleter)(T**);
+};
+	
+using UniqueAVFormatContext = std::unique_ptr<AVFormatContext, decltype(&avformat_free_context)>;
+using UniqueAVIOContext = std::unique_ptr<AVIOContext, DoublePointerDeleter<AVIOContext>>;
+using UniqueAVCodecContext = std::unique_ptr<AVCodecContext, DoublePointerDeleter<AVCodecContext>>;
+
+class FFmpegBackend;
+
 class FFmpegState: public State
 {
 public:
+	FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext);
 	~FFmpegState() override;
 	size_t getStreamCount() noexcept override;
 	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
@@ -21,6 +51,16 @@ public:
 	double getPosition() noexcept override;
 	double setPosition(double off) override;
 	nav_packet_t *read() override;
+
+private:
+	FFmpegBackend *f;
+	UniqueAVFormatContext formatContext;
+	UniqueAVIOContext ioContext;
+
+	std::vector<nav_streaminfo_t> streamInfo;
+	std::vector<AVCodecContext*> decoders;
+	std::vector<SwrContext*> resamplers;
+	std::vector<SwsContext*> rescalers;
 };
 
 class FFmpegBackend: public Backend
@@ -31,11 +71,20 @@ public:
 	State *open(nav_input *input, const char *filename) override;
 
 private:
+	friend class FFmpegState;
+
 	DynLib avutil, avcodec, avformat;
 
 #define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
+	// avformat
 	_NAV_PROXY_FUNCTION_POINTER(avformat_alloc_context);
+	_NAV_PROXY_FUNCTION_POINTER(avformat_find_stream_info);
 	_NAV_PROXY_FUNCTION_POINTER(avformat_free_context);
+	_NAV_PROXY_FUNCTION_POINTER(avformat_open_input);
+	_NAV_PROXY_FUNCTION_POINTER(avio_context_free);
+	// avutil
+	_NAV_PROXY_FUNCTION_POINTER(av_malloc);
+	_NAV_PROXY_FUNCTION_POINTER(av_strerror);
 #undef _NAV_PROXY_FUNCTION_POINTER
 };
 
