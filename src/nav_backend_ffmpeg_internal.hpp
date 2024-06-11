@@ -73,19 +73,11 @@ public:
 private:
 	friend class FFmpegState;
 
-	DynLib avutil, avcodec, avformat;
+	DynLib avutil, avcodec, avformat, swscale, swresample;
 
-#define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
-	// avformat
-	_NAV_PROXY_FUNCTION_POINTER(avformat_alloc_context);
-	_NAV_PROXY_FUNCTION_POINTER(avformat_find_stream_info);
-	_NAV_PROXY_FUNCTION_POINTER(avformat_free_context);
-	_NAV_PROXY_FUNCTION_POINTER(avformat_open_input);
-	_NAV_PROXY_FUNCTION_POINTER(avio_context_free);
-	// avutil
-	_NAV_PROXY_FUNCTION_POINTER(av_malloc);
-	_NAV_PROXY_FUNCTION_POINTER(av_strerror);
-#undef _NAV_PROXY_FUNCTION_POINTER
+#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) decltype(n) *n;
+#include "nav_backend_ffmpeg_funcptr.h"
+#undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 };
 
 }

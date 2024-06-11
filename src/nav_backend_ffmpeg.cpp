@@ -2,6 +2,7 @@
 
 #ifdef NAV_BACKEND_FFMPEG
 
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -367,6 +368,35 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 	}
 }
 
+template<typename T>
+double derationalize(T num, T den, double dv0 = 0.0)
+{
+	if (den == 0)
+		return dv0;
+	T gcd = std::gcd(num, den);
+	num /= gcd;
+	den /= gcd;
+	return double(num) / double(den);
+}
+
+inline double derationalize(const AVRational &r, double dv0 = 0.0)
+{
+	return derationalize(r.num, r.den, dv0);
+}
+
+constexpr std::tuple<unsigned int, unsigned int> extractVersion(unsigned int ver)
+{
+	return std::make_tuple(ver >> 16, (ver >> 16) & 0xFF);
+}
+
+template<unsigned int ver>
+bool isVersionCompatible(unsigned int(*func)())
+{
+	constexpr std::tuple<unsigned int, unsigned int> compilever = extractVersion(ver);
+	std::tuple<unsigned int, unsigned int> runtimever = extractVersion(func());
+	return std::get<0>(runtimever) == std::get<0>(compilever) && (std::get<1>(runtimever) >= std::get<1>(compilever));
+}
+
 namespace nav::ffmpeg
 {
 
@@ -386,72 +416,105 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 		nav_streaminfo_t sinfo = {NAV_STREAMTYPE_UNKNOWN};
 		AVStream *stream = formatContext->streams[i];
 		const AVCodec *codec = nullptr;
-		// UniqueAVCodecContext codecContext(nullptr, {avcodec_free_context});
 		AVCodecContext *codecContext = nullptr;
 		SwsContext *rescaler = nullptr;
 		SwrContext *resampler = nullptr;
+		bool good = true;
 
 		switch (stream->codecpar->codec_type)
 		{
 			case AVMEDIA_TYPE_AUDIO:
 			case AVMEDIA_TYPE_VIDEO:
 			{
-				codec = avcodec_find_decoder(stream->codecpar->codec_id);
-				if (!codec)
+				codec = f->avcodec_find_decoder(stream->codecpar->codec_id);
+				good = codec != nullptr;
+
+				if (good)
 				{
-					stream->discard = AVDISCARD_ALL;
-					break;
+					codecContext = f->avcodec_alloc_context3(codec);
+					good = codecContext;
 				}
 
-				codecContext = avcodec_alloc_context3(codec);
-				if (!codecContext)
-				{
-					stream->discard = AVDISCARD_ALL;
-					break;
-				}
+				if (good)
+					good = avcodec_parameters_to_context(codecContext, stream->codecpar) >= 0;
 
-				if (avcodec_parameters_to_context(codecContext, stream->codecpar) < 0)
-				{
-					avcodec_free_context(&codecContext);
-					stream->discard = AVDISCARD_ALL;
-					break;
-				}
+				if (good)
+					good = f->avcodec_open2(codecContext, codec, nullptr) >= 0;
 
-				if (!avcodec_open2(codecContext, codec, nullptr))
+				if (good)
 				{
-					avcodec_free_context(&codecContext);
-					stream->discard = AVDISCARD_ALL;
-					break;
-				}
-
-				if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
-				{
-					// Audio stream
-					sinfo.audio.format = audioFormatFromAVSampleFormat(
-						getPackedFormatOf((AVSampleFormat) stream->codecpar->format)
-					);
-					sinfo.audio.sample_rate = stream->codecpar->sample_rate;
-					sinfo.audio.nchannels = stream->codecpar->ch_layout.nb_channels;
-					sinfo.type = NAV_STREAMTYPE_AUDIO;
-				}
-				else
-				{
-					AVPixelFormat originalFormat = (AVPixelFormat) stream->codecpar->format;
-					AVPixelFormat rescaleFormat = originalFormat;
-					std::tie(sinfo.video.format, rescaleFormat) = getBestPixelFormat(originalFormat);
-
-					if (originalFormat != rescaleFormat)
+					if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
-						// Need to rescale
-					}
+						AVSampleFormat originalFormat = (AVSampleFormat) stream->codecpar->format;
+						AVSampleFormat packedFormat = getPackedFormatOf(originalFormat);
+						if (packedFormat != originalFormat)
+						{
+							// Need to resample
+							good = f->swr_alloc_set_opts2(
+								&resampler,
+								&stream->codecpar->ch_layout,
+								packedFormat,
+								stream->codecpar->sample_rate,
+								&stream->codecpar->ch_layout,
+								originalFormat,
+								stream->codecpar->sample_rate,
+								0, nullptr
+							) >= 0;
+						}
 
-					// Video stream
-					sinfo.type = NAV_STREAMTYPE_VIDEO;
+						if (good)
+						{
+							// Audio stream
+							sinfo.audio.format = audioFormatFromAVSampleFormat(packedFormat);
+							sinfo.audio.sample_rate = stream->codecpar->sample_rate;
+							sinfo.audio.nchannels = stream->codecpar->ch_layout.nb_channels;
+							sinfo.type = NAV_STREAMTYPE_AUDIO;
+						}
+					}
+					else
+					{
+						AVPixelFormat originalFormat = (AVPixelFormat) stream->codecpar->format;
+						AVPixelFormat rescaleFormat = originalFormat;
+						std::tie(sinfo.video.format, rescaleFormat) = getBestPixelFormat(originalFormat);
+
+						if (originalFormat != rescaleFormat)
+						{
+							// Need to rescale
+							rescaler = f->sws_getContext(
+								stream->codecpar->width,
+								stream->codecpar->height,
+								originalFormat,
+								stream->codecpar->width,
+								stream->codecpar->height,
+								rescaleFormat,
+								SWS_BICUBIC, nullptr, nullptr, nullptr
+							);
+							good = rescaler != nullptr;
+						}
+
+						if (good)
+						{
+							// Video stream
+							sinfo.type = NAV_STREAMTYPE_VIDEO;
+							sinfo.video.width = (uint32_t) stream->codecpar->width;
+							sinfo.video.height = (uint32_t) stream->codecpar->height;
+							sinfo.video.fps = derationalize(stream->avg_frame_rate);
+							// sinfo.video.format is already set
+						}
+					}
 				}
 			}
 			default:
-				stream->discard = AVDISCARD_ALL;
+				good = false;
 				break;
+		}
+
+		if (!good)
+		{
+			stream->discard = AVDISCARD_ALL;
+			f->avcodec_free_context(&codecContext);
+			f->swr_free(&resampler);
+			f->sws_freeContext(rescaler); rescaler = nullptr;
 		}
 
 		streamInfo.push_back(sinfo);
@@ -459,6 +522,16 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 		resamplers.push_back(resampler);
 		rescalers.push_back(rescaler);
 	}
+}
+
+FFmpegState::~FFmpegState()
+{
+	for (AVCodecContext *&decoder: decoders)
+		f->avcodec_free_context(&decoder);
+	for (SwrContext *&resampler: resamplers)
+		f->swr_free(&resampler);
+	for (SwsContext *&rescaler: rescalers)
+		f->sws_freeContext(rescaler);
 }
 
 size_t FFmpegState::getStreamCount() noexcept
@@ -470,17 +543,30 @@ FFmpegBackend::FFmpegBackend()
 : avutil(getLibName("avutil", LIBAVUTIL_VERSION_MAJOR))
 , avcodec(getLibName("avcodec", LIBAVCODEC_VERSION_MAJOR))
 , avformat(getLibName("avformat", LIBAVFORMAT_VERSION_MAJOR))
+, swresample(getLibName("swresample", LIBSWRESAMPLE_VERSION_MAJOR))
+, swscale(getLibName("swscale", LIBSWSCALE_VERSION_MAJOR))
+#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) , n(nullptr)
+#include "nav_backend_ffmpeg_funcptr.h"
+#undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 {
 	if (
-		!avformat.get("avformat_alloc_context", &avformat_alloc_context) ||
-		!avformat.get("avformat_find_stream_info", &avformat_find_stream_info) ||
-		!avformat.get("avformat_free_context", &avformat_free_context) ||
-		!avformat.get("avformat_open_input", &avformat_open_input) ||
-		!avformat.get("avio_context_free", &avio_context_free) ||
-		!avutil.get("av_malloc", &av_malloc) ||
-		!avutil.get("av_strerror", &av_strerror)
+#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) !lib.get(#n, &n) ||
+#include "nav_backend_ffmpeg_funcptr.h"
+#undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
+		!true // needed to fix the preprocessor stuff
 	)
 		throw std::runtime_error("Cannot load FFmpeg function pointer");
+	
+	if (!isVersionCompatible<LIBAVCODEC_VERSION_INT>(avcodec_version))
+		throw std::runtime_error("avcodec version mismatch");
+	if (!isVersionCompatible<LIBAVFORMAT_VERSION_INT>(avformat_version))
+		throw std::runtime_error("avformat version mismatch");
+	if (!isVersionCompatible<LIBAVUTIL_VERSION_INT>(avutil_version))
+		throw std::runtime_error("avutil version mismatch");
+	if (!isVersionCompatible<LIBSWRESAMPLE_VERSION_INT>(swresample_version))
+		throw std::runtime_error("swresample version mismatch");
+	if (!isVersionCompatible<LIBSWSCALE_VERSION_INT>(swscale_version))
+		throw std::runtime_error("swscale version mismatch");
 }
 
 FFmpegBackend::~FFmpegBackend()
