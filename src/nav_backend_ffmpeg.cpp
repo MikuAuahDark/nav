@@ -386,7 +386,7 @@ inline double derationalize(const AVRational &r, double dv0 = 0.0)
 
 constexpr std::tuple<unsigned int, unsigned int> extractVersion(unsigned int ver)
 {
-	return std::make_tuple(ver >> 16, (ver >> 16) & 0xFF);
+	return std::make_tuple(ver >> 16, (ver >> 8) & 0xFF);
 }
 
 template<unsigned int ver>
