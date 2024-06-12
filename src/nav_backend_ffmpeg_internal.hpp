@@ -80,7 +80,7 @@ private:
 
 	DynLib avutil, avcodec, avformat, swscale, swresample;
 
-#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) decltype(n) *n;
+#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) decltype(n) *func_##n;
 #include "nav_backend_ffmpeg_funcptr.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 };

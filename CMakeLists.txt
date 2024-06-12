@@ -3,6 +3,16 @@ project(nav LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Read version
+file(READ include/nav/nav.h NAV_INCLUDE_H LIMIT 1024)
+string(REGEX MATCH "#define NAV_VERSION_MAJOR ([0-9+])" _ "${NAV_INCLUDE_H}")
+set(NAV_VERSION_MAJOR ${CMAKE_MATCH_1})
+string(REGEX MATCH "#define NAV_VERSION_MINOR ([0-9+])" _ "${NAV_INCLUDE_H}")
+set(NAV_VERSION_MINOR ${CMAKE_MATCH_1})
+string(REGEX MATCH "#define NAV_VERSION_PATCH ([0-9+])" _ "${NAV_INCLUDE_H}")
+set(NAV_VERSION_PATCH ${CMAKE_MATCH_1})
+
+# Public include files
 set(NAV_PUBLIC_INCLUDE
 	include/nav/audioformat.h
 	include/nav/input.h
@@ -44,6 +54,12 @@ target_compile_features(nav PRIVATE cxx_std_17)
 get_target_property(NAV_TARGET_TYPE nav TYPE)
 if(NAV_TARGET_TYPE STREQUAL "STATIC_LIBRARY")
 	target_compile_definitions(nav PUBLIC NAV_STATIC)
+endif()
+if(NAV_TARGET_TYPE STREQUAL "SHARED_LIBRARY" AND NOT ANDROID)
+	set_target_properties(nav PROPERTIES
+		VERSION ${NAV_VERSION_MAJOR}.${NAV_VERSION_MINOR}.${NAV_VERSION_PATCH}
+		SOVERSION ${NAV_VERSION_MAJOR}
+	)
 endif()
 
 # Find FFmpeg

@@ -1,6 +1,7 @@
 #ifndef _NAV_TYPES_H_
 #define _NAV_TYPES_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct nav_t nav_t;
