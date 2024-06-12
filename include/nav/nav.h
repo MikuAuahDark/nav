@@ -3,7 +3,7 @@
  * @author Miku AuahDark
  * @brief NPad's Audio Video decoding library.
  * @version 0.1
- * @copyright Copyright (c) 2024 Miku AuahDark License TBA
+ * @copyright Copyright (c) 2024 Miku AuahDark Licensed under zlib/libpng license.
  */
 
 #ifndef _NAV_H_
