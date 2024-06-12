@@ -801,7 +801,7 @@ FFmpegBackend::FFmpegBackend()
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 {
 	if (
-#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) !lib.get(#lib, &func_##n) ||
+#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) !lib.get(#n, &func_##n) ||
 #include "nav_backend_ffmpeg_funcptr.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 		!true // needed to fix the preprocessor stuff
