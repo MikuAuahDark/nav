@@ -5,6 +5,8 @@
 #define _NAV_IMPLEMENTATION_
 #endif
 
+#define NAV_STRINGIZE(x) #x
+
 #include <cstdint>
 
 #include "nav/audioformat.h"

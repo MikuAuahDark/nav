@@ -38,6 +38,8 @@ struct DoublePointerDeleter
 using UniqueAVFormatContext = std::unique_ptr<AVFormatContext, decltype(&avformat_free_context)>;
 using UniqueAVIOContext = std::unique_ptr<AVIOContext, DoublePointerDeleter<AVIOContext>>;
 using UniqueAVCodecContext = std::unique_ptr<AVCodecContext, DoublePointerDeleter<AVCodecContext>>;
+using UniqueAVPacket = std::unique_ptr<AVPacket, DoublePointerDeleter<AVPacket>>;
+using UniqueAVFrame = std::unique_ptr<AVFrame, DoublePointerDeleter<AVFrame>>;
 
 class FFmpegBackend;
 
@@ -56,16 +58,20 @@ public:
 	nav_frame_t *read() override;
 
 private:
+	nav_frame_t *decode(AVFrame *frame, size_t index);
+	bool canDecode(size_t index);
+
 	FFmpegBackend *f;
 	UniqueAVFormatContext formatContext;
 	UniqueAVIOContext ioContext;
+	UniqueAVPacket tempPacket;
+	UniqueAVFrame tempFrame;
+	double position;
 
 	std::vector<nav_streaminfo_t> streamInfo;
 	std::vector<AVCodecContext*> decoders;
 	std::vector<SwrContext*> resamplers;
 	std::vector<SwsContext*> rescalers;
-
-	int64_t position;
 };
 
 class FFmpegBackend: public Backend

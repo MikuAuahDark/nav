@@ -376,6 +376,12 @@ inline double derationalize(const AVRational &r, double dv0 = 0.0)
 	return nav::derationalize(r.num, r.den, dv0);
 }
 
+template<typename T>
+double derationalize(T multipler, const AVRational &r, double dv0 = 0.0)
+{
+	return nav::derationalize(multipler * r.num, (T) r.den, dv0);
+}
+
 constexpr std::tuple<unsigned int, unsigned int> extractVersion(unsigned int ver)
 {
 	return std::make_tuple(ver >> 16, (ver >> 8) & 0xFF);
@@ -389,6 +395,23 @@ bool isVersionCompatible(unsigned int(*func)())
 	return std::get<0>(runtimever) == std::get<0>(compilever) && (std::get<1>(runtimever) >= std::get<1>(compilever));
 }
 
+template<typename T>
+struct CallOnLeave
+{
+	CallOnLeave(void(*func)(T*), T *ptr)
+	: func(func)
+	, ptr(ptr)
+	{}
+
+	~CallOnLeave()
+	{
+		func(ptr);
+	}
+
+	void(*func)(T*);
+	T *ptr;
+};
+
 namespace nav::ffmpeg
 {
 
@@ -396,12 +419,17 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 : f(backend)
 , formatContext(std::move(formatContext))
 , ioContext(std::move(ioContext))
+, tempPacket(f->av_packet_alloc(), {f->av_packet_free})
+, tempFrame(f->av_frame_alloc(), {f->av_frame_free})
+, position(0)
 , streamInfo()
 , decoders()
 , resamplers()
 , rescalers()
-, position(0)
 {
+	if (!tempPacket)
+		throw std::runtime_error("Cannot allocate AVPacket");
+
 	THROW_IF_ERROR(f->av_strerror, f->avformat_find_stream_info(formatContext.get(), nullptr));
 
 	streamInfo.reserve(formatContext->nb_streams);
@@ -475,20 +503,17 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 						AVPixelFormat rescaleFormat = originalFormat;
 						std::tie(sinfo.video.format, rescaleFormat) = getBestPixelFormat(originalFormat);
 
-						if (originalFormat != rescaleFormat)
-						{
-							// Need to rescale
-							rescaler = f->sws_getContext(
-								stream->codecpar->width,
-								stream->codecpar->height,
-								originalFormat,
-								stream->codecpar->width,
-								stream->codecpar->height,
-								rescaleFormat,
-								SWS_BICUBIC, nullptr, nullptr, nullptr
-							);
-							good = rescaler != nullptr;
-						}
+						// Need to rescale
+						rescaler = f->sws_getContext(
+							stream->codecpar->width,
+							stream->codecpar->height,
+							originalFormat,
+							stream->codecpar->width,
+							stream->codecpar->height,
+							rescaleFormat,
+							SWS_BICUBIC, nullptr, nullptr, nullptr
+						);
+						good = rescaler != nullptr;
 
 						if (good)
 						{
@@ -578,7 +603,7 @@ double FFmpegState::getDuration() noexcept
 
 double FFmpegState::getPosition() noexcept
 {
-	return derationalize<int64_t>(position, AV_TIME_BASE);
+	return position;
 }
 
 double FFmpegState::setPosition(double off)
@@ -596,13 +621,165 @@ double FFmpegState::setPosition(double off)
 			0
 		)
 	);
-	position = pos;
-	return derationalize<int64_t>(pos, AV_TIME_BASE);
+	position = derationalize<int64_t>(pos, AV_TIME_BASE);
+	return position;
 }
 
 nav_frame_t *FFmpegState::read()
 {
+	while (true)
+	{
+		int err = 0;
 
+		// We have existing packet lingering around?
+		if (tempPacket->buf)
+		{
+			// Pull frames
+			err = f->avcodec_receive_frame(decoders[tempPacket->stream_index], tempFrame.get());
+			if (err >= 0)
+			{
+				// Has frame
+				CallOnLeave<AVFrame> frameGuard(f->av_frame_unref, tempFrame.get());
+				if (canDecode(tempPacket->stream_index))
+					return decode(tempFrame.get(), tempPacket->stream_index);
+			}
+			else
+			{
+				// No frame for now
+				f->av_packet_unref(tempPacket.get());
+
+				if (err != AVERROR_EOF && err != AVERROR(EAGAIN))
+					// Other error
+					THROW_IF_ERROR(f->av_strerror, err);
+			}
+		}
+
+		// Read packet
+		err = f->av_read_frame(formatContext.get(), tempPacket.get());
+		if (err == AVERROR_EOF)
+			return nullptr; // No more packets
+
+		THROW_IF_ERROR(f->av_strerror, err);
+		position = derationalize(tempPacket->pts, tempPacket->time_base);
+		THROW_IF_ERROR(f->av_strerror, f->avcodec_send_packet(decoders[tempPacket->stream_index], tempPacket.get()));
+	}
+}
+
+nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
+{
+	nav_streaminfo_t *streamInfo = &this->streamInfo[index];
+
+	switch (streamInfo->type)
+	{
+		case NAV_STREAMTYPE_AUDIO:
+		{
+			// Decode audio
+			SwrContext *resampler = resamplers[index];
+			std::unique_ptr<FrameVector> result(new FrameVector(
+				streamInfo,
+				index,
+				derationalize(frame->pts, frame->time_base),
+				resampler ? nullptr : frame->data[0],
+				(
+					((size_t) frame->nb_samples)
+					* frame->ch_layout.nb_channels
+					* NAV_AUDIOFORMAT_BYTESIZE(streamInfo->audio.format)
+				)
+			));
+
+			if (resampler)
+			{
+				uint8_t *tempBuffer[AV_NUM_DATA_POINTERS] = {(uint8_t*) result->data(), nullptr};
+
+				THROW_IF_ERROR(
+					f->av_strerror,
+					f->swr_convert(resampler, tempBuffer, frame->nb_samples, frame->data, frame->linesize[0])
+				);
+			}
+
+			return result.release();
+		}
+		case NAV_STREAMTYPE_VIDEO:
+		{
+			// Decode video
+			SwsContext *rescaler = rescalers[index];
+			size_t needSize = streamInfo->video.size();
+			uint8_t *bufferSetup[AV_NUM_DATA_POINTERS] = {nullptr};
+			size_t dimension = ((size_t) streamInfo->video.width) * streamInfo->video.height;
+			int linesizeSetup[AV_NUM_DATA_POINTERS] = {0};
+			std::unique_ptr<FrameVector> result(new FrameVector(
+				streamInfo,
+				index,
+				derationalize(frame->pts, frame->time_base),
+				nullptr,
+				needSize
+			));
+
+			// Setup buffers and linesize
+			switch (streamInfo->video.format)
+			{
+				default:
+					throw std::runtime_error("internal error @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+				case NAV_PIXELFORMAT_RGB8:
+				{
+					bufferSetup[0] = (uint8_t*) result->data();
+					linesizeSetup[0] = (int) streamInfo->video.width * 3;
+					break;
+				}
+				case NAV_PIXELFORMAT_YUV420:
+				{
+					size_t halfdim = ((size_t) (streamInfo->video.width + 1) / 2) * ((streamInfo->video.height + 1) / 2);
+					bufferSetup[0] = (uint8_t*) result->data();
+					linesizeSetup[0] = streamInfo->video.width;
+					bufferSetup[1] = bufferSetup[0] + dimension;
+					linesizeSetup[1] = (streamInfo->video.width + 1) / 2;
+					bufferSetup[2] = bufferSetup[1] + halfdim;
+					linesizeSetup[2] = linesizeSetup[1];
+					break;
+				}
+				case NAV_PIXELFORMAT_YUV444:
+				{
+					bufferSetup[0] = (uint8_t*) result->data();
+					linesizeSetup[0] = streamInfo->video.width;
+					bufferSetup[1] = bufferSetup[0] + dimension;
+					linesizeSetup[1] = streamInfo->video.width;
+					bufferSetup[2] = bufferSetup[1] + dimension;
+					linesizeSetup[2] = linesizeSetup[1];
+					break;
+				}
+				case NAV_PIXELFORMAT_NV12:
+				{
+					bufferSetup[0] = (uint8_t*) result->data();
+					linesizeSetup[0] = streamInfo->video.width;
+					bufferSetup[1] = bufferSetup[0] + dimension;
+					linesizeSetup[1] = ((streamInfo->video.width + 1) / 2) * 2;
+					break;
+				}
+			}
+
+			// Rescale handles flip.
+			THROW_IF_ERROR(
+				f->av_strerror,
+				f->sws_scale(
+					rescaler,
+					frame->data,
+					frame->linesize,
+					0,
+					streamInfo->video.height,
+					bufferSetup,
+					linesizeSetup
+				)
+			);
+			return result.release();
+		}
+		default:
+			throw std::runtime_error("internal error @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+	}
+}
+
+bool FFmpegState::canDecode(size_t index)
+{
+	return streamInfo[index].type != NAV_STREAMTYPE_UNKNOWN;
 }
 
 FFmpegBackend::FFmpegBackend()
