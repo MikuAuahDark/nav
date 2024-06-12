@@ -10,11 +10,12 @@
 namespace nav
 {
 
-FrameVector::FrameVector(const void *data, size_t size)
-: buffer()
+FrameVector::FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, double position, const void *data, size_t size)
+: buffer(size)
+, streaminfo(streaminfo)
+, streamindex(streamindex)
+, position(position)
 {
-	buffer.resize(size);
-
 	if (data)
 		std::copy((const uint8_t*) data, ((const uint8_t*) data) + size, buffer.data());
 }
@@ -22,6 +23,20 @@ FrameVector::FrameVector(const void *data, size_t size)
 FrameVector::~FrameVector()
 {}
 
+size_t FrameVector::getStreamIndex() const noexcept
+{
+	return streamindex;
+}
+
+nav_streaminfo_t *FrameVector::getStreamInfo() const noexcept
+{
+	return streaminfo;
+}
+
+double FrameVector::tell() const noexcept
+{
+	return position;
+}
 
 size_t FrameVector::size() const noexcept
 {

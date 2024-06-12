@@ -151,26 +151,6 @@ private:
 	ULONG refc;
 };
 
-class MediaFoundationPacket: public Packet
-{
-public:
-	MediaFoundationPacket(MediaFoundationState *state, ComPtr<IMFSample> &mfSample, DWORD streamIndex, LONGLONG timestamp);
-	~MediaFoundationPacket() override;
-	size_t getStreamIndex() const noexcept override;
-	nav_streaminfo_t *getStreamInfo() const noexcept override;
-	double tell() const noexcept override;
-	nav_frame_t *decode() override;
-
-private:
-	LONGLONG timestamp;
-	MediaFoundationState *parent;
-	nav_streaminfo_t *streamInfo;
-	ComPtr<IMFSample> mfSample;
-	DWORD streamIndex;
-
-	nav_frame_t *decode2D(ComPtr<IMF2DBuffer> &buf2d);
-};
-
 class MediaFoundationState: public State
 {
 public:
@@ -183,9 +163,12 @@ public:
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
 	double setPosition(double position) override;
-	nav_packet_t *read() override;
+	nav_frame_t *read() override;
 
 private:
+	nav_frame_t *decode(ComPtr<IMFSample> &mfSample, size_t streamIndex, LONGLONG timestamp);
+	nav_frame_t *decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t streamIndex, LONGLONG timestamp);
+
 	MediaFoundationBackend *backend;
 
 	nav_input *originalInput;

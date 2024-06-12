@@ -13,13 +13,19 @@ namespace nav
 
 struct FrameVector: public nav_frame_t
 {
-	FrameVector(const void *data, size_t size);
+	FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, double position, const void *data, size_t size);
 	~FrameVector() override;
+	size_t getStreamIndex() const noexcept override;
+	nav_streaminfo_t *getStreamInfo() const noexcept override;
+	double tell() const noexcept override;
 	size_t size() const noexcept override;
 	void *data() noexcept override;
 
 private:
 	std::vector<uint8_t> buffer;
+	nav_streaminfo_t *streaminfo;
+	size_t streamindex;
+	double position;
 };
 
 template<typename T>

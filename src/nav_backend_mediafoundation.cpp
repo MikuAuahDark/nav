@@ -663,7 +663,8 @@ double MediaFoundationState::setPosition(double position)
 	currentPosition = newPos;
 	return position;
 }
-nav_packet_t *MediaFoundationState::read()
+
+nav_frame_t *MediaFoundationState::read()
 {
 	while (true)
 	{
@@ -686,38 +687,12 @@ nav_packet_t *MediaFoundationState::read()
 			if (FAILED(mfSample->GetBufferCount(&bufcount)))
 				throw std::runtime_error("MediaFoundation assertion failed");
 			if (bufcount > 0)
-				return new MediaFoundationPacket(this, mfSample, streamIndex, timestamp);
+				return decode(mfSample, streamIndex, timestamp);
 		}
 	}
 }
 
-MediaFoundationPacket::MediaFoundationPacket(MediaFoundationState *state, ComPtr<IMFSample> &mfSample, DWORD streamIndex, LONGLONG timestamp)
-: timestamp(timestamp)
-, parent(state)
-, streamInfo(state->getStreamInfo(streamIndex))
-, mfSample(mfSample)
-, streamIndex(streamIndex)
-{}
-
-MediaFoundationPacket::~MediaFoundationPacket()
-{}
-
-size_t MediaFoundationPacket::getStreamIndex() const noexcept
-{
-	return (size_t) streamIndex;
-}
-
-nav_streaminfo_t *MediaFoundationPacket::getStreamInfo() const noexcept
-{
-	return streamInfo;
-}
-
-double MediaFoundationPacket::tell() const noexcept
-{
-	return derationalize(timestamp, (LONGLONG) MF_100NS_UNIT);
-}
-
-nav_frame_t *MediaFoundationPacket::decode()
+nav_frame_t *MediaFoundationState::decode(ComPtr<IMFSample> &mfSample, size_t streamIndex, LONGLONG timestamp)
 {
 	DWORD maxbufsize, bufsize;
 
@@ -727,7 +702,7 @@ nav_frame_t *MediaFoundationPacket::decode()
 	
 	ComPtr<IMF2DBuffer> buf2d;
 	if (SUCCEEDED(mfMediaBuffer.cast(IMF2DBuffer_GUID, buf2d)))
-		return decode2D(buf2d);
+		return decode2D(buf2d, streamIndex, timestamp);
 
 	BYTE *source;
 	if (FAILED(mfMediaBuffer->Lock(&source, &maxbufsize, &bufsize)))
@@ -736,24 +711,44 @@ nav_frame_t *MediaFoundationPacket::decode()
 	if (bufsize == 0)
 		bufsize = maxbufsize;
 
-	nav::FrameVector *frame = new nav::FrameVector(source, bufsize);
+	nav::FrameVector *frame = new (std::nothrow) nav::FrameVector(
+		&streamInfoList[streamIndex],
+		streamIndex,
+		derationalize(timestamp, (int64_t) MF_100NS_UNIT),
+		source,
+		bufsize
+	);
 	mfMediaBuffer->Unlock();
 	return frame;
 }
 
-nav_frame_t *MediaFoundationPacket::decode2D(ComPtr<IMF2DBuffer> &buf2d)
+nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t streamIndex, LONGLONG timestamp)
 {
 	BYTE *source = nullptr;
+	nav_streaminfo_t *streamInfo = &streamInfoList[streamIndex];
 	size_t dstStride = streamInfo->video.stride();
 	LONG stride = (LONG) dstStride;
 	DWORD contSize = 0;
 
-	buf2d->GetContiguousLength(&contSize);
+	if (FAILED(buf2d->GetContiguousLength(&contSize)))
+		throw std::runtime_error("IMF2DBuffer::GetContiguousLength failed");
 
 	if (FAILED(buf2d->Lock2D(&source, &stride)))
 		throw std::runtime_error("IMF2DBuffer::Lock2D failed");
 
-	nav::FrameVector *frame = new (std::nothrow) nav::FrameVector(source, streamInfo->video.size());
+	nav::FrameVector *frame = new (std::nothrow) nav::FrameVector(
+		streamInfo,
+		streamIndex,
+		derationalize(timestamp, (int64_t) MF_100NS_UNIT),
+		source,
+		streamInfo->video.size()
+	);
+	if (frame == nullptr)
+	{
+		buf2d->Unlock2D();
+		throw std::runtime_error("Cannot create nav_frame_t");
+	}
+
 	uint8_t *frameData = (uint8_t*) frame->data();
 
 	for (size_t y = 0; y < streamInfo->video.height; y++)

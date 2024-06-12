@@ -90,8 +90,8 @@ T wrapcall(C *c, T(C::*m)(Args...), T defval, UArgs... args)
 {
     try
 	{
-		T result = (c->*m)(args...);
 		nav::error::set("");
+		T result = (c->*m)(args...);
 		return result;
 	}
     catch (const std::exception &e)
@@ -169,9 +169,9 @@ extern "C" double nav_seek(nav_t *state, double position)
 	return wrapcall(state, &nav::State::setPosition, -1., position);
 }
 
-extern "C" nav_packet_t *nav_read(nav_t *state)
+extern "C" nav_frame_t *nav_read(nav_t *state)
 {
-	return wrapcall<nav_packet_t*>(state, &nav::State::read, nullptr);
+	return wrapcall<nav_frame_t*>(state, &nav::State::read, nullptr);
 }
 
 extern "C" nav_streamtype nav_streaminfo_type(nav_streaminfo_t *sinfo)
@@ -278,57 +278,22 @@ extern "C" double nav_video_fps(nav_streaminfo_t *sinfo)
 	return sinfo->video.fps;
 }
 
-extern "C" void nav_packet_free(nav_packet_t *packet)
-{
-	delete packet;
-	nav::error::set("");
-}
-
-extern "C" size_t nav_packet_streamindex(nav_packet_t *packet)
+extern "C" size_t nav_frame_streamindex(nav_frame_t *frame)
 {
 	nav::error::set("");
-	return packet->getStreamIndex();
+	return frame->getStreamIndex();
 }
 
-extern "C" nav_streamtype nav_packet_streamtype(nav_packet_t *packet)
+extern "C" nav_streaminfo_t *nav_frame_streaminfo(nav_frame_t *frame)
 {
 	nav::error::set("");
-	return packet->getStreamInfo()->type;
+	return frame->getStreamInfo();
 }
 
-extern "C" double nav_packet_tell(nav_packet_t *packet)
+extern "C" double nav_frame_tell(nav_frame_t *frame)
 {
 	nav::error::set("");
-	return packet->tell();
-}
-
-extern "C" size_t nav_packet_size(nav_packet_t *packet)
-{
-	nav_streaminfo_t *sinfo = packet->getStreamInfo();
-
-	switch (sinfo->type)
-	{
-		case NAV_STREAMTYPE_AUDIO:
-		{
-			nav::error::set("");
-			return sinfo->audio.size();
-		}
-		case NAV_STREAMTYPE_VIDEO:
-		{
-			nav::error::set("");
-			return sinfo->video.size();
-		}
-		default:
-		{
-			nav::error::set("Unknown stream type");
-			return 0;
-		}
-	}
-}
-
-extern "C" nav_frame_t *nav_packet_decode(nav_packet_t *packet)
-{
-	return wrapcall<nav_frame_t*>(packet, &nav::Packet::decode, nullptr);
+	return frame->tell();
 }
 
 extern "C" size_t nav_frame_size(nav_frame_t *frame)

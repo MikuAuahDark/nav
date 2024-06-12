@@ -600,7 +600,7 @@ double FFmpegState::setPosition(double off)
 	return derationalize<int64_t>(pos, AV_TIME_BASE);
 }
 
-nav_packet_t *FFmpegState::read()
+nav_frame_t *FFmpegState::read()
 {
 
 }

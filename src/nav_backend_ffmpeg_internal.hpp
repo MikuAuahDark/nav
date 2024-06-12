@@ -4,11 +4,14 @@
 #include <memory>
 #include <vector>
 
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
+}
 
 #include "nav_internal.hpp"
 #include "nav_backend.hpp"
@@ -50,7 +53,7 @@ public:
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
 	double setPosition(double off) override;
-	nav_packet_t *read() override;
+	nav_frame_t *read() override;
 
 private:
 	FFmpegBackend *f;

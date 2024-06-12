@@ -10,7 +10,9 @@
 #define _NAV_H_
 
 #ifdef _NAV_IMPLEMENTATION_
-#	if defined(_MSC_VER)
+#	if defined(NAV_STATIC)
+#		define NAV_API
+#	elif defined(_MSC_VER)
 #		define NAV_API __declspec(dllexport)
 #	elif defined(__GNUC__) || defined(__clang__)
 #		define NAV_API __attribute__((visibility("default")))
@@ -18,7 +20,9 @@
 #		define NAV_API
 #	endif
 #else
-#	ifdef _MSC_VER
+#	if defined(NAV_STATIC)
+#		define NAV_API
+#	elif defined(_MSC_VER)
 #		define NAV_API __declspec(dllimport)
 #	else
 #		define NAV_API
@@ -142,14 +146,13 @@ NAV_API double nav_duration(nav_t *nav);
 NAV_API double nav_seek(nav_t *nav, double position);
 
 /**
- * @brief Read NAV packet from NAV instance.
+ * @brief Decode stream from NAV instance.
  * @param nav Pointer to NAV instance.
- * @return Pointer to the NAV packet instance, or NULL on failure.
+ * @return Pointer to the NAV decoded frame instance, or NULL on failure.
  * @note nav_error() will return NULL on EOS, non-NULL otherwise.
- * @sa nav_packet_free
- * @sa nav_packet_decode
+ * @sa nav_frame_free
  */
-NAV_API nav_packet_t *nav_read(nav_t *nav);
+NAV_API nav_frame_t *nav_read(nav_t *nav);
 
 /**
  * @brief Get stream type.
@@ -225,47 +228,29 @@ NAV_API nav_pixelformat nav_video_pixel_format(nav_streaminfo_t *streaminfo);
 NAV_API double nav_video_fps(nav_streaminfo_t *streaminfo);
 
 /**
- * @brief Free the NAV packet instance.
- * @param packet Pointer to the NAV packet instance.
+ * @brief Get stream index correspond to the NAV frame instance.
+ * @param frame Pointer to the NAV frame instance.
+ * @return Stream index of the NAV frame. 
  */
-NAV_API void nav_packet_free(nav_packet_t *packet);
+NAV_API size_t nav_frame_streamindex(nav_frame_t *frame);
 
 /**
- * @brief Get stream index correspond to the NAV packet instance.
- * @param packet Pointer to the NAV packet instance.
- * @return Stream index of the NAV packet. 
+ * @brief Get stream type correspond to the NAV frame instance.
+ * @param frame Pointer to the NAV frame instance.
+ * @return Stream info of the NAV frame. 
  */
-NAV_API size_t nav_packet_streamindex(nav_packet_t *packet);
+NAV_API nav_streaminfo_t *nav_frame_streaminfo(nav_frame_t *frame);
 
 /**
- * @brief Get stream type correspond to the NAV packet instance.
- * @param packet Pointer to the NAV packet instance.
- * @return Stream type of the NAV packet. 
- */
-NAV_API nav_streamtype nav_packet_streamtype(nav_packet_t *packet);
-
-/**
- * @brief Get presentation timestamp of this packet.
- * @param packet Pointer to the NAV packet instance.
+ * @brief Get presentation timestamp of this frame.
+ * @param frame Pointer to the NAV frame instance.
  * @return Presentation time of the decoded data in seconds, or -1 if unknown.
  */
-NAV_API double nav_packet_tell(nav_packet_t *packet);
-
-/**
- * @brief Decode NAV packet instance.
- * 
- * @param packet Pointer to the NAV packet instance.
- * @param dest Pointer where to store the decoded data. Use nav_packet_size() to calculate amount of memory to
- *             allocate which doesn't require intermediate buffer. This parameter can be NULL.
- * @param size Size of `dest` buffer in bytes.
- * @return New NAV decoded frame instance, or NULL on failure.
- * @warning Most backend only allows you to decode the packet once.
- */
-NAV_API nav_frame_t *nav_packet_decode(nav_packet_t *packet);
+NAV_API double nav_frame_tell(nav_frame_t *frame);
 
 /**
  * @brief Get decoded data size.
- * @param packet Pointer to the NAV frame instance.
+ * @param frame Pointer to the NAV frame instance.
  * @return Decoded data size, in bytes.
  * @sa nav_audio_size
  * @sa nav_video_size
@@ -274,14 +259,14 @@ NAV_API size_t nav_frame_size(nav_frame_t *frame);
 
 /**
  * @brief Get decoded data buffer.
- * @param packet Pointer to the NAV frame instance.
+ * @param frame Pointer to the NAV frame instance.
  * @return Decoded data buffer.
  */
 NAV_API const void *nav_frame_buffer(nav_frame_t *frame);
 
 /**
  * @brief Free the NAV frame instance.
- * @param packet Pointer to the NAV frame instance.
+ * @param frame Pointer to the NAV frame instance.
  */
 NAV_API void nav_frame_free(nav_frame_t *frame);
 
