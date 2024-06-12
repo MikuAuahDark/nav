@@ -32,6 +32,8 @@ constexpr GUID IMFAttributes_GUID = {0x2cd2d921, 0xc447, 0x44a7, {0xa1, 0x3c, 0x
 constexpr GUID IMFTransform_GUID = {0xbf94c121, 0x5b05, 0x4e6f, {0x80, 0x00, 0xba, 0x59, 0x89, 0x61, 0x41, 0x4d}};
 constexpr GUID IMF2DBuffer_GUID = {0x7DC9D5F9, 0x9ED9, 0x44ec, {0x9B, 0xBF, 0x06, 0x00, 0xBB, 0x58, 0x9F, 0xBB}};
 
+constexpr uint64_t MF_100NS_UNIT = 10000000;
+
 struct MediaTypeCombination
 {
 	GUID guid;
@@ -561,7 +563,7 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 					if (!failed)
 					{
 						streamInfo.type = NAV_STREAMTYPE_VIDEO;
-						streamInfo.video.fps = fps.LowPart == 0 ? 0.0 : ((double) fps.HighPart / (double) fps.LowPart);
+						streamInfo.video.fps = derationalize(fps.HighPart, fps.LowPart);
 						streamInfo.video.width = dimensions.HighPart;
 						streamInfo.video.height = dimensions.LowPart;
 						streamInfo.video.format = pixfmt;
@@ -592,7 +594,6 @@ nav_streaminfo_t *MediaFoundationState::getStreamInfo(size_t index) noexcept
 		return nullptr;
 	}
 
-	nav::error::set("Stream index out of range");
 	return &streamInfoList[index];
 }
 
@@ -640,12 +641,12 @@ double MediaFoundationState::getDuration() noexcept
 	if (FAILED(mfSourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &pvar)))
 		return -1.0;
 	
-	return ((double) pvar.uhVal.QuadPart) / 1e7;
+	return derationalize(pvar.uhVal.QuadPart, MF_100NS_UNIT);
 }
 
 double MediaFoundationState::getPosition() noexcept
 {
-	return ((double) currentPosition) / 1e7;
+	return derationalize(currentPosition, MF_100NS_UNIT);
 }
 
 double MediaFoundationState::setPosition(double position)
@@ -713,7 +714,7 @@ nav_streaminfo_t *MediaFoundationPacket::getStreamInfo() const noexcept
 
 double MediaFoundationPacket::tell() const noexcept
 {
-	return ((double) timestamp) / 1e7;
+	return derationalize(timestamp, (LONGLONG) MF_100NS_UNIT);
 }
 
 nav_frame_t *MediaFoundationPacket::decode()

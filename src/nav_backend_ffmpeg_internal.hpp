@@ -61,6 +61,8 @@ private:
 	std::vector<AVCodecContext*> decoders;
 	std::vector<SwrContext*> resamplers;
 	std::vector<SwsContext*> rescalers;
+
+	int64_t position;
 };
 
 class FFmpegBackend: public Backend

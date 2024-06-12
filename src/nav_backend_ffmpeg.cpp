@@ -8,6 +8,7 @@
 #include <tuple>
 
 #include "nav_internal.hpp"
+#include "nav_common.hpp"
 #include "nav_error.hpp"
 #include "nav_backend_ffmpeg.hpp"
 #include "nav_backend_ffmpeg_internal.hpp"
@@ -43,6 +44,10 @@ static int64_t inputSeek(void *nav_input, int64_t offset, int origin)
 	struct nav_input *input = (struct nav_input*) nav_input;
 	
 	int64_t filesize = (int64_t) input->sizef();
+
+	if (origin & AVSEEK_SIZE)
+		return filesize;
+
 	int64_t realoff = 0;
 
 	switch (origin)
@@ -57,8 +62,6 @@ static int64_t inputSeek(void *nav_input, int64_t offset, int origin)
 		case SEEK_END:
 			realoff = uint64_t(filesize + offset);
 			break;
-		case AVSEEK_SIZE:
-			return filesize;
 		default:
 			return AVERROR(EINVAL);
 	}
@@ -79,7 +82,7 @@ static std::runtime_error throwFromAVError(decltype(&av_strerror) av_strerror, i
 	return std::runtime_error(r == 0 ? temp : "Unknown libav error");
 }
 
-inline int THROW_IF_ERROR(decltype(&av_strerror) av_strerror, int err)
+inline int THROW_IF_ERROR(decltype(&av_strerror) av_strerror, int err) noexcept(false)
 {
 	if (err < 0)
 		throw throwFromAVError(av_strerror, err);
@@ -368,20 +371,9 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 	}
 }
 
-template<typename T>
-double derationalize(T num, T den, double dv0 = 0.0)
-{
-	if (den == 0)
-		return dv0;
-	T gcd = std::gcd(num, den);
-	num /= gcd;
-	den /= gcd;
-	return double(num) / double(den);
-}
-
 inline double derationalize(const AVRational &r, double dv0 = 0.0)
 {
-	return derationalize(r.num, r.den, dv0);
+	return nav::derationalize(r.num, r.den, dv0);
 }
 
 constexpr std::tuple<unsigned int, unsigned int> extractVersion(unsigned int ver)
@@ -408,8 +400,14 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 , decoders()
 , resamplers()
 , rescalers()
+, position(0)
 {
 	THROW_IF_ERROR(f->av_strerror, f->avformat_find_stream_info(formatContext.get(), nullptr));
+
+	streamInfo.reserve(formatContext->nb_streams);
+	decoders.reserve(formatContext->nb_streams);
+	resamplers.reserve(formatContext->nb_streams);
+	rescalers.reserve(formatContext->nb_streams);
 
 	for (unsigned int i = 0; i < formatContext->nb_streams; i++)
 	{
@@ -436,7 +434,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 				}
 
 				if (good)
-					good = avcodec_parameters_to_context(codecContext, stream->codecpar) >= 0;
+					good = f->avcodec_parameters_to_context(codecContext, stream->codecpar) >= 0;
 
 				if (good)
 					good = f->avcodec_open2(codecContext, codec, nullptr) >= 0;
@@ -537,6 +535,74 @@ FFmpegState::~FFmpegState()
 size_t FFmpegState::getStreamCount() noexcept
 {
 	return formatContext->nb_streams;
+}
+
+nav_streaminfo_t *FFmpegState::getStreamInfo(size_t index) noexcept
+{
+	if (index >= streamInfo.size())
+	{
+		nav::error::set("Stream index out of range");
+		return nullptr;
+	}
+
+	return &streamInfo[index];
+}
+
+bool FFmpegState::isStreamEnabled(size_t index) noexcept
+{
+	if (index >= streamInfo.size())
+	{
+		nav::error::set("Stream index out of range");
+		return false;
+	}
+
+	return formatContext->streams[index]->discard != AVDISCARD_ALL;
+}
+
+bool FFmpegState::setStreamEnabled(size_t index, bool enabled)
+{
+	if (index >= streamInfo.size())
+	{
+		nav::error::set("Stream index out of range");
+		return false;
+	}
+
+	formatContext->streams[index]->discard = enabled ? AVDISCARD_DEFAULT : AVDISCARD_ALL;
+	return true;
+}
+
+double FFmpegState::getDuration() noexcept
+{
+	return derationalize<int64_t>(formatContext->duration, AV_TIME_BASE);
+}
+
+double FFmpegState::getPosition() noexcept
+{
+	return derationalize<int64_t>(position, AV_TIME_BASE);
+}
+
+double FFmpegState::setPosition(double off)
+{
+	int64_t pos = int64_t(off * AV_TIME_BASE);
+	THROW_IF_ERROR(f->av_strerror, f->avformat_flush(formatContext.get()));
+	THROW_IF_ERROR(
+		f->av_strerror,
+		f->avformat_seek_file(
+			formatContext.get(),
+			-1,
+			std::numeric_limits<int64_t>::min(),
+			pos,
+			std::numeric_limits<int64_t>::max(),
+			0
+		)
+	);
+	position = pos;
+	return derationalize<int64_t>(pos, AV_TIME_BASE);
+}
+
+nav_packet_t *FFmpegState::read()
+{
+
 }
 
 FFmpegBackend::FFmpegBackend()
