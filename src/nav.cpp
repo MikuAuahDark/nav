@@ -105,6 +105,16 @@ T wrapcall(C *c, T(C::*m)(Args...), T defval, UArgs... args)
 	}
 }
 
+extern "C" uint32_t nav_version()
+{
+	return NAV_VERSION;
+}
+
+extern "C" const char *nav_version_string()
+{
+	return NAV_STRINGIZE(NAV_VERSION_MAJOR) "." NAV_STRINGIZE(NAV_VERSION_MINOR) "." NAV_STRINGIZE(NAV_VERSION_PATCH);
+}
+
 extern "C" const char *nav_error()
 {
 	return nav::error::get();

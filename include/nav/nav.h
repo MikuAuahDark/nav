@@ -2,12 +2,17 @@
  * @file nav.h
  * @author Miku AuahDark
  * @brief NPad's Audio Video decoding library.
- * @version 0.0
+ * @version 0.1
  * @copyright Copyright (c) 2024 Miku AuahDark License TBA
  */
 
 #ifndef _NAV_H_
 #define _NAV_H_
+
+#define NAV_VERSION_MAJOR 0
+#define NAV_VERSION_MINOR 1
+#define NAV_VERSION_PATCH 0
+#define NAV_VERSION ((NAV_VERSION_MAJOR << 16) | (NAV_VERSION_MINOR << 8) | NAV_VERSION_PATCH)
 
 #ifdef _NAV_IMPLEMENTATION_
 #	if defined(NAV_STATIC)
@@ -36,6 +41,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Get integer version of currently loaded NAV library.
+ * @return Integer version of NAV, formatted same as NAV_VERSION.
+ */
+NAV_API uint32_t nav_version();
+
+/**
+ * @brief Get null-terminated string representation of currently loaded NAV library.
+ * @return Pointer to null-terminated string (this always points to valid pointer).
+ */
+NAV_API const char *nav_version_string();
 
 /**
  * @brief Get last error message from last invocation of NAV functions.
