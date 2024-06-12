@@ -5,7 +5,8 @@
 #define _NAV_IMPLEMENTATION_
 #endif
 
-#define NAV_STRINGIZE(x) #x
+#define NAV_STRINGIZE(x) _NAV_STRINGIZE0_(x)
+#define _NAV_STRINGIZE0_(x) #x
 
 #include <cstdint>
 
@@ -68,7 +69,7 @@ struct nav_streaminfo_t
 					return 3 * dimensions;
 				case NAV_PIXELFORMAT_YUV420:
 				case NAV_PIXELFORMAT_NV12:
-					return dimensions + 2 * (width + 1) / 2 * (height + 1) / 2;
+					return dimensions + 2 * ((width + 1) / 2) * ((height + 1) / 2);
 			}
 		}
 

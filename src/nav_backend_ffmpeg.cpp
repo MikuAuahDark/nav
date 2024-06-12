@@ -13,6 +13,8 @@
 #include "nav_backend_ffmpeg.hpp"
 #include "nav_backend_ffmpeg_internal.hpp"
 
+#if NAV_BACKEND_FFMPEG_OK
+
 static std::string getLibName(const char *compname, int ver)
 {
 	char buf[64];
@@ -414,10 +416,10 @@ struct CallOnLeave
 namespace nav::ffmpeg
 {
 
-FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext)
+FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, UniqueAVIOContext &ioctx)
 : f(backend)
-, formatContext(std::move(formatContext))
-, ioContext(std::move(ioContext))
+, formatContext(std::move(fmtctx))
+, ioContext(std::move(ioctx))
 , tempPacket(f->av_packet_alloc(), {f->av_packet_free})
 , tempFrame(f->av_frame_alloc(), {f->av_frame_free})
 , position(0)
@@ -488,6 +490,9 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 						}
 
 						if (good)
+							good = f->swr_init(resampler) >= 0;
+
+						if (good)
 						{
 							// Audio stream
 							sinfo.audio.format = audioFormatFromAVSampleFormat(packedFormat);
@@ -525,6 +530,8 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatCo
 						}
 					}
 				}
+
+				break;
 			}
 			default:
 				good = false;
@@ -639,8 +646,8 @@ nav_frame_t *FFmpegState::read()
 			{
 				// Has frame
 				CallOnLeave<AVFrame> frameGuard(f->av_frame_unref, tempFrame.get());
-				if (canDecode(tempPacket->stream_index))
-					return decode(tempFrame.get(), tempPacket->stream_index);
+				position = derationalize(tempFrame->pts, formatContext->streams[tempPacket->stream_index]->time_base);
+				return decode(tempFrame.get(), tempPacket->stream_index);
 			}
 			else
 			{
@@ -659,8 +666,11 @@ nav_frame_t *FFmpegState::read()
 			return nullptr; // No more packets
 
 		THROW_IF_ERROR(f->av_strerror, err);
-		position = derationalize(tempPacket->pts, tempPacket->time_base);
-		THROW_IF_ERROR(f->av_strerror, f->avcodec_send_packet(decoders[tempPacket->stream_index], tempPacket.get()));
+
+		if (formatContext->streams[tempPacket->stream_index]->discard == AVDISCARD_ALL)
+			f->av_packet_unref(tempPacket.get());
+		else
+			THROW_IF_ERROR(f->av_strerror, f->avcodec_send_packet(decoders[tempPacket->stream_index], tempPacket.get()));
 	}
 }
 
@@ -677,7 +687,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 			std::unique_ptr<FrameVector> result(new FrameVector(
 				streamInfo,
 				index,
-				derationalize(frame->pts, frame->time_base),
+				position,
 				resampler ? nullptr : frame->data[0],
 				(
 					((size_t) frame->nb_samples)
@@ -692,7 +702,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 
 				THROW_IF_ERROR(
 					f->av_strerror,
-					f->swr_convert(resampler, tempBuffer, frame->nb_samples, (const uint8_t**) frame->data, frame->linesize[0])
+					f->swr_convert(resampler, tempBuffer, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples)
 				);
 			}
 
@@ -706,13 +716,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 			uint8_t *bufferSetup[AV_NUM_DATA_POINTERS] = {nullptr};
 			size_t dimension = ((size_t) streamInfo->video.width) * streamInfo->video.height;
 			int linesizeSetup[AV_NUM_DATA_POINTERS] = {0};
-			std::unique_ptr<FrameVector> result(new FrameVector(
-				streamInfo,
-				index,
-				derationalize(frame->pts, frame->time_base),
-				nullptr,
-				needSize
-			));
+			std::unique_ptr<FrameVector> result(new FrameVector(streamInfo, index, position, nullptr, needSize));
 
 			// Setup buffers and linesize
 			switch (streamInfo->video.format)
@@ -778,7 +782,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 
 bool FFmpegState::canDecode(size_t index)
 {
-	return streamInfo[index].type != NAV_STREAMTYPE_UNKNOWN;
+	return streamInfo[index].type != NAV_STREAMTYPE_UNKNOWN && formatContext->streams[index]->discard == AVDISCARD_ALL;
 }
 
 FFmpegBackend::FFmpegBackend()
@@ -859,4 +863,5 @@ Backend *create()
 
 }
 
+#endif /* NAV_BACKEND_FFMPEG_OK */
 #endif /* NAV_BACKEND_FFMPEG */

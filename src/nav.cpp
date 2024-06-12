@@ -80,7 +80,7 @@ private:
 	std::vector<nav::Backend*(*)()> factory;
 	std::mutex mutex;
 } backendContainer({
-#ifdef NAV_BACKEND_FFMPEG
+#if defined(NAV_BACKEND_FFMPEG) && (NAV_BACKEND_FFMPEG_OK)
 	&nav::ffmpeg::create,
 #endif
 #ifdef NAV_BACKEND_MEDIAFOUNDATION

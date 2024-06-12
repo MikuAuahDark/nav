@@ -4,18 +4,12 @@
 #include <memory>
 #include <vector>
 
-extern "C"
-{
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-#include <libswresample/swresample.h>
-#include <libswscale/swscale.h>
-}
-
 #include "nav_internal.hpp"
 #include "nav_backend.hpp"
+#include "nav_backend_ffmpeg.hpp"
 #include "nav_dynlib.hpp"
+
+#if NAV_BACKEND_FFMPEG_OK
 
 namespace nav::ffmpeg
 {
@@ -93,4 +87,5 @@ private:
 
 }
 
+#endif /* NAV_BACKEND_FFMPEG_OK */
 #endif /* _NAV_BACKEND_FFMPEG_INTERNAL_ */
