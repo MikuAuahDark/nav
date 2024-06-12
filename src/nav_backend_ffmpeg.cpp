@@ -53,14 +53,13 @@ static int64_t inputSeek(void *nav_input, int64_t offset, int origin)
 	switch (origin)
 	{
 		case SEEK_SET:
-			realoff = (uint64_t) offset;
+			realoff = offset;
 			break;
 		case SEEK_CUR:
-			int64_t curpos = (int64_t) input->tellf();
-			realoff = curpos + offset;
+			realoff = ((int64_t) input->tellf()) + offset;
 			break;
 		case SEEK_END:
-			realoff = uint64_t(filesize + offset);
+			realoff = filesize + offset;
 			break;
 		default:
 			return AVERROR(EINVAL);
@@ -693,7 +692,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 
 				THROW_IF_ERROR(
 					f->av_strerror,
-					f->swr_convert(resampler, tempBuffer, frame->nb_samples, frame->data, frame->linesize[0])
+					f->swr_convert(resampler, tempBuffer, frame->nb_samples, (const uint8_t**) frame->data, frame->linesize[0])
 				);
 			}
 

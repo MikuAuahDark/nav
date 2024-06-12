@@ -5,6 +5,7 @@
 
 #include "nav_internal.hpp"
 #include "nav_backend.hpp"
+#include "nav_backend_ffmpeg.hpp"
 #include "nav_backend_mediafoundation.hpp"
 #include "nav_error.hpp"
 #include "nav_input_file.hpp"
@@ -79,6 +80,9 @@ private:
 	std::vector<nav::Backend*(*)()> factory;
 	std::mutex mutex;
 } backendContainer({
+#ifdef NAV_BACKEND_FFMPEG
+	&nav::ffmpeg::create,
+#endif
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 	&nav::mediafoundation::create,
 #endif
