@@ -55,6 +55,7 @@ else()
 endif()
 
 if(FFMPEG_FOUND OR FFMPEG_INCLUDE_DIRS)
+	message(STATUS "Using FFmpeg include directory: ${FFMPEG_INCLUDE_DIRS}")
 	target_include_directories(nav PRIVATE ${FFMPEG_INCLUDE_DIRS})
 endif()
 
