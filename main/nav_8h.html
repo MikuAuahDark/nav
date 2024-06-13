@@ -116,8 +116,11 @@ Macros</h2></td></tr>
 <tr class="memitem:ae08a4161afbd05cf3c9bd0967e84613d" id="r_ae08a4161afbd05cf3c9bd0967e84613d"><td class="memItemLeft" align="right" valign="top"><a id="ae08a4161afbd05cf3c9bd0967e84613d" name="ae08a4161afbd05cf3c9bd0967e84613d"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION_PATCH</b>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:ae08a4161afbd05cf3c9bd0967e84613d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad7bdcb991ee4633118742c4043684a68" id="r_ad7bdcb991ee4633118742c4043684a68"><td class="memItemLeft" align="right" valign="top"><a id="ad7bdcb991ee4633118742c4043684a68" name="ad7bdcb991ee4633118742c4043684a68"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION_FORMAT</b>(a,  b,  c)&#160;&#160;&#160;((a &lt;&lt; 16) | (b &lt;&lt; 8) | c)</td></tr>
+<tr class="separator:ad7bdcb991ee4633118742c4043684a68"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10af2df421fb03f18e7ed3036fea823d" id="r_a10af2df421fb03f18e7ed3036fea823d"><td class="memItemLeft" align="right" valign="top"><a id="a10af2df421fb03f18e7ed3036fea823d" name="a10af2df421fb03f18e7ed3036fea823d"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION</b>&#160;&#160;&#160;((NAV_VERSION_MAJOR &lt;&lt; 16) | (NAV_VERSION_MINOR &lt;&lt; 8) | NAV_VERSION_PATCH)</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION</b>&#160;&#160;&#160;NAV_VERSION_FORMAT(NAV_VERSION_MAJOR, NAV_VERSION_MINOR, NAV_VERSION_PATCH)</td></tr>
 <tr class="separator:a10af2df421fb03f18e7ed3036fea823d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6a544c2987d3adb130e285541e0888e" id="r_ae6a544c2987d3adb130e285541e0888e"><td class="memItemLeft" align="right" valign="top"><a id="ae6a544c2987d3adb130e285541e0888e" name="ae6a544c2987d3adb130e285541e0888e"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_API</b></td></tr>
@@ -219,7 +222,7 @@ Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>NPad's Audio Video decoding library. </p>
 <dl class="section author"><dt>Author</dt><dd>Miku AuahDark </dd></dl>
-<dl class="section version"><dt>Version</dt><dd>0.1 </dd></dl>
+<dl class="section version"><dt>Version</dt><dd>0.1.0 </dd></dl>
 <dl class="section copyright"><dt>Copyright</dt><dd>Copyright (c) 2024 Miku AuahDark Licensed under zlib/libpng license. </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
 <a id="aab61c56c755e5432ae1966af5c364850" name="aab61c56c755e5432ae1966af5c364850"></a>
