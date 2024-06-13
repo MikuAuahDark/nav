@@ -2,7 +2,7 @@
  * @file nav.h
  * @author Miku AuahDark
  * @brief NPad's Audio Video decoding library.
- * @version 0.1
+ * @version 0.1.0
  * @copyright Copyright (c) 2024 Miku AuahDark Licensed under zlib/libpng license.
  */
 
@@ -12,7 +12,8 @@
 #define NAV_VERSION_MAJOR 0
 #define NAV_VERSION_MINOR 1
 #define NAV_VERSION_PATCH 0
-#define NAV_VERSION ((NAV_VERSION_MAJOR << 16) | (NAV_VERSION_MINOR << 8) | NAV_VERSION_PATCH)
+#define NAV_VERSION_FORMAT(a, b, c) ((a << 16) | (b << 8) | c)
+#define NAV_VERSION NAV_VERSION_FORMAT(NAV_VERSION_MAJOR, NAV_VERSION_MINOR, NAV_VERSION_PATCH)
 
 #ifdef _NAV_IMPLEMENTATION_
 #	if defined(NAV_STATIC)
