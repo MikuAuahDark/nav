@@ -31,7 +31,7 @@ jobs:
       run:
         rm -rf docs/${{ github.ref_name }}
     - name: Move Generated Docs
-      run: mv -y nav/docs/html docs/${{ github.ref_name }}
+      run: mv -f nav/docs/html docs/${{ github.ref_name }}
     - name: Add and Commit
       uses: EndBug/add-and-commit@v9
       with:
