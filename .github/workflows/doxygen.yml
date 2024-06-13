@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   release:
-    types: [published]
+    types: [released]
 
 concurrency:
   group: "docs"
