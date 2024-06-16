@@ -189,7 +189,7 @@ public:
 
 private:
 	friend Backend *create();
-	MediaFoundationBackend::MediaFoundationBackend();
+	MediaFoundationBackend();
 
 	DynLib mfplat, mfreadwrite;
 
