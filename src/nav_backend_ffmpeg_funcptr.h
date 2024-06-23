@@ -1,6 +1,7 @@
 _NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, av_frame_alloc)
 _NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, av_frame_free)
 _NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, av_frame_unref)
+_NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, av_get_packed_sample_fmt)
 _NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, av_malloc)
 _NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, av_strerror)
 _NAV_PROXY_FUNCTION_POINTER_FFMPEG(avutil, avutil_version)

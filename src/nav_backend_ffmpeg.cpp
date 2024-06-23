@@ -120,32 +120,6 @@ static nav_audioformat audioFormatFromAVSampleFormat(AVSampleFormat format)
 	}
 }
 
-static AVSampleFormat getPackedFormatOf(AVSampleFormat format)
-{
-	switch (format)
-	{
-		default:
-			return format;
-		case AV_SAMPLE_FMT_U8P:
-			return AV_SAMPLE_FMT_U8;
-		case AV_SAMPLE_FMT_S16P:
-			return AV_SAMPLE_FMT_S16;
-		case AV_SAMPLE_FMT_S32P:
-			return AV_SAMPLE_FMT_S32;
-		case AV_SAMPLE_FMT_FLTP:
-			return AV_SAMPLE_FMT_FLT;
-		case AV_SAMPLE_FMT_DBLP:
-			return AV_SAMPLE_FMT_DBL;
-		case AV_SAMPLE_FMT_S64P:
-			return AV_SAMPLE_FMT_S64;
-	}
-}
-
-inline bool isSampleFormatPlanar(AVSampleFormat format)
-{
-	return getPackedFormatOf(format) != format;
-}
-
 static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelFormat pixfmt)
 {
 	switch (pixfmt)
@@ -475,7 +449,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 					if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
 					{
 						AVSampleFormat originalFormat = (AVSampleFormat) stream->codecpar->format;
-						AVSampleFormat packedFormat = getPackedFormatOf(originalFormat);
+						AVSampleFormat packedFormat = NAV_FFCALL(av_get_packed_sample_fmt)(originalFormat);
 						if (packedFormat != originalFormat)
 						{
 							// Need to resample
