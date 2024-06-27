@@ -39,6 +39,13 @@ double derationalize(T num, T den, double dv0 = 0.0)
 	return double(num) / double(den);
 }
 
+inline nav_audioformat makeAudioFormat(uint8_t bps, bool is_float, bool is_signed)
+{
+	uint16_t floatval = NAV_AUDIOFORMAT_ISFLOAT(0xFFFFu) * is_float;
+	uint16_t signedval = NAV_AUDIOFORMAT_ISSIGNED(0xFFFFu) * is_signed;
+	return nav_audioformat(uint16_t(bps) | floatval | signedval);
+}
+
 #ifdef _WIN32
 std::wstring fromUTF8(const std::string &str);
 #endif /* _WIN32 */

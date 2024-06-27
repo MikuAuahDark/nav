@@ -92,13 +92,6 @@ inline int THROW_IF_ERROR(decltype(&av_strerror) func_av_strerror, int err) noex
 	return err;
 }
 
-inline nav_audioformat MAKE_AUDIO_FORMAT(uint8_t bps, bool is_float, bool is_signed)
-{
-	uint16_t floatval = NAV_AUDIOFORMAT_ISFLOAT(0xFFFFu) * is_float;
-	uint16_t signedval = NAV_AUDIOFORMAT_ISSIGNED(0xFFFFu) * is_signed;
-	return nav_audioformat(uint16_t(bps) | floatval | signedval);
-}
-
 static nav_audioformat audioFormatFromAVSampleFormat(AVSampleFormat format)
 {
 	switch (format)
@@ -106,17 +99,17 @@ static nav_audioformat audioFormatFromAVSampleFormat(AVSampleFormat format)
 		default:
 			return 0;
 		case AV_SAMPLE_FMT_U8:
-			return MAKE_AUDIO_FORMAT(8, false, false);
+			return nav::makeAudioFormat(8, false, false);
 		case AV_SAMPLE_FMT_S16:
-			return MAKE_AUDIO_FORMAT(16, false, true);
+			return nav::makeAudioFormat(16, false, true);
 		case AV_SAMPLE_FMT_S32:
-			return MAKE_AUDIO_FORMAT(32, false, true);
+			return nav::makeAudioFormat(32, false, true);
 		case AV_SAMPLE_FMT_S64:
-			return MAKE_AUDIO_FORMAT(64, false, true);
+			return nav::makeAudioFormat(64, false, true);
 		case AV_SAMPLE_FMT_FLT:
-			return MAKE_AUDIO_FORMAT(32, true, true);
+			return nav::makeAudioFormat(32, true, true);
 		case AV_SAMPLE_FMT_DBL:
-			return MAKE_AUDIO_FORMAT(64, true, true);
+			return nav::makeAudioFormat(64, true, true);
 	}
 }
 

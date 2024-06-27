@@ -15,6 +15,8 @@ namespace nav::androidndk
 {
 
 using UniqueMediaExtractor = std::unique_ptr<AMediaExtractor, decltype(&AMediaExtractor_delete)>;
+using UniqueMediaFormat = std::unique_ptr<AMediaFormat, decltype(&AMediaFormat_delete)>;
+using UniqueMediaCodec = std::unique_ptr<AMediaCodec, decltype(&AMediaCodec_delete)>;
 
 class AndroidNDKBackend;
 
@@ -53,8 +55,12 @@ public:
 	nav_frame_t *read() override;
 
 private:
-	MediaSourceWrapper dataSource;
+	AndroidNDKBackend *f;
 	UniqueMediaExtractor extractor;
+	MediaSourceWrapper dataSource;
+
+	std::vector<bool> activeStream;
+	std::vector<nav_streaminfo_t> streamInfo;
 };
 
 class AndroidNDKBackend: public Backend
@@ -66,9 +72,10 @@ public:
 
 private:
 	friend class MediaSourceWrapper;
+	friend class AndroidNDKState;
 	DynLib mediandk;
 
-#define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *func_##n;
+#define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *ptr_##n;
 #include "nav_backend_androidndk_funcptr.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 };

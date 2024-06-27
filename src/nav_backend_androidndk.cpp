@@ -5,8 +5,9 @@
 #include <stdexcept>
 
 #include "nav_backend_androidndk_internal.hpp"
+#include "nav_common.hpp"
 
-#define NAV_FFCALL(n) f->func_##n
+#define NAV_FFCALL(n) f->ptr_##n
 
 const char *getMediaStatusText(media_status_t code)
 {
@@ -74,6 +75,24 @@ inline void THROW_IF_ERROR(media_status_t status)
 		throw std::runtime_error(getMediaStatusText(status));
 }
 
+inline nav_audioformat audioFormatFromPCMEncoding(int encoding)
+{
+	// https://cs.android.com/android/platform/superproject/main/+/main:frameworks/av/media/module/foundation/include/media/stagefright/foundation/MediaDefs.h;l=138;drc=d5137445c0d4067406cb3e38aade5507ff2fcd16
+	switch (encoding)
+	{
+		case 2:
+			return nav::makeAudioFormat(16, false, true);
+		case 3:
+			return nav::makeAudioFormat(8, false, false);
+		case 4:
+			return nav::makeAudioFormat(32, true, true);
+		case 21:
+			return nav::makeAudioFormat(24, false, true);
+		case 22:
+			return nav::makeAudioFormat(32, false, true);
+	}
+}
+
 namespace nav::androidndk
 {
 
@@ -139,9 +158,6 @@ void MediaSourceWrapper::close(void *userdata)
 	input->closef();
 }
 
-#undef NAV_FFCALL
-#define NAV_FFCALL(n) func_##n
-
 ssize_t MediaSourceWrapper::getAvailableSize(void *userdata, off64_t offset)
 {
 	nav_input *input = (nav_input*) userdata;
@@ -149,14 +165,105 @@ ssize_t MediaSourceWrapper::getAvailableSize(void *userdata, off64_t offset)
 	return (ssize_t) input->sizef();
 }
 
+AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtractor &ext, MediaSourceWrapper &ds)
+: f(backend)
+, extractor(std::move(ext))
+, dataSource(std::move(ds))
+, activeStream()
+{
+	size_t tracks = NAV_FFCALL(AMediaExtractor_getTrackCount)(extractor.get());
+	activeStream.resize(tracks, false);
+	streamInfo.resize(tracks);
+
+	for (size_t i = 0; i < tracks; i++)
+	{
+		UniqueMediaFormat format(NAV_FFCALL(AMediaExtractor_getTrackFormat)(extractor.get(), i), NAV_FFCALL(AMediaFormat_delete));
+		const char *mime = nullptr;
+		nav_streamtype streamType = NAV_STREAMTYPE_UNKNOWN;
+		bool r = NAV_FFCALL(AMediaFormat_getString)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_MIME), &mime);
+
+		if (r && mime)
+		{
+			if (strstr(mime, "video/") == mime)
+				streamType = NAV_STREAMTYPE_VIDEO;
+			else if (strstr(mime, "audio/") == mime)
+				streamType = NAV_STREAMTYPE_AUDIO;
+		}
+
+		UniqueMediaCodec codec(nullptr, NAV_FFCALL(AMediaCodec_delete));
+		if (r && streamType != NAV_STREAMTYPE_UNKNOWN)
+		{
+			codec.reset(AMediaCodec_createDecoderByType(mime));
+			r = codec.get();
+		}
+
+		if (!r || streamType == NAV_STREAMTYPE_UNKNOWN)
+		{
+			// No MIME type
+			NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
+			streamInfo[i].type = streamType;
+			activeStream[i] = false;
+			continue;
+		}
+
+		// https://android.googlesource.com/platform/cts/+/23949c5/tests/tests/media/libmediandkjni/native-media-jni.cpp
+		if (
+			NAV_FFCALL(AMediaCodec_configure)(codec.get(), format.get(), nullptr, nullptr, 0) != AMEDIA_OK ||
+			NAV_FFCALL(AMediaCodec_start)(codec.get()) != AMEDIA_OK
+		)
+		{
+			// Cannot configure decoder
+			NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
+			streamInfo[i].type = streamType;
+			activeStream[i] = false;
+			continue;
+		}
+		
+		int32_t val32 = 0;
+		int64_t val64 = 0;
+		int64_t duration = 0;
+
+		streamInfo[i].type = streamType;
+
+		switch (streamType)
+		{
+			default:
+				throw std::runtime_error("internal error @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+			case NAV_STREAMTYPE_AUDIO:
+			{
+				streamInfo[i].audio.sample_rate =
+					NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_SAMPLE_RATE), &val32)
+					? uint32_t(val32)
+					: 0;
+				streamInfo[i].audio.nchannels =
+					NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_CHANNEL_COUNT), &val32)
+					? uint32_t(val32)
+					: 0;
+				streamInfo[i].audio.format =
+					NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_PCM_ENCODING), &val32)
+					? audioFormatFromPCMEncoding(val32)
+					: 0;
+				break;
+			}
+			case NAV_STREAMTYPE_VIDEO:
+			{
+				break;
+			}
+		}
+	}
+}
+
+#undef NAV_FFCALL
+#define NAV_FFCALL(n) ptr_##n
+
 AndroidNDKBackend::AndroidNDKBackend()
 : mediandk("libmediandk.so")
-#define _NAV_PROXY_FUNCTION_POINTER(n) func_##n(nullptr)
+#define _NAV_PROXY_FUNCTION_POINTER(n) ptr_##n(nullptr)
 #include "nav_backend_androidndk_funcptr.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 {
 	if (
-#define _NAV_PROXY_FUNCTION_POINTER(n) !mediandk.get(#n, &func_##n) ||
+#define _NAV_PROXY_FUNCTION_POINTER(n) !mediandk.get(#n, &ptr_##n) ||
 #include "nav_backend_androidndk_funcptr.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 		!true // needed to fix the preprocessor stuff
