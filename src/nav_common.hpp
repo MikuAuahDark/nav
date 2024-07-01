@@ -31,7 +31,7 @@ private:
 template<typename T>
 double derationalize(T num, T den, double dv0 = 0.0)
 {
-	if (den == 0)
+	if (!den)
 		return dv0;
 	T gcd = std::gcd(num, den);
 	num /= gcd;

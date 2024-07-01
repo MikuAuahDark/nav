@@ -56,11 +56,15 @@ public:
 
 private:
 	AndroidNDKBackend *f;
-	UniqueMediaExtractor extractor;
-	MediaSourceWrapper dataSource;
+	int64_t durationUs;
+	int64_t positionUs;
 
 	std::vector<bool> activeStream;
 	std::vector<nav_streaminfo_t> streamInfo;
+	std::vector<UniqueMediaCodec> decoders;
+
+	UniqueMediaExtractor extractor;
+	MediaSourceWrapper dataSource;
 };
 
 class AndroidNDKBackend: public Backend

@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 
+#include "nav_error.hpp"
 #include "nav_backend_androidndk_internal.hpp"
 #include "nav_common.hpp"
 
@@ -66,6 +67,22 @@ const char *getMediaStatusText(media_status_t code)
 			return "The media data or buffer could not be unlocked. (AMEDIA_IMGREADER_CANNOT_UNLOCK_IMAGE)";
 		case AMEDIA_IMGREADER_IMAGE_NOT_LOCKED:
 			return "The media/buffer needs to be locked to perform the required operation. (AMEDIA_IMGREADER_IMAGE_NOT_LOCKED)";
+	}
+}
+
+nav_pixelformat getNDKPixelFormat(int format)
+{
+	// https://developer.android.com/reference/android/media/MediaCodecInfo.CodecCapabilities
+	switch (format)
+	{
+		default:
+			return NAV_PIXELFORMAT_UNKNOWN;
+		case 11: // COLOR_Format24bitRGB888
+			return NAV_PIXELFORMAT_RGB8;
+		case 19: // COLOR_FormatYUV420Planar
+			return NAV_PIXELFORMAT_YUV420;
+		case 21: // COLOR_FormatYUV420SemiPlanar
+			return NAV_PIXELFORMAT_NV12;
 	}
 }
 
@@ -167,16 +184,24 @@ ssize_t MediaSourceWrapper::getAvailableSize(void *userdata, off64_t offset)
 
 AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtractor &ext, MediaSourceWrapper &ds)
 : f(backend)
+, activeStream()
+, streamInfo()
+, decoders()
 , extractor(std::move(ext))
 , dataSource(std::move(ds))
-, activeStream()
 {
 	size_t tracks = NAV_FFCALL(AMediaExtractor_getTrackCount)(extractor.get());
 	activeStream.resize(tracks, false);
 	streamInfo.resize(tracks);
+	decoders.reserve(tracks);
 
 	for (size_t i = 0; i < tracks; i++)
 	{
+		decoders.push_back(std::move(UniqueMediaCodec(nullptr, NAV_FFCALL(AMediaCodec_delete))));
+
+		// Most of these keys are taken from:
+		// https://developer.android.com/reference/android/media/MediaFormat
+
 		UniqueMediaFormat format(NAV_FFCALL(AMediaExtractor_getTrackFormat)(extractor.get(), i), NAV_FFCALL(AMediaFormat_delete));
 		const char *mime = nullptr;
 		nav_streamtype streamType = NAV_STREAMTYPE_UNKNOWN;
@@ -218,12 +243,37 @@ AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtracto
 			activeStream[i] = false;
 			continue;
 		}
+
+		UniqueMediaFormat outputFormat(NAV_FFCALL(AMediaCodec_getOutputFormat)(codec.get()), NAV_FFCALL(AMediaFormat_delete));
 		
 		int32_t val32 = 0;
 		int64_t val64 = 0;
-		int64_t duration = 0;
+		float valf = 0.0;
+
+		// Ensure the output formt is something NAV currently understood
+		if (streamType == NAV_STREAMTYPE_VIDEO)
+		{
+			nav_pixelformat outputPixFmt = NAV_PIXELFORMAT_UNKNOWN;
+
+			if (NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_COLOR_FORMAT), &val32))
+				outputPixFmt = getNDKPixelFormat(val32);
+			if (outputPixFmt == NAV_PIXELFORMAT_UNKNOWN)
+			{
+				// Abort. We don't understand this pixel format.
+				// TODO: Convert some plausible pixel format to something better, if it's lossless.
+				NAV_FFCALL(AMediaCodec_stop)(codec.get());
+				NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
+				streamInfo[i].type = streamType;
+				activeStream[i] = false;
+				continue;
+			}
+
+			streamInfo[i].video.format = outputPixFmt;
+		}
 
 		streamInfo[i].type = streamType;
+		if (NAV_FFCALL(AMediaFormat_getInt64)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_DURATION), &val64))
+			durationUs = std::max(durationUs, val64);
 
 		switch (streamType)
 		{
@@ -240,17 +290,82 @@ AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtracto
 					? uint32_t(val32)
 					: 0;
 				streamInfo[i].audio.format =
-					NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_PCM_ENCODING), &val32)
+					NAV_FFCALL(AMediaFormat_getInt32)(outputFormat.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_PCM_ENCODING), &val32)
 					? audioFormatFromPCMEncoding(val32)
-					: 0;
+					: makeAudioFormat(16, false, true);
 				break;
 			}
 			case NAV_STREAMTYPE_VIDEO:
 			{
+				streamInfo[i].video.width = NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_WIDTH), &val32)
+					? uint32_t(val32)
+					: 0;
+				streamInfo[i].video.height = NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_HEIGHT), &val32)
+					? uint32_t(val32)
+					: 0;
+				streamInfo[i].video.fps = NAV_FFCALL(AMediaFormat_getFloat)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_FRAME_RATE), &valf)
+					? double(valf)
+					: 0.0;
+				// format already set
 				break;
 			}
 		}
+
+		activeStream[i] = true;
+		decoders[i] = std::move(codec);
 	}
+}
+
+AndroidNDKState::~AndroidNDKState()
+{
+	for (const UniqueMediaCodec &codec: decoders)
+	{
+		if (codec)
+			NAV_FFCALL(AMediaCodec_stop)(codec.get());
+	}
+}
+
+size_t AndroidNDKState::getStreamCount() noexcept
+{
+	return activeStream.size();
+}
+
+bool AndroidNDKState::isStreamEnabled(size_t i) noexcept
+{
+	if (i >= activeStream.size())
+	{
+		nav::error::set("Stream index out of range");
+		return false;
+	}
+
+	return activeStream.at(i);
+}
+
+bool AndroidNDKState::setStreamEnabled(size_t i, bool enabled)
+{
+	if (i >= activeStream.size())
+	{
+		nav::error::set("Stream index out of range");
+		return false;
+	}
+
+	media_status_t status = NAV_FFCALL(AMediaExtractor_selectTrack)(extractor.get(), i);
+	if (status == AMEDIA_OK)
+		activeStream[i] = true;
+	else
+		nav::error::set(getMediaStatusText(status));
+
+	return status == AMEDIA_OK;
+}
+
+double AndroidNDKState::getDuration() noexcept
+{
+	return derationalize<int64_t>(durationUs, 1000000);
+}
+
+double AndroidNDKState::getPosition() noexcept
+{
+	return derationalize<int64_t>(positionUs, 1000000);
 }
 
 #undef NAV_FFCALL
