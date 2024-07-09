@@ -61,11 +61,13 @@ private:
 	UniqueAVPacket tempPacket;
 	UniqueAVFrame tempFrame;
 	double position;
+	bool eof;
 
 	std::vector<nav_streaminfo_t> streamInfo;
 	std::vector<AVCodecContext*> decoders;
 	std::vector<SwrContext*> resamplers;
 	std::vector<SwsContext*> rescalers;
+	std::vector<bool> streamEofs;
 };
 
 class FFmpegBackend: public Backend

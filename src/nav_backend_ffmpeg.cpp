@@ -391,11 +391,13 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 , ioContext(std::move(ioctx))
 , tempPacket(NAV_FFCALL(av_packet_alloc)(), {NAV_FFCALL(av_packet_free)})
 , tempFrame(NAV_FFCALL(av_frame_alloc)(), {NAV_FFCALL(av_frame_free)})
-, position(0)
+, position(0.0)
+, eof(false)
 , streamInfo()
 , decoders()
 , resamplers()
 , rescalers()
+, streamEofs()
 {
 	if (!tempPacket)
 		throw std::runtime_error("Cannot allocate AVPacket");
@@ -406,6 +408,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 	decoders.reserve(formatContext->nb_streams);
 	resamplers.reserve(formatContext->nb_streams);
 	rescalers.reserve(formatContext->nb_streams);
+	streamEofs.resize(formatContext->nb_streams);
 
 	for (unsigned int i = 0; i < formatContext->nb_streams; i++)
 	{
@@ -584,6 +587,7 @@ double FFmpegState::getPosition() noexcept
 double FFmpegState::setPosition(double off)
 {
 	int64_t pos = int64_t(off * AV_TIME_BASE);
+
 	THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avformat_flush)(formatContext.get()));
 	THROW_IF_ERROR(
 		NAV_FFCALL(av_strerror),
@@ -596,7 +600,16 @@ double FFmpegState::setPosition(double off)
 			0
 		)
 	);
+
+	for (AVCodecContext *decoder: decoders)
+	{
+		if (decoder)
+			NAV_FFCALL(avcodec_flush_buffers)(decoder);
+	}
+	// No need to flush swr as we're not doing sample-rate conversion.
+
 	position = derationalize<int64_t>(pos, AV_TIME_BASE);
+	eof = false;
 	return position;
 }
 
@@ -629,17 +642,51 @@ nav_frame_t *FFmpegState::read()
 			}
 		}
 
-		// Read packet
-		err = NAV_FFCALL(av_read_frame)(formatContext.get(), tempPacket.get());
-		if (err == AVERROR_EOF)
-			return nullptr; // No more packets
+		if (eof)
+		{
+			// Drain codec context
+			for (size_t i = 0; i < decoders.size(); i++)
+			{
+				AVCodecContext *codecContext = decoders[i];
 
-		THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
+				if (codecContext && !streamEofs[i])
+				{
+					err = NAV_FFCALL(avcodec_receive_frame)(codecContext, nullptr);
+					if (err >= 0)
+					{
+						// Has frame
+						CallOnLeave<AVFrame> frameGuard(NAV_FFCALL(av_frame_unref), tempFrame.get());
+						position = derationalize(tempFrame->pts, formatContext->streams[i]->time_base);
+						return decode(tempFrame.get(), i);
+					}
+					else if (err == AVERROR_EOF)
+						// No more frames
+						streamEofs[i] = true;
+					else
+						// Unhandled error
+						THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
+				}
+			}
 
-		if (formatContext->streams[tempPacket->stream_index]->discard == AVDISCARD_ALL)
-			NAV_FFCALL(av_packet_unref)(tempPacket.get());
+			// This will be reached after all codecs are flushed.
+			return nullptr;
+		}
 		else
-			THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avcodec_send_packet)(decoders[tempPacket->stream_index], tempPacket.get()));
+		{
+			// Read packet
+			err = NAV_FFCALL(av_read_frame)(formatContext.get(), tempPacket.get());
+			if (err == 0)
+			{
+				if (formatContext->streams[tempPacket->stream_index]->discard == AVDISCARD_ALL)
+					NAV_FFCALL(av_packet_unref)(tempPacket.get());
+				else
+					THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avcodec_send_packet)(decoders[tempPacket->stream_index], tempPacket.get()));
+			}
+			else if (err == AVERROR_EOF)
+				eof = true; // No more frames
+			else
+				THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
+		}
 	}
 }
 
