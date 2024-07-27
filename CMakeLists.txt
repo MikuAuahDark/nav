@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 project(nav LANGUAGES C CXX)
 
+if(POLICY CMP0077)
+	cmake_policy(SET CMP0077 NEW)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Read version
@@ -20,11 +24,31 @@ set(NAV_PUBLIC_INCLUDE
 	include/nav/types.h
 )
 
-add_library(nav
+# Shared/static library
+if(NOT DEFINED NAV_SHARED)
+	if(BUILD_SHARED_LIBS)
+		set(NAV_SHARED_DEFAULT 1)
+	else()
+		set(NAV_SHARED_DEFAULT 0)
+	endif()
+endif()
+option(NAV_SHARED "NAV: Build as shared library" ${NAV_SHARED_DEFAULT})
+
+if(NAV_SHARED)
+	set(NAV_SHARED_VALUE SHARED)
+else()
+	set(NAV_SHARED_VALUE STATIC)
+endif()
+
+add_library(nav ${NAV_SHARED_VALUE}
 	${NAV_PUBLIC_INCLUDE}
 	src/nav.cpp
 	src/nav_backend.cpp
 	src/nav_backend.hpp
+	src/nav_backend_androidndk.cpp
+	src/nav_backend_androidndk.hpp
+	src/nav_backend_androidndk_funcptr.h
+	src/nav_backend_androidndk_internal.hpp
 	src/nav_backend_ffmpeg.cpp
 	src/nav_backend_ffmpeg.hpp
 	src/nav_backend_ffmpeg_funcptr.h
@@ -50,16 +74,15 @@ target_include_directories(nav PUBLIC include)
 target_compile_features(nav PUBLIC c_std_99)
 target_compile_features(nav PRIVATE cxx_std_17)
 
-# Get build type
-get_target_property(NAV_TARGET_TYPE nav TYPE)
-if(NAV_TARGET_TYPE STREQUAL "STATIC_LIBRARY")
-	target_compile_definitions(nav PUBLIC NAV_STATIC)
-endif()
-if(NAV_TARGET_TYPE STREQUAL "SHARED_LIBRARY" AND NOT ANDROID)
-	set_target_properties(nav PROPERTIES
-		VERSION ${NAV_VERSION_MAJOR}.${NAV_VERSION_MINOR}.${NAV_VERSION_PATCH}
-		SOVERSION ${NAV_VERSION_MAJOR}
-	)
+if(NAV_SHARED)
+	target_compile_definitions(nav PUBLIC NAV_SHARED)
+
+	if(NOT ANDROID)
+		set_target_properties(nav PROPERTIES
+			VERSION ${NAV_VERSION_MAJOR}.${NAV_VERSION_MINOR}.${NAV_VERSION_PATCH}
+			SOVERSION ${NAV_VERSION_MAJOR}
+		)
+	endif()
 endif()
 
 # Find FFmpeg
@@ -80,7 +103,7 @@ if(PROJECT_IS_TOP_LEVEL)
 	include(GNUInstallDirs)
 	install(TARGETS nav)
 	install(FILES ${NAV_PUBLIC_INCLUDE} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nav)
-	if(WIN32 AND NAV_TARGET_TYPE STREQUAL "SHARED_LIBRARY")
+	if(WIN32 AND NAV_SHARED)
 		install(FILES $<TARGET_PDB_FILE:nav> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
 	endif()
 endif()

@@ -15,25 +15,23 @@
 #define NAV_VERSION_FORMAT(a, b, c) ((a << 16) | (b << 8) | c)
 #define NAV_VERSION NAV_VERSION_FORMAT(NAV_VERSION_MAJOR, NAV_VERSION_MINOR, NAV_VERSION_PATCH)
 
-#ifdef _NAV_IMPLEMENTATION_
-#	if defined(NAV_STATIC)
-#		define NAV_API
-#	elif defined(_MSC_VER)
-#		define NAV_API __declspec(dllexport)
-#	elif defined(__GNUC__) || defined(__clang__)
-#		define NAV_API __attribute__((visibility("default")))
-#	else
-#		define NAV_API
-#	endif
-#else
-#	if defined(NAV_STATIC)
-#		define NAV_API
+#ifdef NAV_SHARED
+#	if defined(_NAV_IMPLEMENTATION_)
+#		if defined(_MSC_VER)
+#			define NAV_API __declspec(dllexport)
+#		elif defined(__GNUC__) || defined(__clang__)
+#			define NAV_API __attribute__((visibility("default")))
+#		else
+#			define NAV_API
+#		endif
 #	elif defined(_MSC_VER)
 #		define NAV_API __declspec(dllimport)
 #	else
-#		define NAV_API
+#		define NAV_API extern
 #	endif
-#endif /* _NAV_IMPLEMENTATION_ */
+#else
+#	define NAV_API extern
+#endif /* NAV_SHARED */
 
 #include "audioformat.h"
 #include "input.h"
