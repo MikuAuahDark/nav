@@ -92,6 +92,14 @@ inline void THROW_IF_ERROR(media_status_t status)
 		throw std::runtime_error(getMediaStatusText(status));
 }
 
+inline bool CHECK_IF_ERROR_AND_SET(media_status_t status)
+{
+	if (status != AMEDIA_OK)
+		nav::error::set(getMediaStatusText(status));
+
+	return status == AMEDIA_OK;
+}
+
 inline nav_audioformat audioFormatFromPCMEncoding(int encoding)
 {
 	// https://cs.android.com/android/platform/superproject/main/+/main:frameworks/av/media/module/foundation/include/media/stagefright/foundation/MediaDefs.h;l=138;drc=d5137445c0d4067406cb3e38aade5507ff2fcd16
@@ -350,10 +358,8 @@ bool AndroidNDKState::setStreamEnabled(size_t i, bool enabled)
 	}
 
 	media_status_t status = NAV_FFCALL(AMediaExtractor_selectTrack)(extractor.get(), i);
-	if (status == AMEDIA_OK)
+	if (CHECK_IF_ERROR_AND_SET(status))
 		activeStream[i] = true;
-	else
-		nav::error::set(getMediaStatusText(status));
 
 	return status == AMEDIA_OK;
 }
@@ -366,6 +372,30 @@ double AndroidNDKState::getDuration() noexcept
 double AndroidNDKState::getPosition() noexcept
 {
 	return derationalize<int64_t>(positionUs, 1000000);
+}
+
+double AndroidNDKState::setPosition(double off)
+{
+	int64_t targetPosUs = (int64_t) (off * 1000000.0);
+	media_status_t result = NAV_FFCALL(AMediaExtractor_seekTo)(extractor.get(), targetPosUs, AMEDIAEXTRACTOR_SEEK_CLOSEST_SYNC);
+	THROW_IF_ERROR(result);
+
+	for (const UniqueMediaCodec &codec: decoders)
+	{
+		if (codec)
+			AMediaCodec_flush(codec.get());
+	}
+
+	positionUs = targetPosUs;
+	return off;
+}
+
+nav_frame_t *AndroidNDKState::read()
+{
+	while (true)
+	{
+		return nullptr;
+	}
 }
 
 #undef NAV_FFCALL
