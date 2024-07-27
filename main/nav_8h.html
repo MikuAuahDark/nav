@@ -123,7 +123,7 @@ Macros</h2></td></tr>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION</b>&#160;&#160;&#160;NAV_VERSION_FORMAT(NAV_VERSION_MAJOR, NAV_VERSION_MINOR, NAV_VERSION_PATCH)</td></tr>
 <tr class="separator:a10af2df421fb03f18e7ed3036fea823d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6a544c2987d3adb130e285541e0888e" id="r_ae6a544c2987d3adb130e285541e0888e"><td class="memItemLeft" align="right" valign="top"><a id="ae6a544c2987d3adb130e285541e0888e" name="ae6a544c2987d3adb130e285541e0888e"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_API</b></td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_API</b>&#160;&#160;&#160;extern</td></tr>
 <tr class="separator:ae6a544c2987d3adb130e285541e0888e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
@@ -143,9 +143,21 @@ Functions</h2></td></tr>
 <tr class="memitem:ad4db2e3e9f7963d9d78359078c33e81a" id="r_ad4db2e3e9f7963d9d78359078c33e81a"><td class="memItemLeft" align="right" valign="top">NAV_API nav_bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ad4db2e3e9f7963d9d78359078c33e81a">nav_input_populate_from_file</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename)</td></tr>
 <tr class="memdesc:ad4db2e3e9f7963d9d78359078c33e81a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Populate pointer of <a class="el" href="structnav__input.html" title="NAV &quot;input stream&quot;.">nav_input</a> to read input data from file using C's stdio file operations.  <br /></td></tr>
 <tr class="separator:ad4db2e3e9f7963d9d78359078c33e81a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aad49968e1f0b126f190503e1a8510c74" id="r_aad49968e1f0b126f190503e1a8510c74"><td class="memItemLeft" align="right" valign="top">NAV_API nav_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aad49968e1f0b126f190503e1a8510c74">nav_open</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename)</td></tr>
-<tr class="memdesc:aad49968e1f0b126f190503e1a8510c74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open new NAV instance.  <br /></td></tr>
-<tr class="separator:aad49968e1f0b126f190503e1a8510c74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9d1f2f40e9d08f959bc420567101bebd" id="r_a9d1f2f40e9d08f959bc420567101bebd"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a9d1f2f40e9d08f959bc420567101bebd">nav_backend_count</a> ()</td></tr>
+<tr class="memdesc:a9d1f2f40e9d08f959bc420567101bebd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get amount of available backends.  <br /></td></tr>
+<tr class="separator:a9d1f2f40e9d08f959bc420567101bebd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89bd824481a04f40eeee80bb07285560" id="r_a89bd824481a04f40eeee80bb07285560"><td class="memItemLeft" align="right" valign="top">NAV_API const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a89bd824481a04f40eeee80bb07285560">nav_backend_name</a> (size_t index)</td></tr>
+<tr class="memdesc:a89bd824481a04f40eeee80bb07285560"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get an unique name identifier of a backend.  <br /></td></tr>
+<tr class="separator:a89bd824481a04f40eeee80bb07285560"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa9a8e008874021a6aac584e5af631183" id="r_aa9a8e008874021a6aac584e5af631183"><td class="memItemLeft" align="right" valign="top">NAV_API nav_backendtype&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aa9a8e008874021a6aac584e5af631183">nav_backend_type</a> (size_t index)</td></tr>
+<tr class="memdesc:aa9a8e008874021a6aac584e5af631183"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the backend type.  <br /></td></tr>
+<tr class="separator:aa9a8e008874021a6aac584e5af631183"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf10ace2be410693e7b36104447f64e5" id="r_aaf10ace2be410693e7b36104447f64e5"><td class="memItemLeft" align="right" valign="top">NAV_API const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aaf10ace2be410693e7b36104447f64e5">nav_backend_info</a> (size_t index)</td></tr>
+<tr class="memdesc:aaf10ace2be410693e7b36104447f64e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional information of a certain backend.  <br /></td></tr>
+<tr class="separator:aaf10ace2be410693e7b36104447f64e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeae908ed94709f73381986f1e389ca04" id="r_aeae908ed94709f73381986f1e389ca04"><td class="memItemLeft" align="right" valign="top">NAV_API nav_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aeae908ed94709f73381986f1e389ca04">nav_open</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename, const size_t *order)</td></tr>
+<tr class="memdesc:aeae908ed94709f73381986f1e389ca04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open new NAV instance.  <br /></td></tr>
+<tr class="separator:aeae908ed94709f73381986f1e389ca04"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7f48ffd6fd650c1026c31703975bcc5b" id="r_a7f48ffd6fd650c1026c31703975bcc5b"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7f48ffd6fd650c1026c31703975bcc5b">nav_close</a> (nav_t *nav)</td></tr>
 <tr class="memdesc:a7f48ffd6fd650c1026c31703975bcc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close existing NAV instance.  <br /></td></tr>
 <tr class="separator:a7f48ffd6fd650c1026c31703975bcc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -335,6 +347,109 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Size of 1 sample frame, in bytes. </dd></dl>
+
+</div>
+</div>
+<a id="a9d1f2f40e9d08f959bc420567101bebd" name="a9d1f2f40e9d08f959bc420567101bebd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9d1f2f40e9d08f959bc420567101bebd">&#9670;&#160;</a></span>nav_backend_count()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API size_t nav_backend_count </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get amount of available backends. </p>
+<dl class="section return"><dt>Returns</dt><dd>Amount of available backends. 0 means no backends are available. </dd></dl>
+
+</div>
+</div>
+<a id="aaf10ace2be410693e7b36104447f64e5" name="aaf10ace2be410693e7b36104447f64e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf10ace2be410693e7b36104447f64e5">&#9670;&#160;</a></span>nav_backend_info()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API const char * nav_backend_info </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>index</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get additional information of a certain backend. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">index</td><td><b>1-based index</b> of the backend. So, 1 is the first backend, 2 is the second backend, and so on. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Additional information about the backend, or NULL if there are no additional information or on failure. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>use <a class="el" href="nav_8h.html#ac8256d0e17e5e44b0b88339068d838d9" title="Get last error message from last invocation of NAV functions.">nav_error()</a> to check if an error occured or a backend has no additional information. </dd></dl>
+
+</div>
+</div>
+<a id="a89bd824481a04f40eeee80bb07285560" name="a89bd824481a04f40eeee80bb07285560"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89bd824481a04f40eeee80bb07285560">&#9670;&#160;</a></span>nav_backend_name()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API const char * nav_backend_name </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>index</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get an unique name identifier of a backend. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">index</td><td><b>1-based index</b> of the backend. So, 1 is the first backend, 2 is the second backend, and so on. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Lowercase name of the backend, or NULL on failure. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>A backend name is unlikely to change. </dd></dl>
+
+</div>
+</div>
+<a id="aa9a8e008874021a6aac584e5af631183" name="aa9a8e008874021a6aac584e5af631183"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa9a8e008874021a6aac584e5af631183">&#9670;&#160;</a></span>nav_backend_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API nav_backendtype nav_backend_type </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>index</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the backend type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">index</td><td><b>1-based index</b> of the backend. So, 1 is the first backend, 2 is the second backend, and so on. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Valid backend type enum or NAV_BACKENDTYPE_UNKNOWN on failure. </dd></dl>
 
 </div>
 </div>
@@ -687,8 +802,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="aad49968e1f0b126f190503e1a8510c74" name="aad49968e1f0b126f190503e1a8510c74"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aad49968e1f0b126f190503e1a8510c74">&#9670;&#160;</a></span>nav_open()</h2>
+<a id="aeae908ed94709f73381986f1e389ca04" name="aeae908ed94709f73381986f1e389ca04"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeae908ed94709f73381986f1e389ca04">&#9670;&#160;</a></span>nav_open()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -703,7 +818,13 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>filename</em>&#160;</td>
+          <td class="paramname"><em>filename</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const size_t *&#160;</td>
+          <td class="paramname"><em>order</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -718,7 +839,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">input</td><td>Pointer to "input data". This function will take the ownership of the input. </td></tr>
-    <tr><td class="paramname">filename</td><td>Pseudo-filename that will be used to improve probing. This can be NULL. </td></tr>
+    <tr><td class="paramname">filename</td><td>Pseudo-filename that will be used to improve probing. This can be NULL, but it's recommended to specify a pseudo-filename (the file doesn't have to exist in filesystem). </td></tr>
+    <tr><td class="paramname">order</td><td>0-terminated <b>1-based</b> backend index to try in order. Example: if <code>{2, 1, 0}</code> is specified, then it will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default order (which is <code>{1, 2, 3, ..., <a class="el" href="nav_8h.html#a9d1f2f40e9d08f959bc420567101bebd" title="Get amount of available backends.">nav_backend_count()</a>, 0}</code>). </td></tr>
   </table>
   </dd>
 </dl>
