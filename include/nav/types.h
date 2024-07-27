@@ -39,4 +39,14 @@ typedef enum nav_streamtype
 	NAV_STREAMTYPE_VIDEO
 } nav_streamtype;
 
+typedef enum nav_backendtype
+{
+	/* Unknown backend type. */
+	NAV_BACKENDTYPE_UNKNOWN = -1,
+	/* This backend leverages OS-specific API to work (almost guaranteed to exist in particular OS). */
+	NAV_BACKENDTYPE_OS_API,
+	/* This backend leverages 3rd-party library to work (depends if the user installed the library). */
+	NAV_BACKENDTYPE_3RD_PARTY
+} nav_backendtype;
+
 #endif /* _NAV_TYPES_H_ */

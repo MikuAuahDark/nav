@@ -79,6 +79,35 @@ NAV_API void nav_input_populate_from_memory(nav_input *input, void *buf, size_t 
 NAV_API nav_bool nav_input_populate_from_file(nav_input *input, const char *filename);
 
 /**
+ * @brief Get amount of available backends.
+ * @return Amount of available backends. 0 means no backends are available.
+ */
+NAV_API size_t nav_backend_count();
+
+/**
+ * @brief Get an unique name identifier of a backend.
+ * @param index **1-based index** of the backend. So, 1 is the first backend, 2 is the second backend, and so on.
+ * @return Lowercase name of the backend, or NULL on failure.
+ * @note A backend name is unlikely to change.
+ */
+NAV_API const char *nav_backend_name(size_t index);
+
+/**
+ * @brief Get the backend type.
+ * @param index **1-based index** of the backend. So, 1 is the first backend, 2 is the second backend, and so on.
+ * @return Valid backend type enum or NAV_BACKENDTYPE_UNKNOWN on failure.
+ */
+NAV_API nav_backendtype nav_backend_type(size_t index);
+
+/**
+ * @brief Get additional information of a certain backend.
+ * @param index **1-based index** of the backend. So, 1 is the first backend, 2 is the second backend, and so on.
+ * @return Additional information about the backend, or NULL if there are no additional information or on failure.
+ * @note use nav_error() to check if an error occured or a backend has no additional information.
+ */
+NAV_API const char *nav_backend_info(size_t index);
+
+/**
  * @brief Open new NAV instance.
  * 
  * The `filename` parameter acts as a "hint" to backends to try best possible format or to deduce the media format
@@ -86,11 +115,15 @@ NAV_API nav_bool nav_input_populate_from_file(nav_input *input, const char *file
  * `filename` is specified, it must be valid UTF-8 string.
  * 
  * @param input Pointer to "input data". This function will take the ownership of the input.
- * @param filename Pseudo-filename that will be used to improve probing. This can be NULL.
+ * @param filename Pseudo-filename that will be used to improve probing. This can be NULL, but it's recommended to
+ *                 specify a pseudo-filename (the file doesn't have to exist in filesystem).
+ * @param order 0-terminated **1-based** backend index to try in order. Example: if `{2, 1, 0}` is specified, then it
+ *              will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default
+ *              order (which is `{1, 2, 3, ..., nav_backend_count(), 0}`).
  * @return Pointer to NAV instance, or NULL on failure.
  * @note When the function errors, the input ownership will be given back to the caller.
  */
-NAV_API nav_t *nav_open(nav_input *input, const char *filename);
+NAV_API nav_t *nav_open(nav_input *input, const char *filename, const size_t *order);
 
 /**
  * @brief Close existing NAV instance.

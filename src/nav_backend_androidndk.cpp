@@ -431,6 +431,21 @@ State *AndroidNDKBackend::open(nav_input *input, const char *filename)
 	return new AndroidNDKState(this, extractor, mediaSource);
 }
 
+const char *AndroidNDKBackend::getName() const noexcept
+{
+	return "android";
+}
+
+nav_backendtype AndroidNDKBackend::getType() const noexcept
+{
+	return NAV_BACKENDTYPE_OS_API;
+}
+
+const char *AndroidNDKBackend::getInfo()
+{
+	return nullptr;
+}
+
 Backend *create()
 {
 	try

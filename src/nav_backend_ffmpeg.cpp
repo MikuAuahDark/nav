@@ -3,6 +3,7 @@
 #ifdef NAV_BACKEND_FFMPEG
 
 #include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -810,6 +811,7 @@ FFmpegBackend::FFmpegBackend()
 , avformat(getLibName("avformat", LIBAVFORMAT_VERSION_MAJOR))
 , swresample(getLibName("swresample", LIBSWRESAMPLE_VERSION_MAJOR))
 , swscale(getLibName("swscale", LIBSWSCALE_VERSION_MAJOR))
+, info()
 #define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) , func_##n(nullptr)
 #include "nav_backend_ffmpeg_funcptr.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
@@ -873,6 +875,51 @@ State *FFmpegBackend::open(nav_input *input, const char *filename)
 	}
 
 	return new FFmpegState(this, formatContext, ioContext);
+}
+
+const char *FFmpegBackend::getName() const noexcept
+{
+	return "ffmpeg";
+}
+
+nav_backendtype FFmpegBackend::getType() const noexcept
+{
+	return NAV_BACKENDTYPE_3RD_PARTY;
+}
+
+const char *FFmpegBackend::getInfo()
+{
+
+	if (info.empty())
+	{
+		struct VersionInfo
+		{
+			const char *name;
+			unsigned int(*func)();
+		} verinfos[] = {
+			{"avutil", NAV_FFCALL(avutil_version)},
+			{"avcodec", NAV_FFCALL(avcodec_version)},
+			{"avformat", NAV_FFCALL(avformat_version)},
+			{"swscale", NAV_FFCALL(swscale_version)},
+			{"swresample", NAV_FFCALL(swresample_version)}
+		};
+
+		std::stringstream infobuf;
+
+		for (const VersionInfo &vinfo: verinfos)
+		{
+			unsigned int ver = vinfo.func();
+			infobuf
+				<< vinfo.name << " "
+				<< AV_VERSION_MAJOR(ver) << "."
+				<< AV_VERSION_MINOR(ver) << "."
+				<< AV_VERSION_MICRO(ver)<< "; ";
+		}
+
+		info = infobuf.str();
+	}
+
+	return info.c_str();
 }
 
 Backend *create()

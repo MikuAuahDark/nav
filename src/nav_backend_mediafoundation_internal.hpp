@@ -185,6 +185,9 @@ class MediaFoundationBackend: public Backend
 {
 public:
 	~MediaFoundationBackend() override;
+	const char *getName() const noexcept override;
+	nav_backendtype getType() const noexcept override;
+	const char *getInfo() override;
 	State *open(nav_input *input, const char *filename) override;
 
 private:

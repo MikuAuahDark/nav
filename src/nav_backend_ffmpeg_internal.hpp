@@ -2,6 +2,7 @@
 #define _NAV_BACKEND_FFMPEG_INTERNAL_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "nav_internal.hpp"
@@ -75,12 +76,16 @@ class FFmpegBackend: public Backend
 public:
 	FFmpegBackend();
 	~FFmpegBackend() override;
+	const char *getName() const noexcept override;
+	nav_backendtype getType() const noexcept override;
+	const char *getInfo() override;
 	State *open(nav_input *input, const char *filename) override;
 
 private:
 	friend class FFmpegState;
 
 	DynLib avutil, avcodec, avformat, swscale, swresample;
+	std::string info;
 
 #define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) decltype(n) *func_##n;
 #include "nav_backend_ffmpeg_funcptr.h"

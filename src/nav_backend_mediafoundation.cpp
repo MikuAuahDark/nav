@@ -858,6 +858,21 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 	return new MediaFoundationState(this, input, istream, byteStream, sourceReader);
 }
 
+const char *MediaFoundationBackend::getName() const noexcept
+{
+	return "mediafoundation";
+}
+
+nav_backendtype MediaFoundationBackend::getType() const noexcept
+{
+	return NAV_BACKENDTYPE_OS_API;
+}
+
+const char *MediaFoundationBackend::getInfo()
+{
+	return nullptr;
+}
+
 Backend *create()
 {
 	try

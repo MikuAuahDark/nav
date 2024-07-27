@@ -45,25 +45,44 @@ public:
 						activeBackend.push_back(b);
 				}
 			}
+
+			for (size_t i = 0; i < activeBackend.size(); i++)
+				defaultOrder.push_back(i + 1);
+			defaultOrder.push_back(0);
+
+			initialized = true;
 		}
+
 	}
 
-	nav::State *open(nav_input *input, const char *filename)
+	inline void ensureInit()
 	{
 		if (!initialized)
 			init();
+	}
+
+	nav::State *open(nav_input *input, const char *filename, const size_t *order)
+	{
+		ensureInit();
 
 		std::vector<std::string> errors;
+		if (!order)
+			order = defaultOrder.data();
 
-		for (nav::Backend *b: activeBackend)
+		for (size_t backendIndex = *order; *order; order++)
 		{
-			try
+			if (backendIndex > 0 && backendIndex <= activeBackend.size())
 			{
-				return b->open(input, filename);
-			}
-			catch (const std::exception &e)
-			{
-				errors.push_back(e.what());
+				nav::Backend *b = activeBackend[backendIndex - 1];
+
+				try
+				{
+					return b->open(input, filename);
+				}
+				catch (const std::exception &e)
+				{
+					errors.push_back(e.what());
+				}
 			}
 		}
 
@@ -74,10 +93,28 @@ public:
 		return nullptr;
 	}
 
+	size_t count()
+	{
+		ensureInit();
+		return activeBackend.size();
+	}
+
+	nav::Backend *getBackend(size_t i)
+	{
+		ensureInit();
+
+		if (i > 0 && i <= activeBackend.size())
+			return activeBackend[i - 1];
+
+		nav::error::set("Index out of range");
+		return nullptr;
+	}
+
 private:
 	bool initialized;
 	std::vector<nav::Backend*> activeBackend;
 	std::vector<nav::Backend*(*)()> factory;
+	std::vector<size_t> defaultOrder;
 	std::mutex mutex;
 } backendContainer({
 #if defined(NAV_BACKEND_FFMPEG) && (NAV_BACKEND_FFMPEG_OK)
@@ -132,9 +169,36 @@ extern "C" nav_bool nav_input_populate_from_file(nav_input *input, const char *f
 	return (nav_bool) nav::input::file::populate(input, filename);
 }
 
-extern "C" nav_t *nav_open(nav_input *input, const char *filename)
+extern "C" size_t nav_backend_count()
 {
-	return wrapcall<nav_t*>(&backendContainer, &BackendContainer::open, nullptr, input, filename);
+	nav::error::set("");
+	return backendContainer.count();
+}
+
+extern "C" const char *nav_backend_name(size_t index)
+{
+	nav::error::set("");
+	nav::Backend *backend = backendContainer.getBackend(index);
+	return backend ? backend->getName() : nullptr;
+}
+
+extern "C" nav_backendtype nav_backend_type(size_t index)
+{
+	nav::error::set("");
+	nav::Backend *backend = backendContainer.getBackend(index);
+	return backend ? backend->getType() : NAV_BACKENDTYPE_UNKNOWN;
+}
+
+extern "C" const char *nav_backend_info(size_t index)
+{
+	nav::error::set("");
+	nav::Backend *backend = backendContainer.getBackend(index);
+	return backend ? wrapcall<const char*>(backend, &nav::Backend::getInfo, nullptr) : nullptr;
+}
+
+extern "C" nav_t *nav_open(nav_input *input, const char *filename, const size_t *order)
+{
+	return wrapcall<nav_t*>(&backendContainer, &BackendContainer::open, nullptr, input, filename, order);
 }
 
 extern "C" void nav_close(nav_t *state)

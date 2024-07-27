@@ -72,6 +72,9 @@ class AndroidNDKBackend: public Backend
 public:
 	AndroidNDKBackend();
 	~AndroidNDKBackend() override;
+	const char *getName() const noexcept override;
+	nav_backendtype getType() const noexcept override;
+	const char *getInfo() override;
 	State *open(nav_input *input, const char *filename) override;
 
 private:
