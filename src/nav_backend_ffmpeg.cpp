@@ -652,7 +652,7 @@ nav_frame_t *FFmpegState::read()
 
 				if (codecContext && !streamEofs[i])
 				{
-					err = NAV_FFCALL(avcodec_receive_frame)(codecContext, nullptr);
+					err = NAV_FFCALL(avcodec_receive_frame)(codecContext, tempFrame.get());
 					if (err >= 0)
 					{
 						// Has frame
@@ -684,7 +684,16 @@ nav_frame_t *FFmpegState::read()
 					THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avcodec_send_packet)(decoders[tempPacket->stream_index], tempPacket.get()));
 			}
 			else if (err == AVERROR_EOF)
-				eof = true; // No more frames
+			{
+				// No more frames
+				for (AVCodecContext *decoder: decoders)
+				{
+					if (decoder)
+						NAV_FFCALL(avcodec_send_packet)(decoder, nullptr);
+				}
+
+				eof = true;
+			}
 			else
 				THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
 		}
