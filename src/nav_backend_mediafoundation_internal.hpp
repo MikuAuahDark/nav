@@ -195,6 +195,7 @@ private:
 	MediaFoundationBackend();
 
 	DynLib mfplat, mfreadwrite;
+	bool callCoUninitialize;
 
 public:
 #define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n

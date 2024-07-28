@@ -482,9 +482,8 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 
 					if (!failed)
 					{
-						nav_audioformat audioformat = (bps & 0xFF) | ((bps > 8) << 15);
 						streamInfo.type = NAV_STREAMTYPE_AUDIO;
-						streamInfo.audio.format = audioformat;
+						streamInfo.audio.format = makeAudioFormat(bps, false, bps > 8);
 					}
 				}
 			}
@@ -607,7 +606,7 @@ bool MediaFoundationState::isStreamEnabled(size_t index) noexcept
 		return false;
 	}
 
-	if (FAILED(mfSourceReader->GetStreamSelection((size_t) index, &enabled)))
+	if (FAILED(mfSourceReader->GetStreamSelection((DWORD) index, &enabled)))
 	{
 		nav::error::set("IMFSourceReader::GetStreamSelection failed");
 		return false;
@@ -624,7 +623,7 @@ bool MediaFoundationState::setStreamEnabled(size_t index, bool enabled)
 		return false;
 	}
 
-	if (FAILED(mfSourceReader->SetStreamSelection((size_t) index, (BOOL) enabled)))
+	if (FAILED(mfSourceReader->SetStreamSelection((DWORD) index, (BOOL) enabled)))
 	{
 		nav::error::set("IMFSourceReader::SetStreamSelection failed");
 		return false;
@@ -636,7 +635,6 @@ bool MediaFoundationState::setStreamEnabled(size_t index, bool enabled)
 double MediaFoundationState::getDuration() noexcept
 {
 	WrappedPropVariant pvar;
-	int64_t duration;
 
 	if (FAILED(mfSourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &pvar)))
 		return -1.0;
@@ -797,6 +795,7 @@ nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t s
 MediaFoundationBackend::MediaFoundationBackend()
 : mfplat("mfplat.dll")
 , mfreadwrite("mfreadwrite.dll")
+, callCoUninitialize(true)
 , MFStartup(nullptr)
 , MFShutdown(nullptr)
 , MFCreateMediaType(nullptr)
@@ -812,12 +811,16 @@ MediaFoundationBackend::MediaFoundationBackend()
 	)
 		throw std::runtime_error("cannot load MediaFoundation function pointer");
 
-	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
+	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
 		throw std::runtime_error("CoInitializeEx failed");
+
+	callCoUninitialize = SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE;
 
 	if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET)))
 	{
-		CoUninitialize();
+		if (callCoUninitialize)
+			CoUninitialize();
 		throw std::runtime_error("MFStartup failed");
 	}
 }
@@ -825,7 +828,8 @@ MediaFoundationBackend::MediaFoundationBackend()
 MediaFoundationBackend::~MediaFoundationBackend()	
 {
 	MFShutdown();
-	CoUninitialize();
+	if (callCoUninitialize)
+		CoUninitialize();
 }
 
 State *MediaFoundationBackend::open(nav_input *input, const char *filename)
@@ -837,7 +841,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 
 	if (FAILED(MFCreateMFByteStreamOnStream(istream.get(), byteStream.dptr())))
 		throw std::runtime_error("MFCreateMFByteStreamOnStream failed");
-	
+
 	if (filename)
 	{
 		// Try set the filename
@@ -879,7 +883,7 @@ Backend *create()
 	{
 		return new MediaFoundationBackend();
 	}
-	catch(const std::exception& e)
+	catch(const std::exception&)
 	{
 		return nullptr;
 	}
