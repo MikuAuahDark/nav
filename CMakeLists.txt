@@ -78,7 +78,10 @@ target_compile_features(nav PRIVATE cxx_std_17)
 if(NAV_SHARED)
 	target_compile_definitions(nav PUBLIC NAV_SHARED)
 
-	if(NOT ANDROID)
+	if(ANDROID)
+		# https://developer.android.com/guide/practices/page-sizes
+		target_link_options(nav PRIVATE "-Wl,-z,max-page-size=16384")
+	else()
 		set_target_properties(nav PROPERTIES
 			VERSION ${NAV_VERSION_MAJOR}.${NAV_VERSION_MINOR}.${NAV_VERSION_PATCH}
 			SOVERSION ${NAV_VERSION_MAJOR}
