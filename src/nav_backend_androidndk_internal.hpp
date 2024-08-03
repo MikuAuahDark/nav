@@ -6,6 +6,8 @@
 #ifdef NAV_BACKEND_ANDROIDNDK
 
 #include <memory>
+#include <vector>
+
 #include <media/NdkMediaExtractor.h>
 
 #include "nav_backend.hpp"
