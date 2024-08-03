@@ -65,6 +65,7 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/nav_error.hpp
 	src/nav_input_file.cpp
 	src/nav_input_file.hpp
+	src/nav_input_file_android.cpp
 	src/nav_input_memory.cpp
 	src/nav_input_memory.hpp
 	src/nav_internal.hpp
