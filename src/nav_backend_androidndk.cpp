@@ -477,6 +477,15 @@ nav_frame_t *AndroidNDKState::read()
 				return result;
 			}
 
+			NAV_FFCALL(AMediaExtractor_advance)(extractor.get());
+			index = NAV_FFCALL(AMediaExtractor_getSampleTrackIndex)(extractor.get());
+			if (index == -1)
+			{
+				// EOF
+				nav::error::set("");
+				return nullptr;
+			}
+
 			// Step 2: Push encoded data to codec.
 			if (!hasEOS[index])
 			{
@@ -504,8 +513,6 @@ nav_frame_t *AndroidNDKState::read()
 				);
 			}
 		}
-
-		NAV_FFCALL(AMediaExtractor_advance)(extractor.get());
 	}
 }
 
