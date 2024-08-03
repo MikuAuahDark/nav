@@ -46,6 +46,8 @@ inline nav_audioformat makeAudioFormat(uint8_t bps, bool is_float, bool is_signe
 	return nav_audioformat(uint16_t(bps) | floatval | signedval);
 }
 
+bool checkBackendDisabled(const std::string &backendNameUppercase);
+
 #ifdef _WIN32
 std::wstring fromUTF8(const std::string &str);
 #endif /* _WIN32 */

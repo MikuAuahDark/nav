@@ -559,12 +559,16 @@ const char *AndroidNDKBackend::getInfo()
 
 Backend *create()
 {
+	if (checkBackendDisabled("ANDROIDNDK"))
+		return nullptr;
+
 	try
 	{
 		return new AndroidNDKBackend();
 	}
 	catch(const std::exception& e)
 	{
+		nav::error::set(e);
 		return nullptr;
 	}
 }
