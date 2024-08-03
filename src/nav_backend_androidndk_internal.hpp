@@ -59,7 +59,7 @@ private:
 	int64_t durationUs;
 	int64_t positionUs;
 
-	std::vector<bool> activeStream;
+	std::vector<bool> activeStream, hasEOS;
 	std::vector<nav_streaminfo_t> streamInfo;
 	std::vector<UniqueMediaCodec> decoders;
 
