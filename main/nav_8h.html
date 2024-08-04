@@ -545,6 +545,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </div><div class="memdoc">
 
 <p>Get decoded data buffer. </p>
+<p>For video frame, this will contain the picture, laid out depending on the stream nav_pixelformat.</p>
+<p>For audio frame, this will contain the audio samples depending on the nav_audioformat, interleaved.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
