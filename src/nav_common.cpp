@@ -49,6 +49,11 @@ void *FrameVector::data() noexcept
 	return buffer.data();
 }
 
+bool FrameVector::operator<(const FrameVector &rhs) const noexcept
+{
+	return position < rhs.position;
+}
+
 bool checkBackendDisabled(const std::string &backendNameUppercase)
 {
 	std::string name = "NAV_DISABLE_" + backendNameUppercase;

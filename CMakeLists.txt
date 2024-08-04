@@ -53,6 +53,10 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/nav_backend_ffmpeg.hpp
 	src/nav_backend_ffmpeg_funcptr.h
 	src/nav_backend_ffmpeg_internal.hpp
+	src/nav_backend_gstreamer.cpp
+	src/nav_backend_gstreamer.hpp
+	src/nav_backend_gstreamer_funcptr.h
+	src/nav_backend_gstreamer_internal.hpp
 	src/nav_backend_mediafoundation.cpp
 	src/nav_backend_mediafoundation.hpp
 	src/nav_backend_mediafoundation_internal.hpp
@@ -87,6 +91,10 @@ if(NAV_SHARED)
 			SOVERSION ${NAV_VERSION_MAJOR}
 		)
 	endif()
+
+	if(UNIX)
+		target_link_options(nav PRIVATE "-Wl,--no-undefined")
+	endif()
 endif()
 
 # Find FFmpeg
@@ -100,6 +108,16 @@ endif()
 if(FFMPEG_FOUND OR FFMPEG_INCLUDE_DIRS)
 	message(STATUS "Using FFmpeg include directory: ${FFMPEG_INCLUDE_DIRS}")
 	target_include_directories(nav PRIVATE ${FFMPEG_INCLUDE_DIRS})
+endif()
+
+# Find GStreamer
+find_package(PkgConfig)
+if(PKG_CONFIG_FOUND)
+	pkg_check_modules(GST gstreamer-1.0)
+	if(GST_FOUND)
+		message(STATUS "Using GStreamer include directory: ${GST_INCLUDE_DIRS}")
+		target_include_directories(nav PRIVATE ${GST_INCLUDE_DIRS})
+	endif()
 endif()
 
 # Install files
