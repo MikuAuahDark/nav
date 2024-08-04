@@ -38,8 +38,8 @@ jobs:
   Ubuntu:
     runs-on: ubuntu-24.04
     steps:
-    - name: Install FFmpeg Development Libraries
-      run: sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
+    - name: Install Needed Development Libraries
+      run: sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libgstreamer1.0-dev
     - name: Checkout
       uses: actions/checkout@v4
     - name: Configure
