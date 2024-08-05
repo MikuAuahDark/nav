@@ -63,10 +63,15 @@ private:
 		AppSinkWrapper(GStreamerState *state, size_t streamIndex);
 		~AppSinkWrapper();
 
+		inline bool ok()
+		{
+			return queue && convert && sink && streamInfo.type != NAV_STREAMTYPE_UNKNOWN;
+		}
+
 		nav_streaminfo_t streamInfo;
 		size_t streamIndex;
 		GStreamerState *self;
-		GstElement *convert, *sink;
+		GstElement *queue, *convert, *capsfilter, *sink;
 		gulong probeID;
 		bool eos, enabled;
 	};
@@ -79,16 +84,18 @@ private:
 	GStreamerBackend *f;
 	nav_input input;
 	UniqueGstObject<GstBus> bus;
-	UniqueGstElement pipeline, source, decoder;
+	UniqueGstElement pipeline;
+	GstElement *source, *decoder;
 	std::vector<std::unique_ptr<AppSinkWrapper>> streams;
 	std::priority_queue<FrameVector*, std::deque<FrameVector*>, FrameComparator> queuedFrames;
-	bool prerolled;
+	bool padProbed, eos;
 
 	GstCaps *newVideoCapsForNAV();
 	GstCaps *newAudioCapsForNAV();
 	void clearQueuedFrames();
-	void pollBus();
+	void pollBus(bool noexception = false);
 	static void padAdded(GstElement *element, GstPad *newPad, GStreamerState *self);
+	static void noMorePads(GstElement *element, GStreamerState *self);
 	static void needData(GstElement *element, guint length, GStreamerState *self);
 	static gboolean seekData(GstElement *element, guint64 pos, GStreamerState *self);
 };

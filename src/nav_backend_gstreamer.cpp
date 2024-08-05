@@ -2,8 +2,8 @@
 
 #ifdef NAV_BACKEND_GSTREAMER
 
+#include <sstream>
 #include <stdexcept>
-
 
 #include "nav_backend_gstreamer_internal.hpp"
 #include "nav_error.hpp"
@@ -89,133 +89,172 @@ GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 , input(*input)
 , bus(nullptr, NAV_FFCALL(gst_object_unref))
 , pipeline(nullptr, NAV_FFCALL(gst_object_unref))
-, source(nullptr, NAV_FFCALL(gst_object_unref))
-, decoder(nullptr, NAV_FFCALL(gst_object_unref))
+, source(nullptr)
+, decoder(nullptr)
 , streams()
 , queuedFrames()
-, prerolled(false)
+, padProbed(false)
+, eos(false)
 {
-	source.reset(NAV_FFCALL(gst_element_factory_make)("appsrc", nullptr));
-	decoder.reset(NAV_FFCALL(gst_element_factory_make)("decodebin", nullptr));
+	UniqueGstElement sourceTemp {NAV_FFCALL(gst_element_factory_make)("appsrc", nullptr), NAV_FFCALL(gst_object_unref)};
+	UniqueGstElement decoderTemp {NAV_FFCALL(gst_element_factory_make)("decodebin", nullptr), NAV_FFCALL(gst_object_unref)};
 
 	pipeline.reset(NAV_FFCALL(gst_pipeline_new)(nullptr));
 	if (!pipeline)
 		throw std::runtime_error("Unable to create pipeline element.");
 
-	NAV_FFCALL(g_signal_connect_data)(source.get(), "need-data", G_CALLBACK(needData), this, nullptr, (GConnectFlags) 0);
-	NAV_FFCALL(g_signal_connect_data)(source.get(), "seek-data", G_CALLBACK(seekData), this, nullptr, (GConnectFlags) 0);
-	NAV_FFCALL(g_object_set)(source.get(),
+	NAV_FFCALL(g_signal_connect_data)(sourceTemp.get(), "need-data", G_CALLBACK(needData), this, nullptr, (GConnectFlags) 0);
+	NAV_FFCALL(g_signal_connect_data)(sourceTemp.get(), "seek-data", G_CALLBACK(seekData), this, nullptr, (GConnectFlags) 0);
+	NAV_FFCALL(g_object_set)(sourceTemp.get(),
 		"emit-signals", 1,
 		"size", (gint64) input->sizef(),
-		"stream-type", 2, // GST_APP_STREAM_TYPE_RANDOM_ACCESS
+		"stream-type", 1, // GST_APP_STREAM_TYPE_SEEKABLE
 		nullptr
 	);
-	NAV_FFCALL(g_signal_connect_data)(decoder.get(), "pad-added", G_CALLBACK(padAdded), this, nullptr, (GConnectFlags) 0);
+	NAV_FFCALL(g_signal_connect_data)(decoderTemp.get(), "pad-added", G_CALLBACK(padAdded), this, nullptr, (GConnectFlags) 0);
+	NAV_FFCALL(g_signal_connect_data)(decoderTemp.get(), "no-more-pads", G_CALLBACK(noMorePads), this, nullptr, (GConnectFlags) 0);
 
 	// Add
 	NAV_FFCALL(gst_bin_add_many)(G_CAST<GstBin>(f, NAV_FFCALL(gst_bin_get_type)(), pipeline.get()),
-		source.get(),
-		decoder.get(),
+		sourceTemp.get(),
+		decoderTemp.get(),
 		nullptr
 	);
 
+	// sourceTemp and decoderTemp is no longer owned.
+	source = sourceTemp.release();
+	decoder = decoderTemp.release();
+
 	// Just link the appsrc and the decodebin for now.
-	if (!NAV_FFCALL(gst_element_link)(source.get(), decoder.get()))
+	if (!NAV_FFCALL(gst_element_link)(source, decoder))
 		throw std::runtime_error("Unable to link source and decoder.");
 
-	// Play
+	// Preroll
 	GstStateChangeReturn ret = NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE)
-		throw std::runtime_error("Cannot play pipeline");
+		throw std::runtime_error("Cannot preroll pipeline");
 
 	bus.reset(NAV_FFCALL(gst_element_get_bus)(pipeline.get()));
-	prerolled = true;
+
+	while (!padProbed)
+	{
+		try
+		{
+			pollBus();
+			if (ret == GST_STATE_CHANGE_ASYNC)
+				ret = NAV_FFCALL(gst_element_get_state)(pipeline.get(), nullptr, nullptr, GST_CLOCK_TIME_NONE);
+			if (ret == GST_STATE_CHANGE_FAILURE)
+				throw std::runtime_error("gst_element_get_state failed");
+		}
+		catch(const std::exception&)
+		{
+			NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_NULL);
+			NAV_FFCALL(gst_element_get_state)(pipeline.get(), nullptr, nullptr, GST_CLOCK_TIME_NONE);
+			throw;
+		}
+	}
 
 	// Populate the stream info data
 	for (std::unique_ptr<AppSinkWrapper> &sw: streams)
 	{
-		UniqueGstObject<GstPad> pad {NAV_FFCALL(gst_element_get_static_pad)(sw->convert, "src"), NAV_FFCALL(gst_object_unref)};
-		UniqueGst<GstCaps> caps {NAV_FFCALL(gst_pad_get_current_caps)(pad.get()), NAV_FFCALL(gst_caps_unref)};
-		GstStructure *s = NAV_FFCALL(gst_caps_get_structure)(caps.get(), 0);
-		gint temp = 0, temp2 = 0;
-
-		switch (sw->streamInfo.type)
+		if (sw->ok())
 		{
-			case NAV_STREAMTYPE_AUDIO:
+			UniqueGstObject<GstPad> pad {NAV_FFCALL(gst_element_get_static_pad)(sw->convert, "src"), NAV_FFCALL(gst_object_unref)};
+			UniqueGst<GstCaps> caps {NAV_FFCALL(gst_pad_get_current_caps)(pad.get()), NAV_FFCALL(gst_caps_unref)};
+			while (!caps)
 			{
-				const gchar *format = NAV_FFCALL(gst_structure_get_string)(s, "format");
-				bool hasFormat = false;
-
-				for (const NAVGstAudioFormatMap &map: NAV_AUDIOFORMAT_MAP)
-				{
-					if (strcmp(format, map.gstName) == 0)
-					{
-						sw->streamInfo.audio.format = map.format;
-						hasFormat = true;
-						break;
-					}
-				}
-
-				if (hasFormat)
-				{
-					NAV_FFCALL(gst_structure_get_int)(s, "rate", &temp);
-					sw->streamInfo.audio.sample_rate = (uint32_t) temp;
-					NAV_FFCALL(gst_structure_get_int)(s, "channels", &temp);
-					sw->streamInfo.audio.nchannels = (uint32_t) temp;
-				}
-				else
-				{
-					sw->streamInfo.type = NAV_STREAMTYPE_UNKNOWN;
-					sw->enabled = false;
-				}
-
-				break;
+				pollBus();
+				caps.reset(NAV_FFCALL(gst_pad_get_current_caps)(pad.get()));
 			}
-			case NAV_STREAMTYPE_VIDEO:
+
+			GstStructure *s = NAV_FFCALL(gst_caps_get_structure)(caps.get(), 0);
+			gint temp = 0, temp2 = 0;
+
+			switch (sw->streamInfo.type)
 			{
-				const gchar *format = NAV_FFCALL(gst_structure_get_string)(s, "format");
-				bool hasFormat = false;
-
-				for (const NAVGstPixelFormatMap &map: NAV_PIXELFORMAT_MAP)
+				case NAV_STREAMTYPE_AUDIO:
 				{
-					if (strcmp(format, map.gstName) == 0)
+					const gchar *format = NAV_FFCALL(gst_structure_get_string)(s, "format");
+					bool hasFormat = false;
+
+					for (const NAVGstAudioFormatMap &map: NAV_AUDIOFORMAT_MAP)
 					{
-						sw->streamInfo.video.format = map.format;
-						hasFormat = true;
-						break;
+						if (strcmp(format, map.gstName) == 0)
+						{
+							sw->streamInfo.audio.format = map.format;
+							hasFormat = true;
+							break;
+						}
 					}
-				}
 
-				if (hasFormat)
-				{
-					gdouble d = 0;
-
-					NAV_FFCALL(gst_structure_get_int)(s, "width", &temp);
-					sw->streamInfo.video.width = (uint32_t) temp;
-					NAV_FFCALL(gst_structure_get_int)(s, "height", &temp);
-					sw->streamInfo.video.height = (uint32_t) temp;
-
-					if (NAV_FFCALL(gst_structure_get_fraction)(s, "framerate", &temp, &temp2))
-						sw->streamInfo.video.fps = derationalize(temp, temp2);
-					else if (NAV_FFCALL(gst_structure_get_double)(s, "framerate", &d))
-						sw->streamInfo.video.fps = d;
+					if (hasFormat)
+					{
+						NAV_FFCALL(gst_structure_get_int)(s, "rate", &temp);
+						sw->streamInfo.audio.sample_rate = (uint32_t) temp;
+						NAV_FFCALL(gst_structure_get_int)(s, "channels", &temp);
+						sw->streamInfo.audio.nchannels = (uint32_t) temp;
+					}
 					else
-						sw->streamInfo.video.fps = 0;
+					{
+						sw->streamInfo.type = NAV_STREAMTYPE_UNKNOWN;
+						sw->enabled = false;
+					}
+
+					break;
 				}
-				else
+				case NAV_STREAMTYPE_VIDEO:
 				{
-					sw->streamInfo.type = NAV_STREAMTYPE_UNKNOWN;
-					sw->enabled = false;
+					const gchar *format = NAV_FFCALL(gst_structure_get_string)(s, "format");
+					bool hasFormat = false;
+
+					for (const NAVGstPixelFormatMap &map: NAV_PIXELFORMAT_MAP)
+					{
+						if (strcmp(format, map.gstName) == 0)
+						{
+							sw->streamInfo.video.format = map.format;
+							hasFormat = true;
+							break;
+						}
+					}
+
+					if (hasFormat)
+					{
+						gdouble d = 0;
+
+						NAV_FFCALL(gst_structure_get_int)(s, "width", &temp);
+						sw->streamInfo.video.width = (uint32_t) temp;
+						NAV_FFCALL(gst_structure_get_int)(s, "height", &temp);
+						sw->streamInfo.video.height = (uint32_t) temp;
+
+						if (NAV_FFCALL(gst_structure_get_fraction)(s, "framerate", &temp, &temp2))
+							sw->streamInfo.video.fps = derationalize(temp, temp2);
+						else if (NAV_FFCALL(gst_structure_get_double)(s, "framerate", &d))
+							sw->streamInfo.video.fps = d;
+						else
+							sw->streamInfo.video.fps = 0;
+					}
+					else
+					{
+						sw->streamInfo.type = NAV_STREAMTYPE_UNKNOWN;
+						sw->enabled = false;
+					}
 				}
 			}
 		}
 	}
+
+	// Play
+	ret = NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_PAUSED);
+	if (ret == GST_STATE_CHANGE_FAILURE)
+		throw std::runtime_error("Cannot play pipeline");
 }
 
 GStreamerState::~GStreamerState()
 {
-	NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_PAUSED);
+	NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_NULL);
+	NAV_FFCALL(gst_element_get_state)(pipeline.get(), nullptr, nullptr, GST_CLOCK_TIME_NONE);
 	clearQueuedFrames();
+	pollBus(true);
 
 	if (input.userdata)
 		input.closef();
@@ -303,7 +342,7 @@ double GStreamerState::setPosition(double off)
 
 nav_frame_t *GStreamerState::read()
 {
-	while (true)
+	while (!eos)
 	{
 		size_t neos = 0;
 
@@ -359,6 +398,8 @@ nav_frame_t *GStreamerState::read()
 		// Read buses
 		pollBus();
 	}
+
+	return nullptr;
 }
 
 GstCaps *GStreamerState::newVideoCapsForNAV()
@@ -377,7 +418,7 @@ GstCaps *GStreamerState::newVideoCapsForNAV()
 	GstStructure *s = NAV_FFCALL(gst_structure_new)("video/x-raw",
 		"width", NAV_GST_TYPE_INT_RANGE, 1, G_MAXINT,
 		"height", NAV_GST_TYPE_INT_RANGE, 1, G_MAXINT,
-		"framerate", NAV_GST_TYPE_FRACTION_RANGE, 0, 1, G_MAXINT, 1,
+		"interlace-mode", G_TYPE_STRING, "progressive",
 		nullptr
 	);
 	NAV_FFCALL(gst_structure_take_value)(s, "format", &format);
@@ -392,7 +433,7 @@ GstCaps *GStreamerState::newAudioCapsForNAV()
 	GValue format = G_VALUE_INIT;
 	NAV_FFCALL(g_value_init)(&format, NAV_GST_TYPE_LIST);
 
-	for (const NAVGstPixelFormatMap &map: NAV_PIXELFORMAT_MAP)
+	for (const NAVGstAudioFormatMap &map: NAV_AUDIOFORMAT_MAP)
 	{
 		GValue v = G_VALUE_INIT;
 		NAV_FFCALL(g_value_init)(&v, G_TYPE_STRING);
@@ -423,7 +464,7 @@ void GStreamerState::clearQueuedFrames()
 	}
 }
 
-void GStreamerState::pollBus()
+void GStreamerState::pollBus(bool noexc)
 {
 	while (UniqueGst<GstMessage> message {
 		NAV_FFCALL(gst_bus_pop_filtered)(bus.get(), GST_MESSAGE_ANY), NAV_FFCALL(gst_message_unref)
@@ -431,16 +472,28 @@ void GStreamerState::pollBus()
 	{
 		switch (message->type)
 		{
+			case GST_MESSAGE_EOS:
+				eos = true;
+				break;
 			case GST_MESSAGE_ERROR:
 			{
-				gchar *debug_info;
-				GError *error;
-				NAV_FFCALL(gst_message_parse_error)(message.get(), &error, &debug_info);
-				std::string errorMessage = error->message;
-				NAV_FFCALL(g_free)(debug_info);
-				NAV_FFCALL(g_error_free)(error);
+				if (!noexc)
+				{
+					gchar *debug_info;
+					GError *error;
+					NAV_FFCALL(gst_message_parse_error)(message.get(), &error, &debug_info);
+					std::stringstream errorMessage;
+					errorMessage << error->message;
 
-				throw std::runtime_error(errorMessage);
+					if (debug_info)
+						errorMessage << " (" << debug_info << ")";
+
+					NAV_FFCALL(g_free)(debug_info);
+					NAV_FFCALL(g_error_free)(error);
+
+					throw std::runtime_error(errorMessage.str());
+				}
+				break;
 			}
 			default:
 				break;
@@ -453,7 +506,7 @@ void GStreamerState::pollBus()
 
 void GStreamerState::padAdded(GstElement *element, GstPad *pad, GStreamerState *self)
 {
-	if (self->prerolled)
+	if (self->padProbed)
 		return;
 
 	UniqueGst<GstCaps> cap {NAV_FFCALL(gst_pad_get_current_caps)(pad), NAV_FFCALL(gst_caps_unref)};
@@ -468,49 +521,73 @@ void GStreamerState::padAdded(GstElement *element, GstPad *pad, GStreamerState *
 	if (videoStream || audioStream)
 	{
 		std::unique_ptr<AppSinkWrapper> &streamWrapper = self->streams.back();
+		GstElement *queue = NAV_FFCALL(gst_element_factory_make)("queue", nullptr);
 		GstElement *converter = NAV_FFCALL(gst_element_factory_make)(videoStream ? "videoconvert" : "audioconvert", nullptr);
+		GstElement *capsfilter = NAV_FFCALL(gst_element_factory_make)("capsfilter", nullptr);
 		GstElement *sink = NAV_FFCALL(gst_element_factory_make)("appsink", nullptr);
+		GstCaps *targetCap = nullptr;
+		
+		// Populate caps
+		if (videoStream)
+			targetCap = self->newVideoCapsForNAV();
+		else if (audioStream)
+			targetCap = self->newAudioCapsForNAV();
+
+		gchar *capString = NAV_FFCALL(gst_caps_serialize)(targetCap, GST_SERIALIZE_FLAG_BACKWARD_COMPAT);
+		NAV_FFCALL(g_free)(capString);
+		NAV_FFCALL(g_object_set)(sink,
+			"caps", targetCap,
+			"max-buffers", 1,
+			nullptr
+		);
+		NAV_FFCALL(g_object_set)(capsfilter,
+			"caps", targetCap,
+			nullptr
+		);
+		NAV_FFCALL(gst_caps_unref)(targetCap);
 
 		// Add to pipeline
 		GstBin *binFromPipeline = G_CAST<GstBin>(self->f, NAV_FFCALL(gst_bin_get_type)(), self->pipeline.get());
-		NAV_FFCALL(gst_bin_add_many)(binFromPipeline, converter, sink, nullptr);
-		
-		streamWrapper->sink = sink;
-		streamWrapper->convert = converter;
+		NAV_FFCALL(gst_bin_add_many)(binFromPipeline, queue, converter, capsfilter, sink, nullptr);
 
-		GstPad *convSinkPad = NAV_FFCALL(gst_element_get_static_pad)(converter, "sink");
+		GstPad *queueSinkPad = NAV_FFCALL(gst_element_get_static_pad)(queue, "sink");
 		// Link the pad to the converter and the converter to the app sink
 		if (
-			NAV_FFCALL(gst_pad_link)(pad, convSinkPad) != GST_PAD_LINK_OK ||
-			!NAV_FFCALL(gst_element_link)(converter, sink)
+			GST_PAD_LINK_FAILED(NAV_FFCALL(gst_pad_link)(pad, queueSinkPad)) ||
+			!NAV_FFCALL(gst_element_link_many)(queue, converter, capsfilter, sink, nullptr)
 		)
 		{
-			NAV_FFCALL(gst_bin_remove_many)(binFromPipeline, converter, sink);
+			NAV_FFCALL(gst_bin_remove_many)(binFromPipeline, queue, converter, capsfilter, sink, nullptr);
 			return;
 		}
+
+		streamWrapper->queue = queue;
+		streamWrapper->convert = converter;
+		streamWrapper->capsfilter = capsfilter;
+		streamWrapper->sink = sink;
+
+		NAV_FFCALL(gst_element_set_state)(queue, GST_STATE_PLAYING);
+		NAV_FFCALL(gst_element_set_state)(converter, GST_STATE_PLAYING);
+		NAV_FFCALL(gst_element_set_state)(capsfilter, GST_STATE_PLAYING);
+		NAV_FFCALL(gst_element_set_state)(sink, GST_STATE_PLAYING);
 
 		// Populate stream info type.
 		if (videoStream)
 		{
-			NAV_FFCALL(g_object_set)(sink,
-				"caps", self->newVideoCapsForNAV(), // TODO: Not sure if we keep the ownership
-				"max-buffers", 1,
-				nullptr
-			);
 			streamWrapper->streamInfo.type = NAV_STREAMTYPE_VIDEO;
 			streamWrapper->enabled = true;
 		}
 		else if (audioStream)
 		{
-			NAV_FFCALL(g_object_set)(sink,
-				"caps", self->newAudioCapsForNAV(), // TODO: Not sure if we keep the ownership
-				"max-buffers", 1,
-				nullptr
-			);
 			streamWrapper->streamInfo.type = NAV_STREAMTYPE_AUDIO;
 			streamWrapper->enabled = true;
 		}
 	}
+}
+
+void GStreamerState::noMorePads(GstElement *element, GStreamerState *self)
+{
+	self->padProbed = true;
 }
 
 void GStreamerState::needData(GstElement *element, guint length, GStreamerState *self)
@@ -526,7 +603,7 @@ void GStreamerState::needData(GstElement *element, guint length, GStreamerState 
 	size_t readed = 0;
 	{
 		GstMemoryMapLock mapInfo(self->f, memory, GST_MAP_WRITE, false);
-		size_t readed = self->input.readf(mapInfo.data, toRead);
+		readed = self->input.readf(mapInfo.data, toRead);
 	}
 
 	if (readed < toRead)
@@ -561,7 +638,10 @@ GStreamerState::AppSinkWrapper::AppSinkWrapper(GStreamerState *state, size_t str
 : streamInfo()
 , streamIndex(streamIndex)
 , self(state)
+, queue(nullptr)
 , convert(nullptr)
+, sink(nullptr)
+, capsfilter(nullptr)
 , eos(false)
 {
 	streamInfo.type = NAV_STREAMTYPE_UNKNOWN;
@@ -569,9 +649,6 @@ GStreamerState::AppSinkWrapper::AppSinkWrapper(GStreamerState *state, size_t str
 
 GStreamerState::AppSinkWrapper::~AppSinkWrapper()
 {
-	// The convert is not owned by us
-	// if (convert)
-	// 	NAV_FFCALL(gst_object_unref)(convert);
 }
 
 bool GStreamerState::FrameComparator::operator()(const FrameVector *lhs, const FrameVector *rhs) const noexcept
@@ -615,13 +692,14 @@ GStreamerBackend::GStreamerBackend()
 
 	ENSURE_HAS_ELEMENT_FACTORY("appsrc");
 	ENSURE_HAS_ELEMENT_FACTORY("decodebin");
+	ENSURE_HAS_ELEMENT_FACTORY("queue");
 	ENSURE_HAS_ELEMENT_FACTORY("audioconvert");
 	ENSURE_HAS_ELEMENT_FACTORY("videoconvert");
 	ENSURE_HAS_ELEMENT_FACTORY("appsink");
 
 #undef ENSURE_HAS_ELEMENT_FACTORY
 
-	version = "GStreamer " + G_TOSTRCALL(this, NAV_FFCALL(gst_version_string));
+	version = G_TOSTRCALL(this, NAV_FFCALL(gst_version_string));
 }
 
 GStreamerBackend::~GStreamerBackend()
