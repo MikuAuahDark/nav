@@ -68,13 +68,14 @@ inline std::string G_TOSTRCALL(GStreamerBackend *f, gchar*(*func)())
 }
 
 GstMemoryMapLock::GstMemoryMapLock(GStreamerBackend *f, GstMemory *mem, GstMapFlags flags, bool throwOnFail)
-: f(f)
+: GstMapInfo({})
+, f(f)
 , memory(mem)
 , success(false)
 {
 	success = NAV_FFCALL(gst_memory_map)(mem, this, flags);
 
-	if (success && throwOnFail)
+	if (!success && throwOnFail)
 		throw std::runtime_error("Cannot map memory");
 }
 
@@ -129,10 +130,10 @@ GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 	if (!NAV_FFCALL(gst_element_link)(source, decoder))
 		throw std::runtime_error("Unable to link source and decoder.");
 
-	// Preroll
+	// Play
 	GstStateChangeReturn ret = NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE)
-		throw std::runtime_error("Cannot preroll pipeline");
+		throw std::runtime_error("Cannot play pipeline");
 
 	bus.reset(NAV_FFCALL(gst_element_get_bus)(pipeline.get()));
 
@@ -242,11 +243,6 @@ GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 			}
 		}
 	}
-
-	// Play
-	ret = NAV_FFCALL(gst_element_set_state)(pipeline.get(), GST_STATE_PAUSED);
-	if (ret == GST_STATE_CHANGE_FAILURE)
-		throw std::runtime_error("Cannot play pipeline");
 }
 
 GStreamerState::~GStreamerState()
@@ -336,6 +332,7 @@ double GStreamerState::setPosition(double off)
 		return -1;
 	}
 
+	eos = false;
 	clearQueuedFrames();
 	return getPosition();
 }
@@ -523,7 +520,6 @@ void GStreamerState::padAdded(GstElement *element, GstPad *pad, GStreamerState *
 		std::unique_ptr<AppSinkWrapper> &streamWrapper = self->streams.back();
 		GstElement *queue = NAV_FFCALL(gst_element_factory_make)("queue", nullptr);
 		GstElement *converter = NAV_FFCALL(gst_element_factory_make)(videoStream ? "videoconvert" : "audioconvert", nullptr);
-		GstElement *capsfilter = NAV_FFCALL(gst_element_factory_make)("capsfilter", nullptr);
 		GstElement *sink = NAV_FFCALL(gst_element_factory_make)("appsink", nullptr);
 		GstCaps *targetCap = nullptr;
 		
@@ -533,42 +529,35 @@ void GStreamerState::padAdded(GstElement *element, GstPad *pad, GStreamerState *
 		else if (audioStream)
 			targetCap = self->newAudioCapsForNAV();
 
-		gchar *capString = NAV_FFCALL(gst_caps_serialize)(targetCap, GST_SERIALIZE_FLAG_BACKWARD_COMPAT);
-		NAV_FFCALL(g_free)(capString);
 		NAV_FFCALL(g_object_set)(sink,
 			"caps", targetCap,
 			"max-buffers", 1,
-			nullptr
-		);
-		NAV_FFCALL(g_object_set)(capsfilter,
-			"caps", targetCap,
+			"sync", (gboolean) 0,
 			nullptr
 		);
 		NAV_FFCALL(gst_caps_unref)(targetCap);
 
 		// Add to pipeline
 		GstBin *binFromPipeline = G_CAST<GstBin>(self->f, NAV_FFCALL(gst_bin_get_type)(), self->pipeline.get());
-		NAV_FFCALL(gst_bin_add_many)(binFromPipeline, queue, converter, capsfilter, sink, nullptr);
+		NAV_FFCALL(gst_bin_add_many)(binFromPipeline, queue, converter, sink, nullptr);
 
 		GstPad *queueSinkPad = NAV_FFCALL(gst_element_get_static_pad)(queue, "sink");
 		// Link the pad to the converter and the converter to the app sink
 		if (
 			GST_PAD_LINK_FAILED(NAV_FFCALL(gst_pad_link)(pad, queueSinkPad)) ||
-			!NAV_FFCALL(gst_element_link_many)(queue, converter, capsfilter, sink, nullptr)
+			!NAV_FFCALL(gst_element_link_many)(queue, converter, sink, nullptr)
 		)
 		{
-			NAV_FFCALL(gst_bin_remove_many)(binFromPipeline, queue, converter, capsfilter, sink, nullptr);
+			NAV_FFCALL(gst_bin_remove_many)(binFromPipeline, queue, converter, sink, nullptr);
 			return;
 		}
 
 		streamWrapper->queue = queue;
 		streamWrapper->convert = converter;
-		streamWrapper->capsfilter = capsfilter;
 		streamWrapper->sink = sink;
 
 		NAV_FFCALL(gst_element_set_state)(queue, GST_STATE_PLAYING);
 		NAV_FFCALL(gst_element_set_state)(converter, GST_STATE_PLAYING);
-		NAV_FFCALL(gst_element_set_state)(capsfilter, GST_STATE_PLAYING);
 		NAV_FFCALL(gst_element_set_state)(sink, GST_STATE_PLAYING);
 
 		// Populate stream info type.
@@ -641,7 +630,6 @@ GStreamerState::AppSinkWrapper::AppSinkWrapper(GStreamerState *state, size_t str
 , queue(nullptr)
 , convert(nullptr)
 , sink(nullptr)
-, capsfilter(nullptr)
 , eos(false)
 {
 	streamInfo.type = NAV_STREAMTYPE_UNKNOWN;

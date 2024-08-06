@@ -13,7 +13,7 @@ Backends and OS listed here are the ones that planned. More backends and OSes wi
 | Backend/OS | [FFmpeg 6] | [MediaFoundation] | [NdkMedia] | [GStreamer] | [libVLC] |
 |------------|------------|-------------------|------------|-------------|----------|
 | Windows    | **YES**    | **YES**           | N/A        | No          | No       |
-| Linux      | **YES**    | N/A               | N/A        | Planned     | Planned  |
+| Linux      | **YES**    | N/A               | N/A        | **YES**     | Planned  |
 | Android    | **YES**    | N/A               | **YES**    | N/A         | No       |
 
 Note: FFmpeg 6 backend requires the appropriate header files to be present.

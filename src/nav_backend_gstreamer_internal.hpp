@@ -71,7 +71,7 @@ private:
 		nav_streaminfo_t streamInfo;
 		size_t streamIndex;
 		GStreamerState *self;
-		GstElement *queue, *convert, *capsfilter, *sink;
+		GstElement *queue, *convert, *sink;
 		gulong probeID;
 		bool eos, enabled;
 	};
