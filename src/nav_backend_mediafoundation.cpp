@@ -80,6 +80,13 @@ struct WrappedPropVariant: public PROPVARIANT
 		this->uhVal.QuadPart = v;
 	}
 
+	WrappedPropVariant(int64_t v)
+	: WrappedPropVariant()
+	{
+		this->vt = VT_I8;
+		this->uhVal.QuadPart = v;
+	}
+
 	~WrappedPropVariant()
 	{
 		PropVariantClear(this);
@@ -649,7 +656,7 @@ double MediaFoundationState::getPosition() noexcept
 
 double MediaFoundationState::setPosition(double position)
 {
-	UINT64 newPos = (UINT64) (position * 1e7);
+	INT64 newPos = (INT64) (position * MF_100NS_UNIT);
 	WrappedPropVariant pvar = newPos;
 
 	if (FAILED(mfSourceReader->SetCurrentPosition(NULL_GUID, pvar)))
@@ -658,7 +665,7 @@ double MediaFoundationState::setPosition(double position)
 		return -1.0;
 	}
 
-	currentPosition = newPos;
+	currentPosition = (UINT64) newPos;
 	return position;
 }
 
