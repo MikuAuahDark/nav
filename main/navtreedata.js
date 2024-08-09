@@ -25,7 +25,7 @@
 var NAVTREE =
 [
   [ "NAV", "index.html", [
-    [ "Supported Backends", "index.html#autotoc_md0", null ],
+    [ "Backends", "index.html#autotoc_md0", null ],
     [ "License", "index.html#autotoc_md1", null ],
     [ "Data Structures", "annotated.html", [
       [ "Data Structures", "annotated.html", "annotated_dup" ],
