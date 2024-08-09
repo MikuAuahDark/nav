@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Needed Development Libraries
-      run: sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libgstreamer1.0-dev
+      run: sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
     - name: Checkout
       uses: actions/checkout@v4
     - name: Configure
