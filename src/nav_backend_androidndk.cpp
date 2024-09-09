@@ -2,7 +2,7 @@
 // backend. However we can't tell users to compile using API 28 as they may require supporting older Android.
 // We're using function pointers anyway so the Android NDK backend will be unavailable at runtime on Android < API 28.
 #ifndef __ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__
-#define __ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__ 1
+#define __ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__ 1 // NOLINT(bugprone-reserved-identifier)
 #endif
 
 // We really want this to be 1 though!
@@ -24,7 +24,7 @@
 #define NAV_FFCALL(n) f->ptr_##n
 
 constexpr int64_t MICROSECOND = 1000000;
-constexpr int64_t DEFAULT_TIMEOUT = 500000LL; // 0.5 seconds
+constexpr int64_t DEFAULT_TIMEOUT = 1000LL; // 1 millisecond.
 
 const char *getMediaStatusText(media_status_t code)
 {
@@ -209,6 +209,9 @@ ssize_t MediaSourceWrapper::getAvailableSize(void *userdata, off64_t offset)
 
 AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtractor &ext, MediaSourceWrapper &ds)
 : f(backend)
+, durationUs(0)
+, positionUs(0)
+, needAdvance(false)
 , activeStream()
 , hasEOS()
 , streamInfo()
@@ -224,7 +227,7 @@ AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtracto
 
 	for (size_t i = 0; i < tracks; i++)
 	{
-		decoders.push_back(std::move(UniqueMediaCodec(nullptr, NAV_FFCALL(AMediaCodec_delete))));
+		decoders.emplace_back(nullptr, NAV_FFCALL(AMediaCodec_delete));
 
 		// Most of these keys are taken from:
 		// https://developer.android.com/reference/android/media/MediaFormat
@@ -258,17 +261,27 @@ AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtracto
 			continue;
 		}
 
+        // Try with low-latency.
+        NAV_FFCALL(AMediaFormat_setInt32)(format.get(), "low-latency", 1);
 		// https://android.googlesource.com/platform/cts/+/23949c5/tests/tests/media/libmediandkjni/native-media-jni.cpp
 		if (
 			NAV_FFCALL(AMediaCodec_configure)(codec.get(), format.get(), nullptr, nullptr, 0) != AMEDIA_OK ||
 			NAV_FFCALL(AMediaCodec_start)(codec.get()) != AMEDIA_OK
 		)
 		{
-			// Cannot configure decoder
-			NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
-			streamInfo[i].type = streamType;
-			activeStream[i] = false;
-			continue;
+			// Maybe low latency is not supported
+			NAV_FFCALL(AMediaFormat_setInt32)(format.get(), "low-latency", 0);
+			if (
+				NAV_FFCALL(AMediaCodec_configure)(codec.get(), format.get(), nullptr, nullptr, 0) != AMEDIA_OK ||
+				NAV_FFCALL(AMediaCodec_start)(codec.get()) != AMEDIA_OK
+			)
+			{
+				// Cannot configure decoder
+				NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
+				streamInfo[i].type = streamType;
+				activeStream[i] = false;
+				continue;
+			}
 		}
 
 		UniqueMediaFormat outputFormat(NAV_FFCALL(AMediaCodec_getOutputFormat)(codec.get()), NAV_FFCALL(AMediaFormat_delete));
@@ -282,7 +295,7 @@ AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtracto
 		{
 			nav_pixelformat outputPixFmt = NAV_PIXELFORMAT_UNKNOWN;
 
-			if (NAV_FFCALL(AMediaFormat_getInt32)(format.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_COLOR_FORMAT), &val32))
+			if (NAV_FFCALL(AMediaFormat_getInt32)(outputFormat.get(), *NAV_FFCALL(AMEDIAFORMAT_KEY_COLOR_FORMAT), &val32))
 				outputPixFmt = getNDKPixelFormat(val32);
 			if (outputPixFmt == NAV_PIXELFORMAT_UNKNOWN)
 			{
@@ -387,9 +400,14 @@ bool AndroidNDKState::setStreamEnabled(size_t i, bool enabled)
 		return false;
 	}
 
-	media_status_t status = NAV_FFCALL(AMediaExtractor_selectTrack)(extractor.get(), i);
+	media_status_t status;
+    if (enabled)
+        status = NAV_FFCALL(AMediaExtractor_selectTrack)(extractor.get(), i);
+    else
+        status = NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
+
 	if (CHECK_IF_ERROR_AND_SET(status))
-		activeStream[i] = true;
+		activeStream[i] = enabled;
 
 	return status == AMEDIA_OK;
 }
@@ -406,7 +424,7 @@ double AndroidNDKState::getPosition() noexcept
 
 double AndroidNDKState::setPosition(double off)
 {
-	int64_t targetPosUs = (int64_t) (off * 1000000.0);
+	int64_t targetPosUs = (int64_t) (off * double(MICROSECOND));
 	media_status_t result = NAV_FFCALL(AMediaExtractor_seekTo)(extractor.get(), targetPosUs, AMEDIAEXTRACTOR_SEEK_PREVIOUS_SYNC);
 	THROW_IF_ERROR(result);
 
@@ -445,14 +463,13 @@ nav_frame_t *AndroidNDKState::read()
 			AMediaCodecBufferInfo bufferInfo = {};
 			bufferIndex = NAV_FFCALL(AMediaCodec_dequeueOutputBuffer)(codec.get(), &bufferInfo, DEFAULT_TIMEOUT);
 
-			if (bufferIndex != AMEDIACODEC_INFO_TRY_AGAIN_LATER)
+			if (bufferIndex < AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED)
 			{
-				if (bufferIndex < 0)
-				{
-					CHECK_IF_ERROR_AND_SET((media_status_t) bufferIndex);
-					return nullptr;
-				}
-
+                CHECK_IF_ERROR_AND_SET((media_status_t) bufferIndex);
+                return nullptr;
+            }
+            else if (bufferIndex >= 0)
+            {
 				hasEOS[index] = bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM;
 
 				// Pull buffer
@@ -477,7 +494,9 @@ nav_frame_t *AndroidNDKState::read()
 				return result;
 			}
 
-			NAV_FFCALL(AMediaExtractor_advance)(extractor.get());
+			if (needAdvance)
+				NAV_FFCALL(AMediaExtractor_advance)(extractor.get());
+			needAdvance = true;
 			index = NAV_FFCALL(AMediaExtractor_getSampleTrackIndex)(extractor.get());
 			if (index == -1)
 			{
@@ -489,10 +508,10 @@ nav_frame_t *AndroidNDKState::read()
 			// Step 2: Push encoded data to codec.
 			if (!hasEOS[index])
 			{
-				bufferIndex = NAV_FFCALL(AMediaCodec_dequeueInputBuffer)(codec.get(), DEFAULT_TIMEOUT);
-				if (bufferIndex < 0)
+				bufferIndex = NAV_FFCALL(AMediaCodec_dequeueInputBuffer)(codec.get(), -1);
+				if (bufferIndex < AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED)
 				{
-					nav::error::set("Error during AMediaCodec_dequeueInputBuffer");
+					CHECK_IF_ERROR_AND_SET((media_status_t) bufferIndex);
 					return nullptr;
 				}
 

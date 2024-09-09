@@ -60,6 +60,7 @@ private:
 	AndroidNDKBackend *f;
 	int64_t durationUs;
 	int64_t positionUs;
+	bool needAdvance;
 
 	std::vector<bool> activeStream, hasEOS;
 	std::vector<nav_streaminfo_t> streamInfo;
