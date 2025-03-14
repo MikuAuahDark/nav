@@ -11,7 +11,7 @@
 #include "Internal.hpp"
 #include "Common.hpp"
 #include "Error.hpp"
-#include "FFmpeg6Backend.h"
+#include "FFmpeg6Backend.hpp"
 #include "FFmpeg6Internal.hpp"
 
 #if NAV_BACKEND_FFMPEG_OK
