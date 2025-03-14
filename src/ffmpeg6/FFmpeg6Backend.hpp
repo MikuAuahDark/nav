@@ -3,7 +3,7 @@
 
 #include "NAVConfig.hpp"
 
-#ifdef NAV_BACKEND_FFMPEG
+#ifdef NAV_BACKEND_FFMPEG_6
 
 extern "C"
 {
@@ -14,25 +14,15 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
-#define NAV_BACKEND_FFMPEG_OK \
-	(LIBAVCODEC_VERSION_MAJOR >= 60) && \
-	(LIBAVFORMAT_VERSION_MAJOR >= 60) && \
-	(LIBAVUTIL_VERSION_MAJOR >= 58) && \
-	(LIBSWRESAMPLE_VERSION_MAJOR >= 4) && \
-	(LIBSWSCALE_VERSION_MAJOR >= 7)
-
-#if NAV_BACKEND_FFMPEG_OK
-
 #include "Internal.hpp"
 #include "Backend.hpp"
 
-namespace nav::ffmpeg
+namespace nav::ffmpeg6
 {
 
 Backend *create();
 
 }
 
-#endif /* NAV_BACKEND_FFMPEG_OK */
-#endif /* NAV_BACKEND_FFMPEG */
+#endif /* NAV_BACKEND_FFMPEG_6 */
 #endif /* _NAV_BACKEND_FFMPEG_ */

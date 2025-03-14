@@ -774,14 +774,14 @@ GStreamerBackend::GStreamerBackend()
 , gstreamer("libgstreamer-1.0.so.0")
 , gstvideo("libgstvideo-1.0.so.0")
 , version("")
-#define _NAV_PROXY_FUNCTION_POINTER_GST(lib, n) , ptr_##n(nullptr)
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) , ptr_##n(nullptr)
 #include "GStreamerPointers.h"
-#undef _NAV_PROXY_FUNCTION_POINTER_GST
+#undef _NAV_PROXY_FUNCTION_POINTER
 {
 	if (
-#define _NAV_PROXY_FUNCTION_POINTER_GST(lib, n) !lib.get(#n, &ptr_##n) ||
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) !lib.get(#n, &ptr_##n) ||
 #include "GStreamerPointers.h"
-#undef _NAV_PROXY_FUNCTION_POINTER_GST
+#undef _NAV_PROXY_FUNCTION_POINTER
 		!true // needed to fix the preprocessor stuff
 	)
 		throw std::runtime_error("Cannot load necessary function pointer");

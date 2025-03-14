@@ -10,9 +10,9 @@
 #include "FFmpeg6Backend.hpp"
 #include "DynLib.hpp"
 
-#if NAV_BACKEND_FFMPEG_OK
+#ifdef NAV_BACKEND_FFMPEG_6
 
-namespace nav::ffmpeg
+namespace nav::ffmpeg6
 {
 
 template<typename T>
@@ -87,12 +87,12 @@ private:
 	DynLib avutil, avcodec, avformat, swscale, swresample;
 	std::string info;
 
-#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) decltype(n) *func_##n;
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) decltype(n) *func_##n;
 #include "FFmpeg6Pointers.h"
-#undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
+#undef _NAV_PROXY_FUNCTION_POINTER
 };
 
 }
 
-#endif /* NAV_BACKEND_FFMPEG_OK */
+#endif /* NAV_BACKEND_FFMPEG_6 */
 #endif /* _NAV_BACKEND_FFMPEG_INTERNAL_ */

@@ -104,9 +104,9 @@ private:
 	std::string version;
 
 public:
-#define _NAV_PROXY_FUNCTION_POINTER_GST(lib, n) decltype(n) *ptr_##n;
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) decltype(n) *ptr_##n;
 #include "GStreamerPointers.h"
-#undef _NAV_PROXY_FUNCTION_POINTER_GST
+#undef _NAV_PROXY_FUNCTION_POINTER
 };
 
 }

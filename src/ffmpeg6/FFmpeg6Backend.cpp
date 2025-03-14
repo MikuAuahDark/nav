@@ -1,6 +1,6 @@
 #include "NAVConfig.hpp"
 
-#ifdef NAV_BACKEND_FFMPEG
+#ifdef NAV_BACKEND_FFMPEG_6
 
 #include <numeric>
 #include <sstream>
@@ -13,8 +13,6 @@
 #include "Error.hpp"
 #include "FFmpeg6Backend.hpp"
 #include "FFmpeg6Internal.hpp"
-
-#if NAV_BACKEND_FFMPEG_OK
 
 #define NAV_FFCALL(name) f->func_##name
 
@@ -383,7 +381,7 @@ struct CallOnLeave
 	T *ptr;
 };
 
-namespace nav::ffmpeg
+namespace nav::ffmpeg6
 {
 
 FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, UniqueAVIOContext &ioctx)
@@ -821,14 +819,14 @@ FFmpegBackend::FFmpegBackend()
 , swresample(getLibName("swresample", LIBSWRESAMPLE_VERSION_MAJOR))
 , swscale(getLibName("swscale", LIBSWSCALE_VERSION_MAJOR))
 , info()
-#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) , func_##n(nullptr)
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) , func_##n(nullptr)
 #include "FFmpeg6Pointers.h"
-#undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
+#undef _NAV_PROXY_FUNCTION_POINTER
 {
 	if (
-#define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) !lib.get(#n, &func_##n) ||
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) !lib.get(#n, &func_##n) ||
 #include "FFmpeg6Pointers.h"
-#undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
+#undef _NAV_PROXY_FUNCTION_POINTER
 		!true // needed to fix the preprocessor stuff
 	)
 		throw std::runtime_error("Cannot load FFmpeg function pointer");
@@ -888,7 +886,7 @@ State *FFmpegBackend::open(nav_input *input, const char *filename)
 
 const char *FFmpegBackend::getName() const noexcept
 {
-	return "ffmpeg";
+	return "ffmpeg6";
 }
 
 nav_backendtype FFmpegBackend::getType() const noexcept
@@ -933,7 +931,7 @@ const char *FFmpegBackend::getInfo()
 
 Backend *create()
 {
-	if (checkBackendDisabled("FFMPEG"))
+	if (checkBackendDisabled("FFMPEG6"))
 		return nullptr;
 
 	try
@@ -949,5 +947,4 @@ Backend *create()
 
 }
 
-#endif /* NAV_BACKEND_FFMPEG_OK */
-#endif /* NAV_BACKEND_FFMPEG */
+#endif /* NAV_BACKEND_FFMPEG_6 */

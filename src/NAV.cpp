@@ -122,8 +122,17 @@ private:
 #ifdef NAV_BACKEND_ANDROIDNDK
 	&nav::androidndk::create,
 #endif
-#if defined(NAV_BACKEND_FFMPEG) && (NAV_BACKEND_FFMPEG_OK)
-	&nav::ffmpeg::create,
+#ifdef NAV_BACKEND_FFMPEG_7
+	&nav::ffmpeg7::create,
+#endif
+#ifdef NAV_BACKEND_FFMPEG_6
+	&nav::ffmpeg6::create,
+#endif
+#ifdef NAV_BACKEND_FFMPEG_5
+	&nav::ffmpeg5::create,
+#endif
+#ifdef NAV_BACKEND_FFMPEG_4
+	&nav::ffmpeg4::create,
 #endif
 #ifdef NAV_BACKEND_GSTREAMER
 	&nav::gstreamer::create,
