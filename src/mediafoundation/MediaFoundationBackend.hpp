@@ -1,12 +1,12 @@
 #ifndef _NAV_BACKEND_MEDIAFOUNDATION_
 #define _NAV_BACKEND_MEDIAFOUNDATION_
 
-#include "nav_config.hpp"
+#include "NAVConfig.hpp"
 
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 
-#include "nav_internal.hpp"
-#include "nav_backend.hpp"
+#include "Internal.hpp"
+#include "Backend.hpp"
 
 namespace nav::mediafoundation
 {

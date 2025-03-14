@@ -1,12 +1,12 @@
 #ifndef _NAV_BACKEND_GSTREAMER_H_
 #define _NAV_BACKEND_GSTREAMER_H_
 
-#include "nav_config.hpp"
+#include "NAVConfig.hpp"
 
 #ifdef NAV_BACKEND_GSTREAMER
 
-#include "nav_internal.hpp"
-#include "nav_backend.hpp"
+#include "Internal.hpp"
+#include "Backend.hpp"
 
 namespace nav::gstreamer
 {

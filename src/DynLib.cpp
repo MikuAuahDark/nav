@@ -7,7 +7,7 @@
 #include <dlfcn.h>
 #endif
 
-#include "nav_dynlib.hpp"
+#include "DynLib.hpp"
 
 namespace nav
 {

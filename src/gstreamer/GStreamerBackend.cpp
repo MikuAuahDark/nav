@@ -1,4 +1,4 @@
-#include "nav_backend_gstreamer.hpp"
+#include "GStreamerBackend.hpp"
 
 #ifdef NAV_BACKEND_GSTREAMER
 
@@ -7,8 +7,8 @@
 
 #include <gst/video/video.h>
 
-#include "nav_backend_gstreamer_internal.hpp"
-#include "nav_error.hpp"
+#include "GStreamerInternal.hpp"
+#include "Error.hpp"
 
 namespace nav::gstreamer
 {
@@ -775,12 +775,12 @@ GStreamerBackend::GStreamerBackend()
 , gstvideo("libgstvideo-1.0.so.0")
 , version("")
 #define _NAV_PROXY_FUNCTION_POINTER_GST(lib, n) , ptr_##n(nullptr)
-#include "nav_backend_gstreamer_funcptr.h"
+#include "GStreamerPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_GST
 {
 	if (
 #define _NAV_PROXY_FUNCTION_POINTER_GST(lib, n) !lib.get(#n, &ptr_##n) ||
-#include "nav_backend_gstreamer_funcptr.h"
+#include "GStreamerPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_GST
 		!true // needed to fix the preprocessor stuff
 	)

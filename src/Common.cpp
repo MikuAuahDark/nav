@@ -6,7 +6,7 @@
 #include <windows.h>
 #endif
 
-#include "nav_common.hpp"
+#include "Common.hpp"
 
 namespace nav
 {

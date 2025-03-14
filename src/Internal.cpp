@@ -1,4 +1,4 @@
-#include "nav_internal.hpp"
+#include "Internal.hpp"
 
 nav_t::~nav_t()
 {}

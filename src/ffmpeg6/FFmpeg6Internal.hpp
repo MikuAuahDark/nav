@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "nav_internal.hpp"
-#include "nav_backend.hpp"
-#include "nav_backend_ffmpeg.hpp"
-#include "nav_dynlib.hpp"
+#include "Internal.hpp"
+#include "Backend.hpp"
+#include "FFmpeg6Backend.hpp"
+#include "DynLib.hpp"
 
 #if NAV_BACKEND_FFMPEG_OK
 
@@ -88,7 +88,7 @@ private:
 	std::string info;
 
 #define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) decltype(n) *func_##n;
-#include "nav_backend_ffmpeg_funcptr.h"
+#include "FFmpeg6Pointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 };
 

@@ -46,40 +46,41 @@ endif()
 
 add_library(nav ${NAV_SHARED_VALUE}
 	${NAV_PUBLIC_INCLUDE}
-	src/nav.cpp
-	src/nav_backend.cpp
-	src/nav_backend.hpp
-	src/nav_backend_androidndk.cpp
-	src/nav_backend_androidndk.hpp
-	src/nav_backend_androidndk_funcptr.h
-	src/nav_backend_androidndk_internal.hpp
-	src/nav_backend_ffmpeg.cpp
-	src/nav_backend_ffmpeg.hpp
-	src/nav_backend_ffmpeg_funcptr.h
-	src/nav_backend_ffmpeg_internal.hpp
-	src/nav_backend_gstreamer.cpp
-	src/nav_backend_gstreamer.hpp
-	src/nav_backend_gstreamer_funcptr.h
-	src/nav_backend_gstreamer_internal.hpp
-	src/nav_backend_mediafoundation.cpp
-	src/nav_backend_mediafoundation.hpp
-	src/nav_backend_mediafoundation_internal.hpp
-	src/nav_common.cpp
-	src/nav_common.hpp
-	src/nav_config.hpp
-	src/nav_dynlib.cpp
-	src/nav_dynlib.hpp
-	src/nav_error.cpp
-	src/nav_error.hpp
-	src/nav_input_file.cpp
-	src/nav_input_file.hpp
-	src/nav_input_file_android.cpp
-	src/nav_input_memory.cpp
-	src/nav_input_memory.hpp
-	src/nav_internal.hpp
-	src/nav_internal.cpp
+	src/NAV.cpp
+	src/Backend.cpp
+	src/Backend.hpp
+	src/androidndk/AndroidNDKBackend.cpp
+	src/androidndk/AndroidNDKBackend.hpp
+	src/androidndk/AndroidNDKPointers.h
+	src/androidndk/AndroidNDKInternal.hpp
+	src/ffmpeg6/FFmpeg6Backend.cpp
+	src/ffmpeg6/FFmpeg6Backend.hpp
+	src/ffmpeg6/FFmpeg6Pointers.h
+	src/ffmpeg6/FFmpeg6Internal.hpp
+	src/gstreamer/GStreamerBackend.cpp
+	src/gstreamer/GStreamerBackend.hpp
+	src/gstreamer/GStreamerPointers.h
+	src/gstreamer/GStreamerInternal.hpp
+	src/mediafoundation/nav_backend_mediafoundation.cpp
+	src/mediafoundation/MediaFoundationBackend.hpp
+	src/mediafoundation/MediaFoundationInternal.hpp
+	src/Common.cpp
+	src/Common.hpp
+	src/NAVConfig.hpp
+	src/DynLib.cpp
+	src/DynLib.hpp
+	src/Error.cpp
+	src/Error.hpp
+	src/InputFile.cpp
+	src/InputFile.hpp
+	src/InputFileAndroid.cpp
+	src/InputMemory.cpp
+	src/InputMemory.hpp
+	src/Internal.hpp
+	src/Internal.cpp
 )
 target_include_directories(nav PUBLIC include)
+target_include_directories(nav PRIVATE src)
 target_compile_features(nav PUBLIC c_std_99)
 target_compile_features(nav PRIVATE cxx_std_17)
 

@@ -1,7 +1,7 @@
 #ifndef _NAV_BACKEND_ANDROIDNDK_INTERNAL_HPP_
 #define _NAV_BACKEND_ANDROIDNDK_INTERNAL_HPP_
 
-#include "nav_backend_androidndk.hpp"
+#include "AndroidNDKBackend.hpp"
 
 #ifdef NAV_BACKEND_ANDROIDNDK
 
@@ -10,8 +10,8 @@
 
 #include <media/NdkMediaExtractor.h>
 
-#include "nav_backend.hpp"
-#include "nav_dynlib.hpp"
+#include "Backend.hpp"
+#include "DynLib.hpp"
 
 namespace nav::androidndk
 {
@@ -86,7 +86,7 @@ private:
 	DynLib mediandk;
 
 #define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *ptr_##n;
-#include "nav_backend_androidndk_funcptr.h"
+#include "AndroidNDKPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 };
 

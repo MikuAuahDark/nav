@@ -1,4 +1,4 @@
-#include "nav_config.hpp"
+#include "NAVConfig.hpp"
 
 #ifdef NAV_BACKEND_FFMPEG
 
@@ -8,11 +8,11 @@
 #include <string>
 #include <tuple>
 
-#include "nav_internal.hpp"
-#include "nav_common.hpp"
-#include "nav_error.hpp"
-#include "nav_backend_ffmpeg.hpp"
-#include "nav_backend_ffmpeg_internal.hpp"
+#include "Internal.hpp"
+#include "Common.hpp"
+#include "Error.hpp"
+#include "FFmpeg6Backend.h"
+#include "FFmpeg6Internal.hpp"
 
 #if NAV_BACKEND_FFMPEG_OK
 
@@ -822,12 +822,12 @@ FFmpegBackend::FFmpegBackend()
 , swscale(getLibName("swscale", LIBSWSCALE_VERSION_MAJOR))
 , info()
 #define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) , func_##n(nullptr)
-#include "nav_backend_ffmpeg_funcptr.h"
+#include "FFmpeg6Pointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 {
 	if (
 #define _NAV_PROXY_FUNCTION_POINTER_FFMPEG(lib, n) !lib.get(#n, &func_##n) ||
-#include "nav_backend_ffmpeg_funcptr.h"
+#include "FFmpeg6Pointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_FFMPEG
 		!true // needed to fix the preprocessor stuff
 	)

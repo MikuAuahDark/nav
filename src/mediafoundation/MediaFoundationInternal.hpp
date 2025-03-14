@@ -10,10 +10,10 @@
 #include <mfidl.h>
 #include <mfreadwrite.h>
 
-#include "nav_internal.hpp"
+#include "Internal.hpp"
 #include "nav/input.h"
-#include "nav_backend.hpp"
-#include "nav_dynlib.hpp"
+#include "Backend.hpp"
+#include "DynLib.hpp"
 
 namespace nav::mediafoundation
 {

@@ -6,7 +6,7 @@
 #include <vector>
 #include <type_traits>
 
-#include "nav_internal.hpp"
+#include "Internal.hpp"
 
 namespace nav
 {

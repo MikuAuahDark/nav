@@ -1,4 +1,4 @@
-#include "nav_backend_mediafoundation.hpp"
+#include "MediaFoundationBackend.hpp"
 
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 
@@ -13,9 +13,9 @@
 #include <windows.h>
 #include <mferror.h>
 
-#include "nav_common.hpp"
-#include "nav_error.hpp"
-#include "nav_backend_mediafoundation_internal.hpp"
+#include "Common.hpp"
+#include "Error.hpp"
+#include "MediaFoundationInternal.hpp"
 
 /* Notes on MF backend:
  * * Currently it's software-renderer. Using HW accelerated renderer needs D3D11 device. This is TODO.

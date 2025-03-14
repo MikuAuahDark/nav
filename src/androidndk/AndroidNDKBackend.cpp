@@ -11,15 +11,15 @@
 #define __ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__ 1
 #endif
 
-#include "nav_backend_androidndk.hpp"
+#include "AndroidNDKBackend.hpp"
 
 #ifdef NAV_BACKEND_ANDROIDNDK
 
 #include <stdexcept>
 
-#include "nav_error.hpp"
-#include "nav_backend_androidndk_internal.hpp"
-#include "nav_common.hpp"
+#include "Error.hpp"
+#include "AndroidNDKInternal.hpp"
+#include "Common.hpp"
 
 #define NAV_FFCALL(n) f->ptr_##n
 
@@ -541,12 +541,12 @@ nav_frame_t *AndroidNDKState::read()
 AndroidNDKBackend::AndroidNDKBackend()
 : mediandk("libmediandk.so")
 #define _NAV_PROXY_FUNCTION_POINTER(n) , ptr_##n(nullptr)
-#include "nav_backend_androidndk_funcptr.h"
+#include "AndroidNDKPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 {
 	if (
 #define _NAV_PROXY_FUNCTION_POINTER(n) !mediandk.get(#n, &ptr_##n) ||
-#include "nav_backend_androidndk_funcptr.h"
+#include "AndroidNDKPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 		!true // needed to fix the preprocessor stuff
 	)

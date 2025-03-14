@@ -1,7 +1,7 @@
 #ifndef _NAV_BACKEND_FFMPEG_
 #define _NAV_BACKEND_FFMPEG_
 
-#include "nav_config.hpp"
+#include "NAVConfig.hpp"
 
 #ifdef NAV_BACKEND_FFMPEG
 
@@ -23,8 +23,8 @@ extern "C"
 
 #if NAV_BACKEND_FFMPEG_OK
 
-#include "nav_internal.hpp"
-#include "nav_backend.hpp"
+#include "Internal.hpp"
+#include "Backend.hpp"
 
 namespace nav::ffmpeg
 {

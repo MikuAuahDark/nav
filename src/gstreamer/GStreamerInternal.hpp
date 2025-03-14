@@ -1,7 +1,7 @@
 #ifndef _NAV_BACKEND_GSTREAMER_INTERNAL_H_
 #define _NAV_BACKEND_GSTREAMER_INTERNAL_H_
 
-#include "nav_config.hpp"
+#include "NAVConfig.hpp"
 
 #ifdef NAV_BACKEND_GSTREAMER
 
@@ -12,10 +12,10 @@
 #include <vector>
 #include <queue>
 
-#include "nav_internal.hpp"
-#include "nav_backend.hpp"
-#include "nav_common.hpp"
-#include "nav_dynlib.hpp"
+#include "Internal.hpp"
+#include "Backend.hpp"
+#include "Common.hpp"
+#include "DynLib.hpp"
 
 namespace nav::gstreamer
 {
@@ -105,7 +105,7 @@ private:
 
 public:
 #define _NAV_PROXY_FUNCTION_POINTER_GST(lib, n) decltype(n) *ptr_##n;
-#include "nav_backend_gstreamer_funcptr.h"
+#include "GStreamerPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER_GST
 };
 

@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "nav_input_memory.hpp"
+#include "InputMemory.hpp"
 
 namespace nav::input::memory
 {

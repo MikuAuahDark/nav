@@ -1,7 +1,7 @@
 #ifndef _NAV_BACKEND_H_
 #define _NAV_BACKEND_H_
 
-#include "nav_internal.hpp"
+#include "Internal.hpp"
 
 #include "nav/nav.h"
 

@@ -3,15 +3,15 @@
 #include <numeric>
 #include <vector>
 
-#include "nav_internal.hpp"
-#include "nav_backend.hpp"
-#include "nav_backend_androidndk.hpp"
-#include "nav_backend_ffmpeg.hpp"
-#include "nav_backend_gstreamer.hpp"
-#include "nav_backend_mediafoundation.hpp"
-#include "nav_error.hpp"
-#include "nav_input_file.hpp"
-#include "nav_input_memory.hpp"
+#include "Internal.hpp"
+#include "Backend.hpp"
+#include "androidndk/AndroidNDKBackend.hpp"
+#include "ffmpeg6/FFmpeg6Backend.hpp"
+#include "gstreamer/GStreamerBackend.hpp"
+#include "mediafoundation/MediaFoundationBackend.hpp"
+#include "Error.hpp"
+#include "InputFile.hpp"
+#include "InputMemory.hpp"
 
 #include "nav/nav.h"
 

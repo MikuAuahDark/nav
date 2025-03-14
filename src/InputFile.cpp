@@ -1,32 +1,29 @@
-// Android has its own separate file because handling them is messy.
-// See https://android.googlesource.com/platform/bionic/+/HEAD/docs/32-bit-abi.md
-// This means 32-bit platform < Android N is limited to 2GB file size.
-#ifdef __ANDROID__
+// See nav_input_file_android.cpp for Android handling instead.
+#ifndef __ANDROID__
+#define _FILE_OFFSET_BITS 64
 
 #include <cstdio>
 
-#include <dlfcn.h>
+/* Needed to convert UTF-8 filename */
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
-#include "nav_input_file.hpp"
-#include "nav_common.hpp"
-#include "nav_error.hpp"
+#include "InputFile.hpp"
+#include "Common.hpp"
+#include "Error.hpp"
+
+// Good thing MSVC provide us 64-bit file seek/tell anywhere.
+#ifdef _MSC_VER
+// Use preprocessor because typedef error if off_t is already defined somewhere.
+#define off_t int64_t
+#define fseeko _fseeki64
+#define ftello _ftelli64
+#endif
 
 namespace nav::input::file
 {
-
-static int(*nav_fseeko64)(FILE *f, int64_t off, int origin) = nullptr;
-static int64_t(*nav_ftello64)(FILE *f) = nullptr;
-static bool hasInitLFS = false;
-
-static void initLFS()
-{
-	if (!hasInitLFS)
-	{
-		nav_fseeko64 = (decltype(nav_fseeko64)) dlsym(RTLD_DEFAULT, "fseeko64");
-		nav_ftello64 = (decltype(nav_ftello64)) dlsym(RTLD_DEFAULT, "ftello64");
-		hasInitLFS = true;
-	}
-}
 
 static void closefile(void **userdata)
 {
@@ -37,22 +34,12 @@ static void closefile(void **userdata)
 
 inline int seekimpl(FILE *f, int64_t pos, int origin)
 {
-	initLFS();
-
-	if (nav_fseeko64)
-		return nav_fseeko64(f, pos, origin);
-	else
-		return fseek(f, (long) pos, origin);
+	return fseeko(f, (off_t) pos, origin);
 }
 
 inline uint64_t tellimpl(FILE *f)
 {
-	initLFS();
-
-	if (nav_ftello64)
-		return (uint64_t) nav_ftello64(f);
-	else
-		return (uint64_t) ftell(f);
+	return (uint64_t) ftello(f);
 }
 
 static size_t readfile(void *userdata, void *dest, size_t size)
@@ -84,8 +71,32 @@ static uint64_t sizefile(void *userdata)
 
 bool populate(nav_input *input, const std::string &filename)
 {
-	initLFS();
-	FILE *f = fopen(filename.c_str(), "rb");
+	FILE *f = nullptr;
+
+#ifdef _WIN32
+	static UINT codepage = 0;
+	if (!codepage)
+		codepage = GetACP();
+	
+	if (codepage == CP_UTF8)
+		// Don't bother converting
+		f = fopen(filename.c_str(), "rb");
+	else
+	{
+		try
+		{
+			std::wstring wide = nav::fromUTF8(filename);
+			f = _wfopen(wide.c_str(), L"rb");
+		}
+		catch (const std::exception &e)
+		{
+			nav::error::set(e);
+			return false;
+		}
+	}
+#else
+	f = fopen(filename.c_str(), "rb");
+#endif
 
 	if (!f)
 	{
@@ -105,4 +116,4 @@ bool populate(nav_input *input, const std::string &filename)
 
 }
 
-#endif // #ifdef __ANDROID__
+#endif // #ifndef __ANDROID__
