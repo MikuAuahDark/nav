@@ -61,7 +61,7 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/gstreamer/GStreamerBackend.hpp
 	src/gstreamer/GStreamerPointers.h
 	src/gstreamer/GStreamerInternal.hpp
-	src/mediafoundation/nav_backend_mediafoundation.cpp
+	src/mediafoundation/MediaFoundationBackend.cpp
 	src/mediafoundation/MediaFoundationBackend.hpp
 	src/mediafoundation/MediaFoundationInternal.hpp
 	src/Common.cpp
