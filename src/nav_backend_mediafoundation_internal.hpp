@@ -2,6 +2,7 @@
 #define _NAV_BACKEND_MEDIAFOUNDATION_INTERNAL_
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <windows.h>
@@ -23,6 +24,7 @@ class MediaFoundationBackend;
 template<typename T>
 class ComPtr
 {
+	static_assert(std::is_base_of_v<IUnknown, T>, "ComPtr template must derive from IUnknown");
 public:
 	ComPtr()
 	: ptr(nullptr)

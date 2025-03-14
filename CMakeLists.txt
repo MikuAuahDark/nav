@@ -5,6 +5,10 @@ if(POLICY CMP0077)
 	cmake_policy(SET CMP0077 NEW)
 endif()
 
+if(POLICY CMP0144)
+	cmake_policy(SET CMP0144 NEW)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Read version
@@ -100,6 +104,7 @@ endif()
 # Silence C4996
 if(MSVC)
 	target_compile_definitions(nav PRIVATE _CRT_SECURE_NO_WARNINGS)
+	target_compile_options(nav PRIVATE /Zc:__cplusplus)
 endif()
 
 # Find FFmpeg
