@@ -1,4 +1,4 @@
-#ifdef _NAV_PROXY_FUNCTION_POINTER
+#if defined(_NAV_PROXY_FUNCTION_POINTER) && defined(_NAV_FFMPEG_VERSION)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_alloc)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_free)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_unref)
@@ -28,7 +28,11 @@ _NAV_PROXY_FUNCTION_POINTER(avformat, avformat_seek_file)
 _NAV_PROXY_FUNCTION_POINTER(avformat, avformat_version)
 _NAV_PROXY_FUNCTION_POINTER(avformat, avio_alloc_context)
 _NAV_PROXY_FUNCTION_POINTER(avformat, avio_context_free)
+#if _NAV_FFMPEG_VERSION >= 6
 _NAV_PROXY_FUNCTION_POINTER(swresample, swr_alloc_set_opts2)
+#else
+_NAV_PROXY_FUNCTION_POINTER(swresample, swr_alloc_set_opts)
+#endif
 _NAV_PROXY_FUNCTION_POINTER(swresample, swr_convert)
 _NAV_PROXY_FUNCTION_POINTER(swresample, swr_free)
 _NAV_PROXY_FUNCTION_POINTER(swresample, swr_init)
@@ -37,4 +41,4 @@ _NAV_PROXY_FUNCTION_POINTER(swscale, sws_getContext)
 _NAV_PROXY_FUNCTION_POINTER(swscale, sws_freeContext)
 _NAV_PROXY_FUNCTION_POINTER(swscale, sws_scale)
 _NAV_PROXY_FUNCTION_POINTER(swscale, swscale_version)
-#endif /* _NAV_PROXY_FUNCTION_POINTER */
+#endif /* defined(_NAV_PROXY_FUNCTION_POINTER) && defined(_NAV_FFMPEG_VERSION) */

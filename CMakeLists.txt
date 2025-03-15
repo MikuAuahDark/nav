@@ -53,10 +53,20 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/androidndk/AndroidNDKBackend.hpp
 	src/androidndk/AndroidNDKPointers.h
 	src/androidndk/AndroidNDKInternal.hpp
+	src/ffmpeg_common/FFmpegBackend.cpp
+	src/ffmpeg_common/FFmpegBackend.hpp
+	src/ffmpeg_common/FFmpegCommon.hpp
+	src/ffmpeg_common/FFmpegInternal.hpp
+	src/ffmpeg_common/FFmpegPointers.h
+	src/ffmpeg_common/FFmpegSetup.h
+	src/ffmpeg4/FFmpeg4Backend.cpp
+	src/ffmpeg4/FFmpeg4Backend.hpp
+	src/ffmpeg5/FFmpeg5Backend.cpp
+	src/ffmpeg5/FFmpeg5Backend.hpp
 	src/ffmpeg6/FFmpeg6Backend.cpp
 	src/ffmpeg6/FFmpeg6Backend.hpp
-	src/ffmpeg6/FFmpeg6Pointers.h
-	src/ffmpeg6/FFmpeg6Internal.hpp
+	src/ffmpeg7/FFmpeg7Backend.cpp
+	src/ffmpeg7/FFmpeg7Backend.hpp
 	src/gstreamer/GStreamerBackend.cpp
 	src/gstreamer/GStreamerBackend.hpp
 	src/gstreamer/GStreamerPointers.h
@@ -80,7 +90,7 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/Internal.cpp
 )
 target_include_directories(nav PUBLIC include)
-target_include_directories(nav PRIVATE src)
+target_include_directories(nav PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_features(nav PUBLIC c_std_99)
 target_compile_features(nav PRIVATE cxx_std_17)
 
@@ -109,8 +119,30 @@ if(MSVC)
 endif()
 
 # Find FFmpeg
-if(FFMPEG_DIR)
-	# Ok I trusted you
+if(DEFINED FFMPEG4_DIR OR DEFINED FFMPEG5_DIR OR DEFINED FFMPEG6_DIR OR DEFINED FFMPEG7_DIR)
+	# Multi FFmpeg mode
+	if(DEFINED FFMPEG_DIR)
+		message(FATAL_ERROR "Cannot combine multi-FFmpeg include directories with single FFmpeg")
+	endif()
+
+	# Ok I trust you
+	message(STATUS "Multi-FFmpeg mode activates:")
+	foreach(i RANGE 4 7)
+		if(FFMPEG${i}_DIR)
+			set_source_files_properties(
+				src/ffmpeg${i}/FFmpeg${i}Backend.cpp
+				src/ffmpeg${i}/FFmpeg${i}Backend.hpp
+				PROPERTIES
+				INCLUDE_DIRECTORIES ${FFMPEG${i}_DIR}/include
+			)
+			set(NAV_BACKEND_FFMPEG_${i} ON)
+			message(STATUS "- FFmpeg${i}")
+		endif()
+	endforeach()
+	configure_file(src/multiffmpegconfig.h.in multiffmpegconfig.h)
+	target_compile_definitions(nav PRIVATE HAVE_MULTIFFMPEGCONFIG_H)
+elseif(FFMPEG_DIR)
+	# Anyway I'll still trust you
 	set(FFMPEG_INCLUDE_DIRS ${FFMPEG_DIR}/include)
 elseif(ENV{FFMPEG_DIR})
 	set(FFMPEG_INCLUDE_DIRS $ENV{FFMPEG_DIR}/include)
@@ -119,7 +151,7 @@ else()
 endif()
 
 if(FFMPEG_FOUND OR FFMPEG_INCLUDE_DIRS)
-	message(STATUS "Using FFmpeg include directory: ${FFMPEG_INCLUDE_DIRS}")
+	message(STATUS "Using FFmpeg include directory (Single FFmpeg mode): ${FFMPEG_INCLUDE_DIRS}")
 	target_include_directories(nav PRIVATE ${FFMPEG_INCLUDE_DIRS})
 endif()
 

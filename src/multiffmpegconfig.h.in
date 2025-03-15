@@ -1,0 +1,4 @@
+#cmakedefine NAV_BACKEND_FFMPEG_4
+#cmakedefine NAV_BACKEND_FFMPEG_5
+#cmakedefine NAV_BACKEND_FFMPEG_6
+#cmakedefine NAV_BACKEND_FFMPEG_7

@@ -14,21 +14,25 @@
 #		define NAV_BACKEND_ANDROIDNDK
 #	endif
 
+#	ifdef HAVE_MULTIFFMPEGCONFIG_H
+#		include "multiffmpegconfig.h"
+#	endif
 	// Test for __has_include support
 #	if (defined(_MSC_VER) && _MSC_VER >= 1911) || defined(__GNUC__) || defined(__clang__)
 		// Check for FFmpeg
-#		if \
+#		if !defined(HAVE_MULTIFFMPEGCONFIG_H) && \
 		__has_include(<libavcodec/version.h>) && \
 		__has_include(<libavformat/version.h>) && \
 		__has_include(<libavutil/version.h>) && \
 		__has_include(<libswresample/version.h>) && \
 		__has_include(<libswscale/version.h>)
-			// FFmpeg
+extern "C" {
 #			include <libavcodec/version.h>
 #			include <libavformat/version.h>
 #			include <libavutil/version.h>
 #			include <libswresample/version.h>
 #			include <libswscale/version.h>
+}
 #			if \
 			(LIBAVCODEC_VERSION_MAJOR == 61 && LIBAVCODEC_VERSION_MINOR >= 3) && \
 			(LIBAVFORMAT_VERSION_MAJOR == 61 && LIBAVFORMAT_VERSION_MINOR >= 1) && \
