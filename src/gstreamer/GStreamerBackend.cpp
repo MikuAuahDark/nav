@@ -100,7 +100,7 @@ struct GstVideoFrameLock: GstVideoFrame
 {
 	GstVideoFrameLock(const GstVideoFrameLock &) = delete;
 	GstVideoFrameLock(const GstVideoFrameLock &&) = delete;
-	GstVideoFrameLock(GStreamerBackend *f, const GstVideoInfo *info, GstBuffer *buffer, GstMapFlags flags)
+	GstVideoFrameLock(GStreamerBackend *f, GstVideoInfo *info, GstBuffer *buffer, GstMapFlags flags)
 	: GstVideoFrame({})
 	, f(f)
 	, success(false)
@@ -201,12 +201,6 @@ GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 			{
 				pollBus();
 				caps.reset(NAV_FFCALL(gst_pad_get_current_caps)(pad.get()));
-			}
-
-			{
-				gchar *dumpCaps = NAV_FFCALL(gst_caps_serialize)(caps.get(), GST_SERIALIZE_FLAG_BACKWARD_COMPAT);
-				fprintf(stderr, "got decoder caps: %s\n", dumpCaps);
-				NAV_FFCALL(g_free)(dumpCaps);
 			}
 
 			GstStructure *s = NAV_FFCALL(gst_caps_get_structure)(caps.get(), 0);
@@ -545,7 +539,10 @@ FrameVector *GStreamerState::dispatchDecode(GstBuffer *buffer, size_t streamInde
 	{
 		UniqueGstObject<GstPad> pad {NAV_FFCALL(gst_element_get_static_pad)(sw->convert, "src"), NAV_FFCALL(gst_object_unref)};
 		UniqueGst<GstCaps> caps {NAV_FFCALL(gst_pad_get_current_caps)(pad.get()), NAV_FFCALL(gst_caps_unref)};
-		UniqueGst<GstVideoInfo> videoInfo{NAV_FFCALL(gst_video_info_new_from_caps)(caps.get()), NAV_FFCALL(gst_video_info_free)};
+		UniqueGst<GstVideoInfo> videoInfo{NAV_FFCALL(gst_video_info_new)(), NAV_FFCALL(gst_video_info_free)};
+
+		if (!NAV_FFCALL(gst_video_info_from_caps)(videoInfo.get(), caps.get()))
+			return nullptr;
 
 		GstVideoFrameLock videoFrame(f, videoInfo.get(), buffer, GST_MAP_READ);
 		FrameVector *frame = new FrameVector(
