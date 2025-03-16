@@ -455,8 +455,8 @@ _NAV_FFMPEG_PREFIX(State)::_NAV_FFMPEG_PREFIX(State)(_NAV_FFMPEG_PREFIX(Backend)
 								0, nullptr
 							) >= 0;
 #else
-							good = NAV_FFCALL(swr_alloc_set_opts)(
-								resampler,
+							resampler = NAV_FFCALL(swr_alloc_set_opts)(
+								nullptr,
 								stream->codecpar->channel_layout,
 								packedFormat,
 								stream->codecpar->sample_rate,
@@ -464,7 +464,8 @@ _NAV_FFMPEG_PREFIX(State)::_NAV_FFMPEG_PREFIX(State)(_NAV_FFMPEG_PREFIX(Backend)
 								originalFormat,
 								stream->codecpar->sample_rate,
 								0, nullptr
-							) >= 0;
+							);
+							good = resampler;
 #endif
 						}
 
