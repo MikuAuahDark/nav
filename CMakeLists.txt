@@ -74,6 +74,7 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/mediafoundation/MediaFoundationBackend.cpp
 	src/mediafoundation/MediaFoundationBackend.hpp
 	src/mediafoundation/MediaFoundationInternal.hpp
+	src/mediafoundation/MediaFoundationPointers.h
 	src/Common.cpp
 	src/Common.hpp
 	src/NAVConfig.hpp

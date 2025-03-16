@@ -200,12 +200,8 @@ private:
 	bool callCoUninitialize;
 
 public:
-#define _NAV_PROXY_FUNCTION_POINTER(n) decltype(n) *n
-	_NAV_PROXY_FUNCTION_POINTER(MFStartup);
-	_NAV_PROXY_FUNCTION_POINTER(MFShutdown);
-	_NAV_PROXY_FUNCTION_POINTER(MFCreateMediaType);
-	_NAV_PROXY_FUNCTION_POINTER(MFCreateMFByteStreamOnStream);
-	_NAV_PROXY_FUNCTION_POINTER(MFCreateSourceReaderFromByteStream);
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) decltype(n) *func_##n;
+#include "MediaFoundationPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
 };
 

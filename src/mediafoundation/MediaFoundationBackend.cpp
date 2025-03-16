@@ -252,6 +252,8 @@ static size_t bruteForceExtraHeight(uint32_t width, uint32_t height, size_t cont
 
 }
 
+#define NAV_FFCALL(name) backend->func_##name
+
 namespace nav::mediafoundation
 {
 
@@ -461,7 +463,7 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 			if (majorType == MFMediaType_Audio)
 			{
 				// FIXME: Do not assume non-float and signed bps 16.
-				failed = FAILED(backend->MFCreateMediaType(partialType.dptr()));
+				failed = FAILED(NAV_FFCALL(MFCreateMediaType)(partialType.dptr()));
 
 				if (!failed)
 				{
@@ -496,7 +498,7 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 			}
 			else if (majorType == MFMediaType_Video)
 			{
-				failed = FAILED(backend->MFCreateMediaType(partialType.dptr()));
+				failed = FAILED(NAV_FFCALL(MFCreateMediaType)(partialType.dptr()));
 				nav_pixelformat pixfmt = NAV_PIXELFORMAT_UNKNOWN;
 
 				if (!failed)
@@ -815,22 +817,22 @@ nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t s
 	return frame;
 }
 
+#undef NAV_FFCALL
+#define NAV_FFCALL(n) func_##n
+
 MediaFoundationBackend::MediaFoundationBackend()
 : mfplat("mfplat.dll")
 , mfreadwrite("mfreadwrite.dll")
 , callCoUninitialize(true)
-, MFStartup(nullptr)
-, MFShutdown(nullptr)
-, MFCreateMediaType(nullptr)
-, MFCreateMFByteStreamOnStream(nullptr)
-, MFCreateSourceReaderFromByteStream(nullptr)
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) , func_##n(nullptr)
+#include "MediaFoundationPointers.h"
+#undef _NAV_PROXY_FUNCTION_POINTER
 {
 	if (
-		!mfplat.get("MFStartup", &MFStartup) ||
-		!mfplat.get("MFShutdown", &MFShutdown) ||
-		!mfplat.get("MFCreateMediaType", &MFCreateMediaType) ||
-		!mfplat.get("MFCreateMFByteStreamOnStream", &MFCreateMFByteStreamOnStream) ||
-		!mfreadwrite.get("MFCreateSourceReaderFromByteStream", &MFCreateSourceReaderFromByteStream)
+#define _NAV_PROXY_FUNCTION_POINTER(lib, n) !lib.get(#n, &func_##n) ||
+#include "MediaFoundationPointers.h"
+#undef _NAV_PROXY_FUNCTION_POINTER
+		!true // needed to fix the preprocessor stuff
 	)
 		throw std::runtime_error("cannot load MediaFoundation function pointer");
 
@@ -840,7 +842,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 
 	callCoUninitialize = SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE;
 
-	if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET)))
+	if (FAILED(NAV_FFCALL(MFStartup)(MF_VERSION, MFSTARTUP_NOSOCKET)))
 	{
 		if (callCoUninitialize)
 			CoUninitialize();
@@ -850,7 +852,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 
 MediaFoundationBackend::~MediaFoundationBackend()	
 {
-	MFShutdown();
+	NAV_FFCALL(MFShutdown)();
 	if (callCoUninitialize)
 		CoUninitialize();
 }
@@ -862,7 +864,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 	ComPtr<NavInputStream> istream(new NavInputStream(input, filename), false);		
 	ComPtr<IMFByteStream> byteStream;
 
-	if (FAILED(MFCreateMFByteStreamOnStream(istream.get(), byteStream.dptr())))
+	if (FAILED(NAV_FFCALL(MFCreateMFByteStreamOnStream)(istream.get(), byteStream.dptr())))
 		throw std::runtime_error("MFCreateMFByteStreamOnStream failed");
 
 	if (filename)
@@ -878,7 +880,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 	}
 
 	ComPtr<IMFSourceReader> sourceReader;
-	if (FAILED(MFCreateSourceReaderFromByteStream(byteStream.get(), nullptr, sourceReader.dptr())))
+	if (FAILED(NAV_FFCALL(MFCreateSourceReaderFromByteStream)(byteStream.get(), nullptr, sourceReader.dptr())))
 		throw std::runtime_error("MFCreateSourceReaderFromByteStream failed");
 
 	// All good
