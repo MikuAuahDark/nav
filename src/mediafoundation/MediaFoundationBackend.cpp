@@ -12,13 +12,13 @@
 #include <initguid.h>
 #include <windows.h>
 #include <mferror.h>
+#include <d3d11_4.h>
 
 #include "Common.hpp"
 #include "Error.hpp"
 #include "MediaFoundationInternal.hpp"
 
 /* Notes on MF backend:
- * * Currently it's software-renderer. Using HW accelerated renderer needs D3D11 device. This is TODO.
  * * Audio is always assumed 16-bit PCM.
  * * Video is always assumed YUV420 planar.
  */
@@ -31,6 +31,7 @@ constexpr GUID NULL_GUID = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 constexpr GUID IMFAttributes_GUID = {0x2cd2d921, 0xc447, 0x44a7, {0xa1, 0x3c, 0x4a, 0xda, 0xbf, 0xc2, 0x47, 0xe3}};
 constexpr GUID IMFTransform_GUID = {0xbf94c121, 0x5b05, 0x4e6f, {0x80, 0x00, 0xba, 0x59, 0x89, 0x61, 0x41, 0x4d}};
 constexpr GUID IMF2DBuffer_GUID = {0x7DC9D5F9, 0x9ED9, 0x44ec, {0x9B, 0xBF, 0x06, 0x00, 0xBB, 0x58, 0x9F, 0xBB}};
+constexpr GUID ID3D11Multithread_GUID = {0x9B7E4E00, 0x342C, 0x4106, {0xA1, 0x9F, 0x4F, 0x27, 0x04, 0xF6, 0x89, 0xF0}};
 
 constexpr uint64_t MF_100NS_UNIT = 10000000;
 
@@ -430,12 +431,13 @@ HRESULT STDMETHODCALLTYPE NavInputStream::UnlockRegion(ULARGE_INTEGER libOffset,
 	return STG_E_INVALIDFUNCTION;
 }
 
-MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr)
+MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr, const HWAccelState &hwaccel)
 : backend(backend)
 , originalInput(input)
 , inputStream(is)
 , mfByteStream(mfbs)
 , mfSourceReader(mfsr)
+, hwaccel(hwaccel)
 , currentPosition(0)
 {
 	if (FAILED(mfsr->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, TRUE)))
@@ -821,7 +823,8 @@ nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t s
 #define NAV_FFCALL(n) func_##n
 
 MediaFoundationBackend::MediaFoundationBackend()
-: mfplat("mfplat.dll")
+: d3d11("d3d11.dll")
+, mfplat("mfplat.dll")
 , mfreadwrite("mfreadwrite.dll")
 , callCoUninitialize(true)
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) , func_##n(nullptr)
@@ -878,13 +881,56 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 			attrs->SetString(MF_BYTESTREAM_ORIGIN_NAME, wfilename.c_str());
 		}
 	}
+	
+	// Setup hardware acceleration
+	HWAccelState hwaccel {};
+	hwaccel.active = false;
+
+	if (SUCCEEDED(NAV_FFCALL(D3D11CreateDevice)(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
+		nullptr,
+		0,
+		D3D11_SDK_VERSION,
+		hwaccel.d3d11dev.dptr(),
+		nullptr,
+		nullptr
+	)))
+	{
+		if (SUCCEEDED(NAV_FFCALL(MFCreateDXGIDeviceManager)(&hwaccel.resetToken, hwaccel.dxgidm.dptr())))
+			hwaccel.active = SUCCEEDED(hwaccel.dxgidm->ResetDevice(hwaccel.d3d11dev.get(), hwaccel.resetToken));
+		
+		if (hwaccel.active)
+		{
+			ComPtr<ID3D11Multithread> d3d11mt;
+			if (SUCCEEDED(hwaccel.d3d11dev.cast(ID3D11Multithread_GUID, d3d11mt)))
+				d3d11mt->SetMultithreadProtected(TRUE);
+		}
+	}
+
+	ComPtr<IMFAttributes> attrs;
+	if (hwaccel.active)
+	{
+		hwaccel.active = SUCCEEDED(NAV_FFCALL(MFCreateAttributes)(attrs.dptr(), 2));
+		if (hwaccel.active)
+		{
+			attrs->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1);
+			attrs->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, hwaccel.dxgidm.get());
+		}
+	}
 
 	ComPtr<IMFSourceReader> sourceReader;
-	if (FAILED(NAV_FFCALL(MFCreateSourceReaderFromByteStream)(byteStream.get(), nullptr, sourceReader.dptr())))
+	if (FAILED(NAV_FFCALL(MFCreateSourceReaderFromByteStream)(
+		byteStream.get(),
+		hwaccel.active ? attrs.get() : nullptr,
+		sourceReader.dptr()
+	)))
 		throw std::runtime_error("MFCreateSourceReaderFromByteStream failed");
 
 	// All good
-	return new MediaFoundationState(this, input, istream, byteStream, sourceReader);
+	return new MediaFoundationState(this, input, istream, byteStream, sourceReader, hwaccel);
 }
 
 const char *MediaFoundationBackend::getName() const noexcept

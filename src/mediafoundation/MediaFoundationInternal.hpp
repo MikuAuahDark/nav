@@ -9,6 +9,7 @@
 #include <mfapi.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
+#include <d3d11.h>
 
 #include "Internal.hpp"
 #include "nav/input.h"
@@ -153,10 +154,18 @@ private:
 	ULONG refc;
 };
 
+struct HWAccelState
+{
+	ComPtr<ID3D11Device> d3d11dev;
+	ComPtr<IMFDXGIDeviceManager> dxgidm;
+	UINT resetToken;
+	bool active;
+};
+
 class MediaFoundationState: public State
 {
 public:
-	MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr);
+	MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr, const HWAccelState &hwaccel);
 	~MediaFoundationState() override;
 	size_t getStreamCount() noexcept override;
 	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
@@ -177,6 +186,7 @@ private:
 	ComPtr<NavInputStream> inputStream;
 	ComPtr<IMFByteStream> mfByteStream;
 	ComPtr<IMFSourceReader> mfSourceReader;
+	HWAccelState hwaccel;
 
 	std::vector<nav::StreamInfo> streamInfoList;
 	UINT64 currentPosition; // in 100-nanosecond
@@ -196,7 +206,7 @@ private:
 	friend Backend *create();
 	MediaFoundationBackend();
 
-	DynLib mfplat, mfreadwrite;
+	DynLib d3d11, mfplat, mfreadwrite;
 	bool callCoUninitialize;
 
 public:

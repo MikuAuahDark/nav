@@ -1,6 +1,9 @@
 #ifdef _NAV_PROXY_FUNCTION_POINTER
+_NAV_PROXY_FUNCTION_POINTER(d3d11, D3D11CreateDevice)
 _NAV_PROXY_FUNCTION_POINTER(mfplat, MFStartup)
 _NAV_PROXY_FUNCTION_POINTER(mfplat, MFShutdown)
+_NAV_PROXY_FUNCTION_POINTER(mfplat, MFCreateAttributes)
+_NAV_PROXY_FUNCTION_POINTER(mfplat, MFCreateDXGIDeviceManager)
 _NAV_PROXY_FUNCTION_POINTER(mfplat, MFCreateMediaType)
 _NAV_PROXY_FUNCTION_POINTER(mfplat, MFCreateMFByteStreamOnStream)
 _NAV_PROXY_FUNCTION_POINTER(mfreadwrite, MFCreateSourceReaderFromByteStream)
