@@ -166,6 +166,11 @@ if(PKG_CONFIG_FOUND)
 	endif()
 endif()
 
+# libdl?
+if(CMAKE_DL_LIBS)
+	target_link_libraries(nav PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
 # Install files
 if(PROJECT_IS_TOP_LEVEL)
 	include(GNUInstallDirs)
