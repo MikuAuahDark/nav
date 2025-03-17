@@ -431,13 +431,12 @@ HRESULT STDMETHODCALLTYPE NavInputStream::UnlockRegion(ULARGE_INTEGER libOffset,
 	return STG_E_INVALIDFUNCTION;
 }
 
-MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr, const HWAccelState &hwaccel)
+MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr)
 : backend(backend)
 , originalInput(input)
 , inputStream(is)
 , mfByteStream(mfbs)
 , mfSourceReader(mfsr)
-, hwaccel(hwaccel)
 , currentPosition(0)
 {
 	if (FAILED(mfsr->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, TRUE)))
@@ -827,6 +826,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 , mfplat("mfplat.dll")
 , mfreadwrite("mfreadwrite.dll")
 , callCoUninitialize(true)
+, hwaccel()
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) , func_##n(nullptr)
 #include "MediaFoundationPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
@@ -851,6 +851,37 @@ MediaFoundationBackend::MediaFoundationBackend()
 			CoUninitialize();
 		throw std::runtime_error("MFStartup failed");
 	}
+
+	// Setup hardware acceleration
+	HWAccelState hwaccelState {};
+	hwaccelState.active = false;
+
+	if (SUCCEEDED(NAV_FFCALL(D3D11CreateDevice)(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
+		nullptr,
+		0,
+		D3D11_SDK_VERSION,
+		hwaccelState.d3d11dev.dptr(),
+		nullptr,
+		nullptr
+	)))
+	{
+		if (SUCCEEDED(NAV_FFCALL(MFCreateDXGIDeviceManager)(&hwaccelState.resetToken, hwaccelState.dxgidm.dptr())))
+			hwaccelState.active = SUCCEEDED(hwaccelState.dxgidm->ResetDevice(hwaccelState.d3d11dev.get(), hwaccelState.resetToken));
+		
+		if (hwaccelState.active)
+		{
+			ComPtr<ID3D11Multithread> d3d11mt;
+			if (SUCCEEDED(hwaccelState.d3d11dev.cast(ID3D11Multithread_GUID, d3d11mt)))
+				d3d11mt->SetMultithreadProtected(TRUE);
+		}
+	}
+
+	if (hwaccelState.active)
+		hwaccel = hwaccelState;
 }
 
 MediaFoundationBackend::~MediaFoundationBackend()	
@@ -881,40 +912,13 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 			attrs->SetString(MF_BYTESTREAM_ORIGIN_NAME, wfilename.c_str());
 		}
 	}
-	
-	// Setup hardware acceleration
-	HWAccelState hwaccel {};
-	hwaccel.active = false;
-
-	if (SUCCEEDED(NAV_FFCALL(D3D11CreateDevice)(
-		nullptr,
-		D3D_DRIVER_TYPE_HARDWARE,
-		nullptr,
-		D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
-		nullptr,
-		0,
-		D3D11_SDK_VERSION,
-		hwaccel.d3d11dev.dptr(),
-		nullptr,
-		nullptr
-	)))
-	{
-		if (SUCCEEDED(NAV_FFCALL(MFCreateDXGIDeviceManager)(&hwaccel.resetToken, hwaccel.dxgidm.dptr())))
-			hwaccel.active = SUCCEEDED(hwaccel.dxgidm->ResetDevice(hwaccel.d3d11dev.get(), hwaccel.resetToken));
-		
-		if (hwaccel.active)
-		{
-			ComPtr<ID3D11Multithread> d3d11mt;
-			if (SUCCEEDED(hwaccel.d3d11dev.cast(ID3D11Multithread_GUID, d3d11mt)))
-				d3d11mt->SetMultithreadProtected(TRUE);
-		}
-	}
 
 	ComPtr<IMFAttributes> attrs;
-	if (hwaccel.active)
+	bool useHWAccel = hwaccel.active;
+	if (useHWAccel)
 	{
-		hwaccel.active = SUCCEEDED(NAV_FFCALL(MFCreateAttributes)(attrs.dptr(), 2));
-		if (hwaccel.active)
+		useHWAccel = SUCCEEDED(NAV_FFCALL(MFCreateAttributes)(attrs.dptr(), 2));
+		if (useHWAccel)
 		{
 			attrs->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1);
 			attrs->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, hwaccel.dxgidm.get());
@@ -924,13 +928,13 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 	ComPtr<IMFSourceReader> sourceReader;
 	if (FAILED(NAV_FFCALL(MFCreateSourceReaderFromByteStream)(
 		byteStream.get(),
-		hwaccel.active ? attrs.get() : nullptr,
+		useHWAccel ? attrs.get() : nullptr,
 		sourceReader.dptr()
 	)))
 		throw std::runtime_error("MFCreateSourceReaderFromByteStream failed");
 
 	// All good
-	return new MediaFoundationState(this, input, istream, byteStream, sourceReader, hwaccel);
+	return new MediaFoundationState(this, input, istream, byteStream, sourceReader);
 }
 
 const char *MediaFoundationBackend::getName() const noexcept
