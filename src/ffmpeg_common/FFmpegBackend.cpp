@@ -833,11 +833,11 @@ bool _NAV_FFMPEG_PREFIX(State)::canDecode(size_t index)
 #define NAV_FFCALL(n) this->func_##n
 
 _NAV_FFMPEG_PREFIX(Backend)::_NAV_FFMPEG_PREFIX(Backend)()
-: avutil(ffmpeg_common::getLibName("avutil", LIBAVUTIL_VERSION_MAJOR))
-, avcodec(ffmpeg_common::getLibName("avcodec", LIBAVCODEC_VERSION_MAJOR))
-, avformat(ffmpeg_common::getLibName("avformat", LIBAVFORMAT_VERSION_MAJOR))
-, swresample(ffmpeg_common::getLibName("swresample", LIBSWRESAMPLE_VERSION_MAJOR))
-, swscale(ffmpeg_common::getLibName("swscale", LIBSWSCALE_VERSION_MAJOR))
+: avutil(_NAV_FFMPEG_LIB_NAME("avutil", LIBAVUTIL_VERSION_MAJOR))
+, avcodec(_NAV_FFMPEG_LIB_NAME("avcodec", LIBAVCODEC_VERSION_MAJOR))
+, avformat(_NAV_FFMPEG_LIB_NAME("avformat", LIBAVFORMAT_VERSION_MAJOR))
+, swresample(_NAV_FFMPEG_LIB_NAME("swresample", LIBSWRESAMPLE_VERSION_MAJOR))
+, swscale(_NAV_FFMPEG_LIB_NAME("swscale", LIBSWSCALE_VERSION_MAJOR))
 , info()
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) , func_##n(nullptr)
 #include "FFmpegPointers.h"

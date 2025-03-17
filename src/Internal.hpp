@@ -8,6 +8,10 @@
 #define NAV_STRINGIZE(x) _NAV_STRINGIZE0_(x)
 #define _NAV_STRINGIZE0_(x) #x
 
+#ifndef NAV_CAT
+#define NAV_CAT(x, y) x##y
+#endif
+
 #include <cstdint>
 
 #include "nav/audioformat.h"
