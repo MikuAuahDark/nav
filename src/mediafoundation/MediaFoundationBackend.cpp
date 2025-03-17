@@ -2,9 +2,10 @@
 
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 
-#include <iostream>
+#include <iomanip>
 #include <memory>
 #include <new>
+#include <sstream>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -62,6 +63,14 @@ inline void unixTimestampToFILETIME(FILETIME &ft, uint64_t t = 0LL)
 	tv.QuadPart = (t * 10000000LL) + 116444736000000000LL;
 	ft.dwHighDateTime = tv.HighPart;
 	ft.dwLowDateTime = tv.LowPart;
+}
+
+[[noreturn]] static void runtimeErrorWithHRESULT(const std::string &text, HRESULT hr)
+{
+	std::stringstream ss;
+	ss << text << " (HRESULT 0x";
+	ss << std::hex << (uint32_t) hr << ")";
+	throw std::runtime_error(ss.str());
 }
 
 struct WrappedPropVariant: public PROPVARIANT
@@ -439,8 +448,8 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 , mfSourceReader(mfsr)
 , currentPosition(0)
 {
-	if (FAILED(mfsr->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, TRUE)))
-		throw std::runtime_error("IMFSourceReader::SetStreamSelection failed");
+	if (HRESULT hr = mfsr->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, TRUE); FAILED(hr))
+		runtimeErrorWithHRESULT("IMFSourceReader::SetStreamSelection failed", hr);
 	
 	// Find how many streams
 	for (DWORD i = 0; i < 0xFFFFFFFCU; i++)
@@ -451,7 +460,7 @@ MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_
 		if (hr == MF_E_INVALIDSTREAMNUMBER)
 			break;
 		else if (FAILED(hr))
-			throw std::runtime_error("IMFSourceReader::GetCurrentMediaType failed");
+			runtimeErrorWithHRESULT("IMFSourceReader::GetCurrentMediaType failed", hr);
 
 		nav::StreamInfo streamInfo {NAV_STREAMTYPE_UNKNOWN};
 		GUID majorType;
@@ -680,8 +689,11 @@ nav_frame_t *MediaFoundationState::read()
 		DWORD streamIndex, streamFlags;
 		LONGLONG timestamp;
 
-		if (FAILED(mfSourceReader->ReadSample(MF_SOURCE_READER_ANY_STREAM, 0, &streamIndex, &streamFlags, &timestamp, mfSample.dptr())))
-			throw std::runtime_error("MediaFoundation assertion failed");
+		if (
+			HRESULT hr = mfSourceReader->ReadSample(MF_SOURCE_READER_ANY_STREAM, 0, &streamIndex, &streamFlags, &timestamp, mfSample.dptr());
+			FAILED(hr)
+		)
+			runtimeErrorWithHRESULT("MediaFoundation assertion failed (ReadSample failed)", hr);
 
 		currentPosition = (UINT64) timestamp;
 
@@ -692,8 +704,8 @@ nav_frame_t *MediaFoundationState::read()
 			ComPtr<IMFMediaBuffer> testbuf;
 			DWORD bufcount;
 
-			if (FAILED(mfSample->GetBufferCount(&bufcount)))
-				throw std::runtime_error("MediaFoundation assertion failed");
+			if (HRESULT hr = mfSample->GetBufferCount(&bufcount); FAILED(hr))
+				runtimeErrorWithHRESULT("MediaFoundation assertion failed (GetBufferCount failed)", hr);
 			if (bufcount > 0)
 				return decode(mfSample, streamIndex, timestamp);
 		}
@@ -705,16 +717,16 @@ nav_frame_t *MediaFoundationState::decode(ComPtr<IMFSample> &mfSample, size_t st
 	DWORD maxbufsize, bufsize;
 
 	ComPtr<IMFMediaBuffer> mfMediaBuffer;
-	if (FAILED(mfSample->GetBufferByIndex(0, mfMediaBuffer.dptr())))
-		throw std::runtime_error("IMFSample::GetBufferByIndex failed");
+	if (HRESULT hr = mfSample->GetBufferByIndex(0, mfMediaBuffer.dptr()); FAILED(hr))
+		runtimeErrorWithHRESULT("IMFSample::GetBufferByIndex failed", hr);
 	
 	ComPtr<IMF2DBuffer> buf2d;
 	if (SUCCEEDED(mfMediaBuffer.cast(IMF2DBuffer_GUID, buf2d)))
 		return decode2D(buf2d, streamIndex, timestamp);
 
 	BYTE *source;
-	if (FAILED(mfMediaBuffer->Lock(&source, &maxbufsize, &bufsize)))
-		throw std::runtime_error("IMFMediaBuffer::Lock failed");
+	if (HRESULT hr = mfMediaBuffer->Lock(&source, &maxbufsize, &bufsize); FAILED(hr))
+		runtimeErrorWithHRESULT("IMFMediaBuffer::Lock failed", hr);
 	
 	if (bufsize == 0)
 		bufsize = maxbufsize;
@@ -737,11 +749,11 @@ nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t s
 	LONG stride = 0;
 	DWORD contSize = 0;
 
-	if (FAILED(buf2d->GetContiguousLength(&contSize)))
-		throw std::runtime_error("IMF2DBuffer::GetContiguousLength failed");
+	if (HRESULT hr = buf2d->GetContiguousLength(&contSize); FAILED(hr))
+		runtimeErrorWithHRESULT("IMF2DBuffer::GetContiguousLength failed", hr);
 
-	if (FAILED(buf2d->Lock2D(&source, &stride)))
-		throw std::runtime_error("IMF2DBuffer::Lock2D failed");
+	if (HRESULT hr = buf2d->Lock2D(&source, &stride); FAILED(hr))
+		runtimeErrorWithHRESULT("IMF2DBuffer::Lock2D failed", hr);
 
 	nav::FrameVector *frame = nullptr;
 	try
@@ -841,7 +853,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
 	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
-		throw std::runtime_error("CoInitializeEx failed");
+		runtimeErrorWithHRESULT("CoInitializeEx failed", hr);
 
 	callCoUninitialize = SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE;
 
@@ -849,7 +861,7 @@ MediaFoundationBackend::MediaFoundationBackend()
 	{
 		if (callCoUninitialize)
 			CoUninitialize();
-		throw std::runtime_error("MFStartup failed");
+		runtimeErrorWithHRESULT("MFStartup failed", hr);
 	}
 
 	// Setup hardware acceleration
@@ -898,8 +910,8 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 	ComPtr<NavInputStream> istream(new NavInputStream(input, filename), false);		
 	ComPtr<IMFByteStream> byteStream;
 
-	if (FAILED(NAV_FFCALL(MFCreateMFByteStreamOnStream)(istream.get(), byteStream.dptr())))
-		throw std::runtime_error("MFCreateMFByteStreamOnStream failed");
+	if (HRESULT hr = NAV_FFCALL(MFCreateMFByteStreamOnStream)(istream.get(), byteStream.dptr()); FAILED(hr))
+		runtimeErrorWithHRESULT("MFCreateMFByteStreamOnStream failed", hr);
 
 	if (filename)
 	{
@@ -926,12 +938,12 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename)
 	}
 
 	ComPtr<IMFSourceReader> sourceReader;
-	if (FAILED(NAV_FFCALL(MFCreateSourceReaderFromByteStream)(
+	if (HRESULT hr = NAV_FFCALL(MFCreateSourceReaderFromByteStream)(
 		byteStream.get(),
 		useHWAccel ? attrs.get() : nullptr,
 		sourceReader.dptr()
-	)))
-		throw std::runtime_error("MFCreateSourceReaderFromByteStream failed");
+	); FAILED(hr))
+		runtimeErrorWithHRESULT("MFCreateSourceReaderFromByteStream failed", hr);
 
 	// All good
 	return new MediaFoundationState(this, input, istream, byteStream, sourceReader);

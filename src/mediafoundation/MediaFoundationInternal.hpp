@@ -65,7 +65,7 @@ public:
 		if (ptr)
 			ptr->Release();
 
-		ptr = other.ptr
+		ptr = other.ptr;
 		return *this;
 	}
 
