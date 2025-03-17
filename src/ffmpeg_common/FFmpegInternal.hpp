@@ -22,13 +22,13 @@ using UniqueAVCodecContext = std::unique_ptr<AVCodecContext, ffmpeg_common::Doub
 using UniqueAVPacket = std::unique_ptr<AVPacket, ffmpeg_common::DoublePointerDeleter<AVPacket>>;
 using UniqueAVFrame = std::unique_ptr<AVFrame, ffmpeg_common::DoublePointerDeleter<AVFrame>>;
 
-class _NAV_FFMPEG_PREFIX(Backend);
+class FFmpegBackend;
 
-class _NAV_FFMPEG_PREFIX(State): public State
+class FFmpegState: public State
 {
 public:
-	_NAV_FFMPEG_PREFIX(State)(_NAV_FFMPEG_PREFIX(Backend) *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext);
-	~_NAV_FFMPEG_PREFIX(State)() override;
+	FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext);
+	~FFmpegState() override;
 	size_t getStreamCount() noexcept override;
 	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
 	bool isStreamEnabled(size_t index) noexcept override;
@@ -42,7 +42,7 @@ private:
 	nav_frame_t *decode(AVFrame *frame, size_t index);
 	bool canDecode(size_t index);
 
-	_NAV_FFMPEG_PREFIX(Backend) *f;
+	FFmpegBackend *f;
 	UniqueAVFormatContext formatContext;
 	UniqueAVIOContext ioContext;
 	UniqueAVPacket tempPacket;
@@ -57,18 +57,18 @@ private:
 	std::vector<bool> streamEofs;
 };
 
-class _NAV_FFMPEG_PREFIX(Backend): public Backend
+class FFmpegBackend: public Backend
 {
 public:
-	_NAV_FFMPEG_PREFIX(Backend)();
-	~_NAV_FFMPEG_PREFIX(Backend)() override;
+	FFmpegBackend();
+	~FFmpegBackend() override;
 	const char *getName() const noexcept override;
 	nav_backendtype getType() const noexcept override;
 	const char *getInfo() override;
 	State *open(nav_input *input, const char *filename) override;
 
 private:
-	friend class _NAV_FFMPEG_PREFIX(State);
+	friend class FFmpegState;
 
 	DynLib avutil, avcodec, avformat, swscale, swresample;
 	std::string info;

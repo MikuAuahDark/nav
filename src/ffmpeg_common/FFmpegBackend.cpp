@@ -78,7 +78,7 @@ static std::runtime_error throwFromAVError(decltype(&av_strerror) func_av_strerr
 	return std::runtime_error(r == 0 ? temp : "Unknown libav error");
 }
 
-inline int THROW_IF_ERROR(decltype(&av_strerror) func_av_strerror, int err) noexcept(false)
+inline int checkError(decltype(&av_strerror) func_av_strerror, int err) noexcept(false)
 {
 	if (err < 0)
 		throw throwFromAVError(func_av_strerror, err);
@@ -379,7 +379,7 @@ struct CallOnLeave
 namespace nav::_NAV_FFMPEG_NAMESPACE
 {
 
-_NAV_FFMPEG_PREFIX(State)::_NAV_FFMPEG_PREFIX(State)(_NAV_FFMPEG_PREFIX(Backend) *backend, UniqueAVFormatContext &fmtctx, UniqueAVIOContext &ioctx)
+FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, UniqueAVIOContext &ioctx)
 : f(backend)
 , formatContext(std::move(fmtctx))
 , ioContext(std::move(ioctx))
@@ -396,7 +396,7 @@ _NAV_FFMPEG_PREFIX(State)::_NAV_FFMPEG_PREFIX(State)(_NAV_FFMPEG_PREFIX(Backend)
 	if (!tempPacket)
 		throw std::runtime_error("Cannot allocate AVPacket");
 
-	THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avformat_find_stream_info)(formatContext.get(), nullptr));
+	checkError(NAV_FFCALL(av_strerror), NAV_FFCALL(avformat_find_stream_info)(formatContext.get(), nullptr));
 
 	streamInfo.reserve(formatContext->nb_streams);
 	decoders.reserve(formatContext->nb_streams);
@@ -537,7 +537,7 @@ _NAV_FFMPEG_PREFIX(State)::_NAV_FFMPEG_PREFIX(State)(_NAV_FFMPEG_PREFIX(Backend)
 	}
 }
 
-_NAV_FFMPEG_PREFIX(State)::~_NAV_FFMPEG_PREFIX(State)()
+FFmpegState::~FFmpegState()
 {
 	for (AVCodecContext *&decoder: decoders)
 		NAV_FFCALL(avcodec_free_context)(&decoder);
@@ -547,12 +547,12 @@ _NAV_FFMPEG_PREFIX(State)::~_NAV_FFMPEG_PREFIX(State)()
 		NAV_FFCALL(sws_freeContext)(rescaler);
 }
 
-size_t _NAV_FFMPEG_PREFIX(State)::getStreamCount() noexcept
+size_t FFmpegState::getStreamCount() noexcept
 {
 	return formatContext->nb_streams;
 }
 
-nav_streaminfo_t *_NAV_FFMPEG_PREFIX(State)::getStreamInfo(size_t index) noexcept
+nav_streaminfo_t *FFmpegState::getStreamInfo(size_t index) noexcept
 {
 	if (index >= streamInfo.size())
 	{
@@ -563,7 +563,7 @@ nav_streaminfo_t *_NAV_FFMPEG_PREFIX(State)::getStreamInfo(size_t index) noexcep
 	return &streamInfo[index];
 }
 
-bool _NAV_FFMPEG_PREFIX(State)::isStreamEnabled(size_t index) noexcept
+bool FFmpegState::isStreamEnabled(size_t index) noexcept
 {
 	if (index >= streamInfo.size())
 	{
@@ -574,7 +574,7 @@ bool _NAV_FFMPEG_PREFIX(State)::isStreamEnabled(size_t index) noexcept
 	return formatContext->streams[index]->discard != AVDISCARD_ALL;
 }
 
-bool _NAV_FFMPEG_PREFIX(State)::setStreamEnabled(size_t index, bool enabled)
+bool FFmpegState::setStreamEnabled(size_t index, bool enabled)
 {
 	if (index >= streamInfo.size())
 	{
@@ -586,22 +586,22 @@ bool _NAV_FFMPEG_PREFIX(State)::setStreamEnabled(size_t index, bool enabled)
 	return true;
 }
 
-double _NAV_FFMPEG_PREFIX(State)::getDuration() noexcept
+double FFmpegState::getDuration() noexcept
 {
 	return derationalize<int64_t>(formatContext->duration, AV_TIME_BASE);
 }
 
-double _NAV_FFMPEG_PREFIX(State)::getPosition() noexcept
+double FFmpegState::getPosition() noexcept
 {
 	return position;
 }
 
-double _NAV_FFMPEG_PREFIX(State)::setPosition(double off)
+double FFmpegState::setPosition(double off)
 {
 	int64_t pos = int64_t(off * AV_TIME_BASE);
 
-	THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avformat_flush)(formatContext.get()));
-	THROW_IF_ERROR(
+	checkError(NAV_FFCALL(av_strerror), NAV_FFCALL(avformat_flush)(formatContext.get()));
+	checkError(
 		NAV_FFCALL(av_strerror),
 		NAV_FFCALL(avformat_seek_file)(
 			formatContext.get(),
@@ -625,7 +625,7 @@ double _NAV_FFMPEG_PREFIX(State)::setPosition(double off)
 	return position;
 }
 
-nav_frame_t *_NAV_FFMPEG_PREFIX(State)::read()
+nav_frame_t *FFmpegState::read()
 {
 	while (true)
 	{
@@ -653,7 +653,7 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::read()
 
 				if (err != AVERROR_EOF && err != AVERROR(EAGAIN))
 					// Other error
-					THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
+					checkError(NAV_FFCALL(av_strerror), err);
 			}
 		}
 
@@ -679,7 +679,7 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::read()
 						streamEofs[i] = true;
 					else
 						// Unhandled error
-						THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
+						checkError(NAV_FFCALL(av_strerror), err);
 				}
 			}
 
@@ -695,7 +695,7 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::read()
 				if (formatContext->streams[tempPacket->stream_index]->discard == AVDISCARD_ALL)
 					NAV_FFCALL(av_packet_unref)(tempPacket.get());
 				else
-					THROW_IF_ERROR(NAV_FFCALL(av_strerror), NAV_FFCALL(avcodec_send_packet)(decoders[tempPacket->stream_index], tempPacket.get()));
+					checkError(NAV_FFCALL(av_strerror), NAV_FFCALL(avcodec_send_packet)(decoders[tempPacket->stream_index], tempPacket.get()));
 			}
 			else if (err == AVERROR_EOF)
 			{
@@ -709,12 +709,12 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::read()
 				eof = true;
 			}
 			else
-				THROW_IF_ERROR(NAV_FFCALL(av_strerror), err);
+				checkError(NAV_FFCALL(av_strerror), err);
 		}
 	}
 }
 
-nav_frame_t *_NAV_FFMPEG_PREFIX(State)::decode(AVFrame *frame, size_t index)
+nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 {
 	nav_streaminfo_t *streamInfo = &this->streamInfo[index];
 
@@ -744,7 +744,7 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::decode(AVFrame *frame, size_t index)
 			{
 				uint8_t *tempBuffer[AV_NUM_DATA_POINTERS] = {(uint8_t*) result->data(), nullptr};
 
-				THROW_IF_ERROR(
+				checkError(
 					NAV_FFCALL(av_strerror),
 					NAV_FFCALL(swr_convert)(resampler, tempBuffer, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples)
 				);
@@ -805,7 +805,7 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::decode(AVFrame *frame, size_t index)
 			}
 
 			// Rescale handles flip.
-			THROW_IF_ERROR(
+			checkError(
 				NAV_FFCALL(av_strerror),
 				NAV_FFCALL(sws_scale)(
 					rescaler,
@@ -824,7 +824,7 @@ nav_frame_t *_NAV_FFMPEG_PREFIX(State)::decode(AVFrame *frame, size_t index)
 	}
 }
 
-bool _NAV_FFMPEG_PREFIX(State)::canDecode(size_t index)
+bool FFmpegState::canDecode(size_t index)
 {
 	return streamInfo[index].type != NAV_STREAMTYPE_UNKNOWN && formatContext->streams[index]->discard == AVDISCARD_ALL;
 }
@@ -832,7 +832,7 @@ bool _NAV_FFMPEG_PREFIX(State)::canDecode(size_t index)
 #undef NAV_FFCALL
 #define NAV_FFCALL(n) this->func_##n
 
-_NAV_FFMPEG_PREFIX(Backend)::_NAV_FFMPEG_PREFIX(Backend)()
+FFmpegBackend::FFmpegBackend()
 : avutil(_NAV_FFMPEG_LIB_NAME("avutil", LIBAVUTIL_VERSION_MAJOR))
 , avcodec(_NAV_FFMPEG_LIB_NAME("avcodec", LIBAVCODEC_VERSION_MAJOR))
 , avformat(_NAV_FFMPEG_LIB_NAME("avformat", LIBAVFORMAT_VERSION_MAJOR))
@@ -863,10 +863,10 @@ _NAV_FFMPEG_PREFIX(Backend)::_NAV_FFMPEG_PREFIX(Backend)()
 		throw std::runtime_error("swscale version mismatch");
 }
 
-_NAV_FFMPEG_PREFIX(Backend)::~_NAV_FFMPEG_PREFIX(Backend)()
+FFmpegBackend::~FFmpegBackend()
 {}
 
-State *_NAV_FFMPEG_PREFIX(Backend)::open(nav_input *input, const char *filename)
+State *FFmpegBackend::open(nav_input *input, const char *filename)
 {
 	constexpr int BUFSIZE = 4096;
 
@@ -901,20 +901,20 @@ State *_NAV_FFMPEG_PREFIX(Backend)::open(nav_input *input, const char *filename)
 		throw throwFromAVError(NAV_FFCALL(av_strerror), errcode);
 	}
 
-	return new _NAV_FFMPEG_PREFIX(State)(this, formatContext, ioContext);
+	return new FFmpegState(this, formatContext, ioContext);
 }
 
-const char *_NAV_FFMPEG_PREFIX(Backend)::getName() const noexcept
+const char *FFmpegBackend::getName() const noexcept
 {
 	return NAV_STRINGIZE(_NAV_FFMPEG_NAMESPACE);
 }
 
-nav_backendtype _NAV_FFMPEG_PREFIX(Backend)::getType() const noexcept
+nav_backendtype FFmpegBackend::getType() const noexcept
 {
 	return NAV_BACKENDTYPE_3RD_PARTY;
 }
 
-const char *_NAV_FFMPEG_PREFIX(Backend)::getInfo()
+const char *FFmpegBackend::getInfo()
 {
 
 	if (info.empty())
@@ -956,7 +956,7 @@ Backend *create()
 
 	try
 	{
-		return new _NAV_FFMPEG_PREFIX(Backend)();
+		return new FFmpegBackend();
 	}
 	catch (const std::exception &e)
 	{
