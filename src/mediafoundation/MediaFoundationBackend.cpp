@@ -440,14 +440,25 @@ HRESULT STDMETHODCALLTYPE NavInputStream::UnlockRegion(ULARGE_INTEGER libOffset,
 	return STG_E_INVALIDFUNCTION;
 }
 
-MediaFoundationState::MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr)
+MediaFoundationState::MediaFoundationState(
+	MediaFoundationBackend *backend,
+	nav_input *input,
+	ComPtr<NavInputStream> &is,
+	ComPtr<IMFByteStream> &mfbs,
+	ComPtr<IMFSourceReader> &mfsr,
+	HWAccelState *hwaccelState
+)
 : backend(backend)
 , originalInput(input)
 , inputStream(is)
 , mfByteStream(mfbs)
 , mfSourceReader(mfsr)
 , currentPosition(0)
+, hwaccel()
 {
+	if (hwaccelState)
+		hwaccel = *hwaccelState;
+
 	if (HRESULT hr = mfsr->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, TRUE); FAILED(hr))
 		runtimeErrorWithHRESULT("IMFSourceReader::SetStreamSelection failed", hr);
 	
@@ -838,7 +849,6 @@ MediaFoundationBackend::MediaFoundationBackend()
 , mfplat("mfplat.dll")
 , mfreadwrite("mfreadwrite.dll")
 , callCoUninitialize(true)
-, hwaccel()
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) , func_##n(nullptr)
 #include "MediaFoundationPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
@@ -863,37 +873,6 @@ MediaFoundationBackend::MediaFoundationBackend()
 			CoUninitialize();
 		runtimeErrorWithHRESULT("MFStartup failed", hr);
 	}
-
-	// Setup hardware acceleration
-	HWAccelState hwaccelState {};
-	hwaccelState.active = false;
-
-	if (SUCCEEDED(NAV_FFCALL(D3D11CreateDevice)(
-		nullptr,
-		D3D_DRIVER_TYPE_HARDWARE,
-		nullptr,
-		D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
-		nullptr,
-		0,
-		D3D11_SDK_VERSION,
-		hwaccelState.d3d11dev.dptr(),
-		nullptr,
-		nullptr
-	)))
-	{
-		if (SUCCEEDED(NAV_FFCALL(MFCreateDXGIDeviceManager)(&hwaccelState.resetToken, hwaccelState.dxgidm.dptr())))
-			hwaccelState.active = SUCCEEDED(hwaccelState.dxgidm->ResetDevice(hwaccelState.d3d11dev.get(), hwaccelState.resetToken));
-		
-		if (hwaccelState.active)
-		{
-			ComPtr<ID3D11Multithread> d3d11mt;
-			if (SUCCEEDED(hwaccelState.d3d11dev.cast(ID3D11Multithread_GUID, d3d11mt)))
-				d3d11mt->SetMultithreadProtected(TRUE);
-		}
-	}
-
-	if (hwaccelState.active)
-		hwaccel = hwaccelState;
 }
 
 MediaFoundationBackend::~MediaFoundationBackend()	
@@ -924,16 +903,43 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename, cons
 			attrs->SetString(MF_BYTESTREAM_ORIGIN_NAME, wfilename.c_str());
 		}
 	}
+	
+	// Setup hardware acceleration
+	HWAccelState hwaccelState {};
+	hwaccelState.active = false;
+
+	if (!settings->disable_hwaccel)
+	{
+		if (SUCCEEDED(NAV_FFCALL(D3D11CreateDevice)(
+			nullptr,
+			D3D_DRIVER_TYPE_HARDWARE,
+			nullptr,
+			D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
+			nullptr,
+			0,
+			D3D11_SDK_VERSION,
+			hwaccelState.d3d11dev.dptr(),
+			nullptr,
+			nullptr
+		)))
+		{
+			if (SUCCEEDED(NAV_FFCALL(MFCreateDXGIDeviceManager)(&hwaccelState.resetToken, hwaccelState.dxgidm.dptr())))
+				hwaccelState.active = SUCCEEDED(hwaccelState.dxgidm->ResetDevice(
+					hwaccelState.d3d11dev.get(),
+					hwaccelState.resetToken
+				));
+		}
+	}
 
 	ComPtr<IMFAttributes> attrs;
-	bool useHWAccel = hwaccel.active;
+	bool useHWAccel = hwaccelState.active;
 	if (useHWAccel)
 	{
 		useHWAccel = SUCCEEDED(NAV_FFCALL(MFCreateAttributes)(attrs.dptr(), 2));
 		if (useHWAccel)
 		{
 			attrs->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1);
-			attrs->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, hwaccel.dxgidm.get());
+			attrs->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, hwaccelState.dxgidm.get());
 		}
 	}
 
@@ -946,7 +952,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename, cons
 		runtimeErrorWithHRESULT("MFCreateSourceReaderFromByteStream failed", hr);
 
 	// All good
-	return new MediaFoundationState(this, input, istream, byteStream, sourceReader);
+	return new MediaFoundationState(this, input, istream, byteStream, sourceReader, useHWAccel ? &hwaccelState : nullptr);
 }
 
 const char *MediaFoundationBackend::getName() const noexcept

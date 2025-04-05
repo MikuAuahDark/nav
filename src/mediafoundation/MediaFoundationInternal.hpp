@@ -165,7 +165,14 @@ struct HWAccelState
 class MediaFoundationState: public State
 {
 public:
-	MediaFoundationState(MediaFoundationBackend *backend, nav_input *input, ComPtr<NavInputStream> &is, ComPtr<IMFByteStream> &mfbs, ComPtr<IMFSourceReader> &mfsr);
+	MediaFoundationState(
+		MediaFoundationBackend *backend,
+		nav_input *input,
+		ComPtr<NavInputStream> &is,
+		ComPtr<IMFByteStream> &mfbs,
+		ComPtr<IMFSourceReader> &mfsr,
+		HWAccelState *hwaccelState
+	);
 	~MediaFoundationState() override;
 	size_t getStreamCount() noexcept override;
 	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
@@ -186,6 +193,7 @@ private:
 	ComPtr<NavInputStream> inputStream;
 	ComPtr<IMFByteStream> mfByteStream;
 	ComPtr<IMFSourceReader> mfSourceReader;
+	HWAccelState hwaccel;
 
 	std::vector<nav::StreamInfo> streamInfoList;
 	UINT64 currentPosition; // in 100-nanosecond
@@ -207,7 +215,6 @@ private:
 
 	DynLib d3d11, mfplat, mfreadwrite;
 	bool callCoUninitialize;
-	HWAccelState hwaccel;
 
 public:
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) decltype(n) *func_##n;
