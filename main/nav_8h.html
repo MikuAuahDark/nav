@@ -111,7 +111,7 @@ Macros</h2></td></tr>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION_MAJOR</b>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:a56161c9aae6fdae271fb7451b7d8992e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a68800f13b996f9cee07957b7fec25494" id="r_a68800f13b996f9cee07957b7fec25494"><td class="memItemLeft" align="right" valign="top"><a id="a68800f13b996f9cee07957b7fec25494" name="a68800f13b996f9cee07957b7fec25494"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION_MINOR</b>&#160;&#160;&#160;2</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION_MINOR</b>&#160;&#160;&#160;3</td></tr>
 <tr class="separator:a68800f13b996f9cee07957b7fec25494"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae08a4161afbd05cf3c9bd0967e84613d" id="r_ae08a4161afbd05cf3c9bd0967e84613d"><td class="memItemLeft" align="right" valign="top"><a id="ae08a4161afbd05cf3c9bd0967e84613d" name="ae08a4161afbd05cf3c9bd0967e84613d"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NAV_VERSION_PATCH</b>&#160;&#160;&#160;0</td></tr>
@@ -155,9 +155,9 @@ Functions</h2></td></tr>
 <tr class="memitem:aaf10ace2be410693e7b36104447f64e5" id="r_aaf10ace2be410693e7b36104447f64e5"><td class="memItemLeft" align="right" valign="top">NAV_API const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aaf10ace2be410693e7b36104447f64e5">nav_backend_info</a> (size_t index)</td></tr>
 <tr class="memdesc:aaf10ace2be410693e7b36104447f64e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional information of a certain backend.  <br /></td></tr>
 <tr class="separator:aaf10ace2be410693e7b36104447f64e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeae908ed94709f73381986f1e389ca04" id="r_aeae908ed94709f73381986f1e389ca04"><td class="memItemLeft" align="right" valign="top">NAV_API nav_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aeae908ed94709f73381986f1e389ca04">nav_open</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename, const size_t *order)</td></tr>
-<tr class="memdesc:aeae908ed94709f73381986f1e389ca04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open new NAV instance.  <br /></td></tr>
-<tr class="separator:aeae908ed94709f73381986f1e389ca04"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad82451ebe67f1e622e1ad5061be1e1b3" id="r_ad82451ebe67f1e622e1ad5061be1e1b3"><td class="memItemLeft" align="right" valign="top">NAV_API nav_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ad82451ebe67f1e622e1ad5061be1e1b3">nav_open</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename, const <a class="el" href="structnav__settings.html">nav_settings</a> *settings)</td></tr>
+<tr class="memdesc:ad82451ebe67f1e622e1ad5061be1e1b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open new NAV instance.  <br /></td></tr>
+<tr class="separator:ad82451ebe67f1e622e1ad5061be1e1b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7f48ffd6fd650c1026c31703975bcc5b" id="r_a7f48ffd6fd650c1026c31703975bcc5b"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7f48ffd6fd650c1026c31703975bcc5b">nav_close</a> (nav_t *nav)</td></tr>
 <tr class="memdesc:a7f48ffd6fd650c1026c31703975bcc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close existing NAV instance.  <br /></td></tr>
 <tr class="separator:a7f48ffd6fd650c1026c31703975bcc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -804,8 +804,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="aeae908ed94709f73381986f1e389ca04" name="aeae908ed94709f73381986f1e389ca04"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeae908ed94709f73381986f1e389ca04">&#9670;&#160;</a></span>nav_open()</h2>
+<a id="ad82451ebe67f1e622e1ad5061be1e1b3" name="ad82451ebe67f1e622e1ad5061be1e1b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad82451ebe67f1e622e1ad5061be1e1b3">&#9670;&#160;</a></span>nav_open()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -825,8 +825,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const size_t *&#160;</td>
-          <td class="paramname"><em>order</em>&#160;</td>
+          <td class="paramtype">const <a class="el" href="structnav__settings.html">nav_settings</a> *&#160;</td>
+          <td class="paramname"><em>settings</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -842,7 +842,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
   <table class="params">
     <tr><td class="paramname">input</td><td>Pointer to "input data". This function will take the ownership of the input. </td></tr>
     <tr><td class="paramname">filename</td><td>Pseudo-filename that will be used to improve probing. This can be NULL, but it's recommended to specify a pseudo-filename (the file doesn't have to exist in filesystem). </td></tr>
-    <tr><td class="paramname">order</td><td>0-terminated <b>1-based</b> backend index to try in order. Example: if <code>{2, 1, 0}</code> is specified, then it will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default order (which is <code>{1, 2, 3, ..., <a class="el" href="nav_8h.html#a9d1f2f40e9d08f959bc420567101bebd" title="Get amount of available backends.">nav_backend_count()</a>, 0}</code>). </td></tr>
+    <tr><td class="paramname">settings</td><td>Additional settings to specify. This can be NULL. </td></tr>
   </table>
   </dd>
 </dl>

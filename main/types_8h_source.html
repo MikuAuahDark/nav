@@ -151,7 +151,24 @@ $(document).ready(function(){initNavTree('types_8h_source.html',''); initResizab
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    NAV_BACKENDTYPE_3RD_PARTY</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>} nav_backendtype;</div>
 <div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#endif </span><span class="comment">/* _NAV_TYPES_H_ */</span><span class="preprocessor"></span></div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#define NAV_SETTINGS_VERSION 0</span></div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
+<div class="foldopen" id="foldopen00077" data-start="{" data-end="};">
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno"><a class="line" href="structnav__settings.html">   77</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="structnav__settings.html">nav_settings</a></div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>{</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>    <span class="comment">/* nav_settings struct version. Must be initialize to NAV_SETTINGS_VERSION */</span></div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    uint64_t version;</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <span class="comment">/* 0-terminated **1-based** backend index to try in order. Example: if `{2, 1, 0}` is specified, then it</span></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="comment">     * will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="comment">     * order (which is `{1, 2, 3, ..., nav_backend_count(), 0}`). */</span></div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    <span class="keyword">const</span> <span class="keywordtype">size_t</span> *backend_order;</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    <span class="comment">/* If true, this hints backends to prefer CPU decoding. */</span></div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <span class="keywordtype">bool</span> disable_hwaccel;</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>} <a class="code hl_struct" href="structnav__settings.html">nav_settings</a>;</div>
+</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="preprocessor">#endif </span><span class="comment">/* _NAV_TYPES_H_ */</span><span class="preprocessor"></span></div>
+<div class="ttc" id="astructnav__settings_html"><div class="ttname"><a href="structnav__settings.html">nav_settings</a></div><div class="ttdef"><b>Definition</b> types.h:78</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
