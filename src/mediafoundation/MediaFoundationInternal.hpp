@@ -199,7 +199,7 @@ public:
 	const char *getName() const noexcept override;
 	nav_backendtype getType() const noexcept override;
 	const char *getInfo() override;
-	State *open(nav_input *input, const char *filename) override;
+	State *open(nav_input *input, const char *filename, const nav_settings *settings) override;
 
 private:
 	friend Backend *create();

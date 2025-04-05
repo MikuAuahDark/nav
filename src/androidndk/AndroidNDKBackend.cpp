@@ -556,7 +556,7 @@ AndroidNDKBackend::AndroidNDKBackend()
 AndroidNDKBackend::~AndroidNDKBackend()
 {}
 
-State *AndroidNDKBackend::open(nav_input *input, const char *filename)
+State *AndroidNDKBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
 {
 	UniqueMediaExtractor extractor(NAV_FFCALL(AMediaExtractor_new)(), NAV_FFCALL(AMediaExtractor_delete));
 	if (!extractor)

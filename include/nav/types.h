@@ -72,4 +72,18 @@ typedef enum nav_backendtype
 	NAV_BACKENDTYPE_3RD_PARTY
 } nav_backendtype;
 
+#define NAV_SETTINGS_VERSION 0
+
+typedef struct nav_settings
+{
+	/* nav_settings struct version. Must be initialize to NAV_SETTINGS_VERSION */
+	uint64_t version;
+	/* 0-terminated **1-based** backend index to try in order. Example: if `{2, 1, 0}` is specified, then it
+	 * will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default
+	 * order (which is `{1, 2, 3, ..., nav_backend_count(), 0}`). */
+	const size_t *backend_order;
+	/* If true, this hints backends to prefer CPU decoding. */
+	bool disable_hwaccel;
+} nav_settings;
+
 #endif /* _NAV_TYPES_H_ */

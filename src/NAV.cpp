@@ -66,13 +66,20 @@ public:
 			init();
 	}
 
-	nav::State *open(nav_input *input, const char *filename, const size_t *order)
+	nav::State *open(nav_input *input, const char *filename, const nav_settings *settings)
 	{
+		static nav_settings defaultSettings = {
+			NAV_SETTINGS_VERSION,
+			nullptr,
+			false
+		};
 		ensureInit();
 
+		if (settings == nullptr)
+			settings = &defaultSettings;
+
 		std::vector<std::string> errors;
-		if (!order)
-			order = defaultOrder.data();
+		const size_t *order = settings->backend_order ? settings->backend_order : defaultOrder.data();
 
 		for (size_t backendIndex = *order; *order; order++)
 		{
@@ -82,7 +89,7 @@ public:
 
 				try
 				{
-					return b->open(input, filename);
+					return b->open(input, filename, settings);
 				}
 				catch (const std::exception &e)
 				{

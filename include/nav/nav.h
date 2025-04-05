@@ -10,7 +10,7 @@
 #define _NAV_H_
 
 #define NAV_VERSION_MAJOR 0
-#define NAV_VERSION_MINOR 2
+#define NAV_VERSION_MINOR 3
 #define NAV_VERSION_PATCH 0
 #define NAV_VERSION_FORMAT(a, b, c) ((a << 16) | (b << 8) | c)
 #define NAV_VERSION NAV_VERSION_FORMAT(NAV_VERSION_MAJOR, NAV_VERSION_MINOR, NAV_VERSION_PATCH)
@@ -117,13 +117,11 @@ NAV_API const char *nav_backend_info(size_t index);
  * @param input Pointer to "input data". This function will take the ownership of the input.
  * @param filename Pseudo-filename that will be used to improve probing. This can be NULL, but it's recommended to
  *                 specify a pseudo-filename (the file doesn't have to exist in filesystem).
- * @param order 0-terminated **1-based** backend index to try in order. Example: if `{2, 1, 0}` is specified, then it
- *              will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default
- *              order (which is `{1, 2, 3, ..., nav_backend_count(), 0}`).
+ * @param settings Additional settings to specify. This can be NULL.
  * @return Pointer to NAV instance, or NULL on failure.
  * @note When the function errors, the input ownership will be given back to the caller.
  */
-NAV_API nav_t *nav_open(nav_input *input, const char *filename, const size_t *order);
+NAV_API nav_t *nav_open(nav_input *input, const char *filename, const nav_settings *settings);
 
 /**
  * @brief Close existing NAV instance.

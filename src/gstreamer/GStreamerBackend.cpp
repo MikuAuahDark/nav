@@ -829,7 +829,7 @@ const char *GStreamerBackend::getInfo()
 	return version.c_str();
 }
 
-State *GStreamerBackend::open(nav_input *input, const char *filename)
+State *GStreamerBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
 {
 	return new GStreamerState(this, input);
 }

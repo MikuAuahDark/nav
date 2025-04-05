@@ -903,7 +903,7 @@ MediaFoundationBackend::~MediaFoundationBackend()
 		CoUninitialize();
 }
 
-State *MediaFoundationBackend::open(nav_input *input, const char *filename)
+State *MediaFoundationBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
 {
 	input->seekf(0);
 
