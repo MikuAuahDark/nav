@@ -866,7 +866,7 @@ FFmpegBackend::FFmpegBackend()
 FFmpegBackend::~FFmpegBackend()
 {}
 
-State *FFmpegBackend::open(nav_input *input, const char *filename)
+State *FFmpegBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
 {
 	constexpr int BUFSIZE = 4096;
 
