@@ -5,6 +5,7 @@
 
 #include "Internal.hpp"
 #include "Backend.hpp"
+#include "Common.hpp"
 #include "androidndk/AndroidNDKBackend.hpp"
 #include "ffmpeg4/FFmpeg4Backend.hpp"
 #include "ffmpeg5/FFmpeg5Backend.hpp"
@@ -71,7 +72,7 @@ public:
 		static nav_settings defaultSettings = {
 			NAV_SETTINGS_VERSION,
 			nullptr,
-			false
+			nav::getEnvvarBool("NAV_DISABLE_HWACCEL")
 		};
 		ensureInit();
 
@@ -223,9 +224,9 @@ extern "C" const char *nav_backend_info(size_t index)
 	return backend ? wrapcall<const char*>(backend, &nav::Backend::getInfo, nullptr) : nullptr;
 }
 
-extern "C" nav_t *nav_open(nav_input *input, const char *filename, const size_t *order)
+extern "C" nav_t *nav_open(nav_input *input, const char *filename, const nav_settings *settings)
 {
-	return wrapcall<nav_t*>(&backendContainer, &BackendContainer::open, nullptr, input, filename, order);
+	return wrapcall<nav_t*>(&backendContainer, &BackendContainer::open, nullptr, input, filename, settings);
 }
 
 extern "C" void nav_close(nav_t *state)

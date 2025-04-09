@@ -3,6 +3,7 @@
 #ifdef NAV_BACKEND_MEDIAFOUNDATION
 
 #include <iomanip>
+#include <map>
 #include <memory>
 #include <new>
 #include <sstream>
@@ -32,29 +33,42 @@ constexpr GUID NULL_GUID = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 constexpr GUID IMFAttributes_GUID = {0x2cd2d921, 0xc447, 0x44a7, {0xa1, 0x3c, 0x4a, 0xda, 0xbf, 0xc2, 0x47, 0xe3}};
 constexpr GUID IMFTransform_GUID = {0xbf94c121, 0x5b05, 0x4e6f, {0x80, 0x00, 0xba, 0x59, 0x89, 0x61, 0x41, 0x4d}};
 constexpr GUID IMF2DBuffer_GUID = {0x7DC9D5F9, 0x9ED9, 0x44ec, {0x9B, 0xBF, 0x06, 0x00, 0xBB, 0x58, 0x9F, 0xBB}};
+constexpr GUID IMF2DBuffer2_GUID = {0x33ae5ea6, 0x4316, 0x436f, {0x8d, 0xdd, 0xd7, 0x3d, 0x22, 0xf8, 0x29, 0xec}};
 constexpr GUID ID3D11Multithread_GUID = {0x9B7E4E00, 0x342C, 0x4106, {0xA1, 0x9F, 0x4F, 0x27, 0x04, 0xF6, 0x89, 0xF0}};
 
 constexpr uint64_t MF_100NS_UNIT = 10000000;
 
-struct MediaTypeCombination
+struct GUIDLessThan
 {
-	GUID guid;
-	nav_pixelformat pixfmt;
-} mediaTypeCombination[] = {
-	{MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
-	{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
-	{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
-	{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8},
+	// https://stackoverflow.com/a/24114001
+	bool operator()(const GUID &guid1, const GUID &guid2) const
+	{
+		if (guid1.Data1 != guid2.Data1)
+			return guid1.Data1 < guid2.Data1;
+		if (guid1.Data2 != guid2.Data2)
+			return guid1.Data2 < guid2.Data2;
+		if (guid1.Data3 != guid2.Data3)
+			return guid1.Data3 < guid2.Data3;
+
+		for (int i = 0; i < 8; i++) {
+			if (guid1.Data4[i]!=guid2.Data4[i])
+				return guid1.Data4[i] < guid2.Data4[i];
+		}
+
+		return false;
+	}
 };
 
-struct KnownBestCombination
-{
-	GUID codec;
-	GUID rawformat;
-	nav_pixelformat pixfmt;
-} knownBestCombination[] = {
-	{MFVideoFormat_H264, MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
-	{MFVideoFormat_VP90, MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
+static std::map<GUID, nav_pixelformat, GUIDLessThan> mediaTypeCombination = {
+	{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
+	{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
+	{MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
+	{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8}
+};
+
+static std::map<GUID, bool, GUIDLessThan> audioTypeCombination = {
+	{MFAudioFormat_PCM, false},
+	{MFAudioFormat_Float, true}
 };
 
 inline void unixTimestampToFILETIME(FILETIME &ft, uint64_t t = 0LL)
@@ -103,118 +117,140 @@ struct WrappedPropVariant: public PROPVARIANT
 	}
 };
 
-// static std::ostream &operator<<(std::ostream &st, const GUID &guid)
-// {
-// 	char buf[64];
-// 	std::fill(buf, buf + 64, '\0');
+static GUID getBestPixelFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType)
+{
+	using namespace nav::mediafoundation;
 
-// 	sprintf(
-// 		buf,
-// 		"{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-// 		guid.Data1,
-// 		guid.Data2,
-// 		guid.Data3,
-// 		guid.Data4[0],
-// 		guid.Data4[1],
-// 		guid.Data4[2],
-// 		guid.Data4[3],
-// 		guid.Data4[4],
-// 		guid.Data4[5],
-// 		guid.Data4[6],
-// 		guid.Data4[7]
-// 	);
-// 	return st << buf;
-// }
+	GUID inputMediaType;
+	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &inputMediaType)))
+		return NULL_GUID;
 
-// static void dumpIMFAttributes(IMFAttributes *attr)
-// {
-// 	UINT32 count = 0;
-// 	if (SUCCEEDED(attr->GetCount(&count)))
-// 	{
-// 		for (UINT32 i = 0; i < count; i++)
-// 		{
-// 			GUID key = NULL_GUID;
-// 			WrappedPropVariant value;
+	MFT_REGISTER_TYPE_INFO input = {MFMediaType_Video, inputMediaType};
+	IMFActivate **activator = nullptr;
+	UINT32 numDecoders;
 
-// 			if (SUCCEEDED(attr->GetItemByIndex(i, &key, &value)))
-// 			{
-// 				std::cout << key << ": ";
-// 				if (value.vt == VT_CLSID)
-// 					std::cout << *value.puuid;
-// 				else
-// 					std::cout << value.uhVal.QuadPart;
-// 				std::cout << std::endl;
-// 			}
-// 		}
-// 	}
-// }
+	if (FAILED(MFTEnumEx(
+		MFT_CATEGORY_VIDEO_DECODER,
+		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_HARDWARE,
+		&input,
+		nullptr,
+		&activator,
+		&numDecoders
+	)))
+		return NULL_GUID;
 
-// static GUID getBestPixelFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType)
-// {
-// 	using namespace nav::mediafoundation;
+	GUID result = NULL_GUID;
+	bool found = false;
 
-// 	GUID inputMediaType;
-// 	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &inputMediaType)))
-// 		return NULL_GUID;
+	for (UINT32 i = 0; i < numDecoders; i++)
+	{
+		ComPtr<IMFActivate> act(activator[i], false);
+		// https://www.winehq.org/pipermail/wine-devel/2020-March/162153.html
+		ComPtr<IMFTransform> transform;
 
-// 	MFT_REGISTER_TYPE_INFO input = {MFMediaType_Video, inputMediaType};
-// 	IMFActivate **activator = nullptr;
-// 	UINT32 numDecoders;
+		if (SUCCEEDED(act->ActivateObject(IMFTransform_GUID, (void**) transform.dptr())))
+		{
+			if (FAILED(transform->SetInputType(0, mediaType, 0)))
+			{
+				act->ShutdownObject();
+				continue;
+			}
 
-// 	if (FAILED(MFTEnumEx(
-// 		MFT_CATEGORY_VIDEO_DECODER,
-// 		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_HARDWARE,
-// 		&input,
-// 		nullptr,
-// 		&activator,
-// 		&numDecoders
-// 	)))
-// 		return NULL_GUID;
+			for (UINT32 j = 0;; j++)
+			{
+				ComPtr<IMFMediaType> outputType;
 
-// 	GUID result = NULL_GUID;
-// 	bool found = false;
+				if (HRESULT hr = transform->GetOutputAvailableType(0, j, outputType.dptr()); FAILED(hr))
+					break;
 
-// 	for (UINT32 i = 0; i < numDecoders; i++)
-// 	{
-// 		ComPtr<IMFActivate> act(activator[i], false);
+				GUID outputMediaType;
 
-// 		if (!found)
-// 		{
-// 			// https://www.winehq.org/pipermail/wine-devel/2020-March/162153.html
-// 			ComPtr<IMFTransform> transform;
+				if (SUCCEEDED(outputType->GetGUID(MF_MT_SUBTYPE, &outputMediaType)))
+				{
+					if (mediaTypeCombination.find(outputMediaType) != mediaTypeCombination.end())
+					{
+						result = outputMediaType;
+						found = true;
+						break;
+					}
+				}
+			}
 
-// 			if (FAILED(act->ActivateObject(IMFTransform_GUID, (void**) transform.dptr())))
-// 				continue;
+			act->ShutdownObject();
+		}
+	}
 
-// 			if (FAILED(transform->SetInputType(0, mediaType, 0)))
-// 			{
-// 				act->ShutdownObject();
-// 				continue;
-// 			}
+	CoTaskMemFree(activator);
+	return result;
+}
 
-// 			for (UINT32 j = 0;; j++)
-// 			{
-// 				ComPtr<IMFMediaType> outputType;
 
-// 				if (FAILED(transform->GetOutputAvailableType(0, j, outputType.dptr())))
-// 					continue;
-				
-// 				GUID outputMediaType;
+static GUID getBestAudioFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType)
+{
+	using namespace nav::mediafoundation;
 
-// 				if (SUCCEEDED(outputType->GetGUID(MF_MT_SUBTYPE, &outputMediaType)))
-// 				{
-// 					result = outputMediaType;
-// 					found = true;
-// 				}
-// 			}
+	GUID inputMediaType;
+	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &inputMediaType)))
+		return NULL_GUID;
 
-// 			act->ShutdownObject();
-// 		}
-// 	}
+	MFT_REGISTER_TYPE_INFO input = {MFMediaType_Audio, inputMediaType};
+	IMFActivate **activator = nullptr;
+	UINT32 numDecoders;
 
-// 	CoTaskMemFree(activator);
-// 	return result;
-// }
+	if (FAILED(MFTEnumEx(
+		MFT_CATEGORY_AUDIO_DECODER,
+		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_HARDWARE,
+		&input,
+		nullptr,
+		&activator,
+		&numDecoders
+	)))
+		return NULL_GUID;
+
+	GUID result = NULL_GUID;
+	bool found = false;
+
+	for (UINT32 i = 0; i < numDecoders; i++)
+	{
+		ComPtr<IMFActivate> act(activator[i], false);
+		// https://www.winehq.org/pipermail/wine-devel/2020-March/162153.html
+		ComPtr<IMFTransform> transform;
+
+		if (SUCCEEDED(act->ActivateObject(IMFTransform_GUID, (void**) transform.dptr())))
+		{
+			if (FAILED(transform->SetInputType(0, mediaType, 0)))
+			{
+				act->ShutdownObject();
+				continue;
+			}
+
+			for (UINT32 j = 0;; j++)
+			{
+				ComPtr<IMFMediaType> outputType;
+
+				if (HRESULT hr = transform->GetOutputAvailableType(0, j, outputType.dptr()); FAILED(hr))
+					break;
+
+				GUID outputMediaType;
+
+				if (SUCCEEDED(outputType->GetGUID(MF_MT_SUBTYPE, &outputMediaType)))
+				{
+					if (audioTypeCombination.find(outputMediaType) != audioTypeCombination.end())
+					{
+						result = outputMediaType;
+						found = true;
+						break;
+					}
+				}
+			}
+
+			act->ShutdownObject();
+		}
+	}
+
+	CoTaskMemFree(activator);
+	return result;
+}
 
 static size_t bruteForceExtraHeight(uint32_t width, uint32_t height, size_t contigSize, nav_pixelformat pixelformat)
 {
@@ -224,6 +260,7 @@ static size_t bruteForceExtraHeight(uint32_t width, uint32_t height, size_t cont
 	switch (pixelformat)
 	{
 		case NAV_PIXELFORMAT_YUV420:
+		case NAV_PIXELFORMAT_NV12:
 		{
 			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
 			{
@@ -238,16 +275,6 @@ static size_t bruteForceExtraHeight(uint32_t width, uint32_t height, size_t cont
 			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
 			{
 				size_t size = w * (h + i) * 3;
-				if (size == contigSize)
-					return i;
-			}
-			break;
-		}
-		case NAV_PIXELFORMAT_NV12:
-		{
-			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
-			{
-				size_t size = w * (h + i) + w * (h + i + 1) / 2;
 				if (size == contigSize)
 					return i;
 			}
@@ -283,6 +310,7 @@ HRESULT STDMETHODCALLTYPE NavInputStream::QueryInterface(REFIID riid, void **out
 	if (riid == IID_IUnknown || riid == IID_ISequentialStream || riid == IID_IStream)
 	{
 		*out = this;
+		AddRef();
 		return S_OK;
 	}
 
@@ -412,7 +440,7 @@ HRESULT STDMETHODCALLTYPE NavInputStream::Stat(STATSTG *pstatstg, DWORD grfStatF
 	if (!(grfStatFlag | STATFLAG_NONAME))
 	{
 		std::wstring widefilename = nav::fromUTF8(filename);
-		wchar_t *mem = (wchar_t*) CoTaskMemAlloc(widefilename.length() + 1);
+		wchar_t *mem = (wchar_t*) CoTaskMemAlloc((widefilename.length() + 1) * sizeof(wchar_t));
 		if (mem == nullptr)
 			return E_OUTOFMEMORY;
 
@@ -488,22 +516,30 @@ MediaFoundationState::MediaFoundationState(
 
 				if (!failed)
 				{
+					GUID bestAudioFormat = getBestAudioFormat(NAV_FFCALL(MFTEnumEx), mfMediaType.get());
+					if (bestAudioFormat == NULL_GUID)
+						bestAudioFormat = MFAudioFormat_PCM;
+
 					partialType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio);
-					partialType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM);
-					partialType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16);
+					partialType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+					partialType->SetGUID(MF_MT_SUBTYPE, bestAudioFormat);
 					failed = failed || FAILED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get()));
 				}
 
 				if (!failed && SUCCEEDED(mfsr->GetCurrentMediaType(i, decoderType.dptr())))
 				{
 					UINT32 bps;
+					GUID rawAudioType;
+
+					hr = decoderType->GetGUID(MF_MT_SUBTYPE, &rawAudioType);
+					failed = failed || FAILED(hr);
 
 					// Sample rate
-					hr = mfMediaType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &streamInfo.audio.sample_rate);
+					hr = decoderType->GetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, &streamInfo.audio.sample_rate);
 					failed = failed || FAILED(hr);
 
 					// Number of channels
-					hr = mfMediaType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &streamInfo.audio.nchannels);
+					hr = decoderType->GetUINT32(MF_MT_AUDIO_NUM_CHANNELS, &streamInfo.audio.nchannels);
 					failed = failed || FAILED(hr);
 
 					// Bits per sample
@@ -512,8 +548,9 @@ MediaFoundationState::MediaFoundationState(
 
 					if (!failed)
 					{
+						bool isFloat = audioTypeCombination[rawAudioType];
 						streamInfo.type = NAV_STREAMTYPE_AUDIO;
-						streamInfo.audio.format = makeAudioFormat(bps, false, bps > 8);
+						streamInfo.audio.format = makeAudioFormat(bps, isFloat, isFloat || bps > 8);
 					}
 				}
 			}
@@ -524,51 +561,38 @@ MediaFoundationState::MediaFoundationState(
 
 				if (!failed)
 				{
-					// GUID encodedType = NULL_GUID;
-					// mfMediaType->GetGUID(MF_MT_SUBTYPE, &encodedType);
-
-					// GUID bestPixelFormat = getBestPixelFormat(backend->MFTEnumEx, mfMediaType.get());
-					// if (bestPixelFormat != NULL_GUID)
-					// {
-					// 	mfMediaType->CopyAllItems(partialType.get());
-					// 	partialType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_I420);
-					// 	hr = mfsr->SetCurrentMediaType(i, nullptr, partialType.get());
-					// 	failed = failed || FAILED(hr);
-					// }
-					// else
-					// 	failed = true;
 					bool gotCodec = false;
 					GUID codec = NULL_GUID;
 
 					mfMediaType->GetGUID(MF_MT_SUBTYPE, &codec);
 					mfMediaType->CopyAllItems(partialType.get());
-					mfMediaType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+					partialType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+					partialType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
 
-					// Try best known combination first
-					for (const KnownBestCombination &comb: knownBestCombination)
+					// Query best pixel format before brute-forcing.
+					GUID bestPixelFormat = getBestPixelFormat(NAV_FFCALL(MFTEnumEx), mfMediaType.get());
+					if (bestPixelFormat != NULL_GUID)
 					{
-						if (comb.codec != NULL_GUID && comb.codec == codec)
+						partialType->SetGUID(MF_MT_SUBTYPE, bestPixelFormat);
+
+						if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
 						{
-							partialType->SetGUID(MF_MT_SUBTYPE, comb.rawformat);
+							gotCodec = true;
+							pixfmt = mediaTypeCombination[bestPixelFormat];
+						}
+					}
+
+					if (gotCodec == false)
+					{
+						// Try best known combination
+						for (const auto &comb: mediaTypeCombination)
+						{
+							partialType->SetGUID(MF_MT_SUBTYPE, comb.first);
 
 							if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
 							{
 								gotCodec = true;
-								pixfmt = comb.pixfmt;
-							}
-
-							break;
-						}
-					}
-
-					if (!gotCodec)
-					{
-						for (const MediaTypeCombination &comb: mediaTypeCombination)
-						{
-							partialType->SetGUID(MF_MT_SUBTYPE, comb.guid);
-							if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
-							{
-								pixfmt = comb.pixfmt;
+								pixfmt = comb.second;
 								break;
 							}
 						}
@@ -731,8 +755,7 @@ nav_frame_t *MediaFoundationState::decode(ComPtr<IMFSample> &mfSample, size_t st
 	if (HRESULT hr = mfSample->GetBufferByIndex(0, mfMediaBuffer.dptr()); FAILED(hr))
 		runtimeErrorWithHRESULT("IMFSample::GetBufferByIndex failed", hr);
 	
-	ComPtr<IMF2DBuffer> buf2d;
-	if (SUCCEEDED(mfMediaBuffer.cast(IMF2DBuffer_GUID, buf2d)))
+	if (ComPtr<IMF2DBuffer> buf2d = mfMediaBuffer.dcast<IMF2DBuffer>(IMF2DBuffer_GUID))
 		return decode2D(buf2d, streamIndex, timestamp);
 
 	BYTE *source;
@@ -763,8 +786,20 @@ nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t s
 	if (HRESULT hr = buf2d->GetContiguousLength(&contSize); FAILED(hr))
 		runtimeErrorWithHRESULT("IMF2DBuffer::GetContiguousLength failed", hr);
 
-	if (HRESULT hr = buf2d->Lock2D(&source, &stride); FAILED(hr))
-		runtimeErrorWithHRESULT("IMF2DBuffer::Lock2D failed", hr);
+	bool lockWithBuffer1 = true;
+	if (ComPtr<IMF2DBuffer2> buf2d2 = buf2d.dcast<IMF2DBuffer2>(IMF2DBuffer2_GUID))
+	{
+		BYTE *dummy = nullptr;
+		DWORD dummy2 = 0;
+		if (HRESULT hr = buf2d2->Lock2DSize(MF2DBuffer_LockFlags_Read, &source, &stride, &dummy, &dummy2); SUCCEEDED(hr))
+			lockWithBuffer1 = false;
+	}
+
+	if (lockWithBuffer1)
+	{
+		if (HRESULT hr = buf2d->Lock2D(&source, &stride); FAILED(hr))
+			runtimeErrorWithHRESULT("IMF2DBuffer::Lock2D failed", hr);
+	}
 
 	nav::FrameVector *frame = nullptr;
 	try
@@ -895,9 +930,7 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename, cons
 	if (filename)
 	{
 		// Try set the filename
-		ComPtr<IMFAttributes> attrs;
-
-		if (SUCCEEDED(byteStream.cast(IMFAttributes_GUID, attrs)))
+		if (ComPtr<IMFAttributes> attrs = byteStream.dcast<IMFAttributes>(IMFAttributes_GUID))
 		{
 			std::wstring wfilename = nav::fromUTF8(filename);
 			attrs->SetString(MF_BYTESTREAM_ORIGIN_NAME, wfilename.c_str());
@@ -924,23 +957,28 @@ State *MediaFoundationBackend::open(nav_input *input, const char *filename, cons
 		)))
 		{
 			if (SUCCEEDED(NAV_FFCALL(MFCreateDXGIDeviceManager)(&hwaccelState.resetToken, hwaccelState.dxgidm.dptr())))
+			{
 				hwaccelState.active = SUCCEEDED(hwaccelState.dxgidm->ResetDevice(
 					hwaccelState.d3d11dev.get(),
 					hwaccelState.resetToken
 				));
+
+				// Multithread protected
+				if (ComPtr<ID3D11Multithread> d3d11mt = hwaccelState.d3d11dev.dcast<ID3D11Multithread>(ID3D11Multithread_GUID))
+					d3d11mt->SetMultithreadProtected(TRUE);
+			}
 		}
 	}
 
 	ComPtr<IMFAttributes> attrs;
+	if (HRESULT hr = NAV_FFCALL(MFCreateAttributes)(attrs.dptr(), 2); FAILED(hr))
+		runtimeErrorWithHRESULT("MFCreateAttributes failed", hr);
+
 	bool useHWAccel = hwaccelState.active;
 	if (useHWAccel)
 	{
-		useHWAccel = SUCCEEDED(NAV_FFCALL(MFCreateAttributes)(attrs.dptr(), 2));
-		if (useHWAccel)
-		{
-			attrs->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, 1);
-			attrs->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, hwaccelState.dxgidm.get());
-		}
+		attrs->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
+		attrs->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, hwaccelState.dxgidm.get());
 	}
 
 	ComPtr<IMFSourceReader> sourceReader;

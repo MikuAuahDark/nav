@@ -48,6 +48,7 @@ constexpr nav_audioformat makeAudioFormat(uint8_t bps, bool is_float, bool is_si
 	return nav_audioformat(uint16_t(bps) | floatval | signedval);
 }
 
+bool getEnvvarBool(const std::string &name);
 bool checkBackendDisabled(const std::string &backendNameUppercase);
 
 #ifdef _WIN32

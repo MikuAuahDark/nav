@@ -45,7 +45,7 @@ public:
 			ptr->AddRef();
 	}
 
-	ComPtr(const ComPtr<T> &&other)
+	ComPtr(ComPtr<T> &&other)
 	: ptr(other.ptr)
 	{
 		other.ptr = nullptr;
@@ -113,6 +113,14 @@ public:
 		}
 
 		return hr;
+	}
+
+	template<typename U>
+	ComPtr<U> dcast(const GUID& iid)
+	{
+		ComPtr<U> result;
+		cast(iid, result);
+		return result;
 	}
 
 	operator bool()

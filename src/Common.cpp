@@ -54,11 +54,9 @@ bool FrameVector::operator<(const FrameVector &rhs) const noexcept
 	return position < rhs.position;
 }
 
-bool checkBackendDisabled(const std::string &backendNameUppercase)
+bool getEnvvarBool(const std::string& name)
 {
-	std::string name = "NAV_DISABLE_" + backendNameUppercase;
 	const char *value = getenv(name.c_str());
-
 	return value != nullptr && (
 		strcmp(value, "1") == 0 ||
 		strcmp(value, "ON") == 0 ||
@@ -68,6 +66,11 @@ bool checkBackendDisabled(const std::string &backendNameUppercase)
 		strcmp(value, "yes") == 0 ||
 		strcmp(value, "Yes") == 0
 	);
+}
+
+bool checkBackendDisabled(const std::string &backendNameUppercase)
+{
+	return getEnvvarBool("NAV_DISABLE_" + backendNameUppercase);
 }
 
 #ifdef _WIN32
