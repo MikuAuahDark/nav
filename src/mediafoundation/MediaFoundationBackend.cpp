@@ -59,11 +59,21 @@ struct GUIDLessThan
 	}
 };
 
-static std::map<GUID, nav_pixelformat, GUIDLessThan> mediaTypeCombination = {
-	{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
-	{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
-	{MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
-	{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8}
+static std::map<GUID, nav_pixelformat, GUIDLessThan> mediaTypeCombination[2] = {
+	{
+		// Not hardware accelerated
+		{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
+		{MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
+		{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
+		{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8}
+	},
+	{
+		// Hardware accelerated
+		{MFVideoFormat_NV12, NAV_PIXELFORMAT_NV12},
+		{MFVideoFormat_IYUV, NAV_PIXELFORMAT_YUV420},
+		{MFVideoFormat_I420, NAV_PIXELFORMAT_YUV420},
+		{MFVideoFormat_RGB24, NAV_PIXELFORMAT_RGB8}
+	}
 };
 
 static std::map<GUID, bool, GUIDLessThan> audioTypeCombination = {
@@ -117,21 +127,32 @@ struct WrappedPropVariant: public PROPVARIANT
 	}
 };
 
-static GUID getBestPixelFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType)
+template<typename ...Any>
+static GUID getBestFormatGeneric(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType, const std::map<GUID, Any...> &map, bool hwaccel)
 {
 	using namespace nav::mediafoundation;
 
-	GUID inputMediaType;
-	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &inputMediaType)))
+	GUID mediaSubtype, majorType;
+	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &mediaSubtype)))
+		return NULL_GUID;
+	if (FAILED(mediaType->GetGUID(MF_MT_MAJOR_TYPE, &majorType)))
 		return NULL_GUID;
 
-	MFT_REGISTER_TYPE_INFO input = {MFMediaType_Video, inputMediaType};
+	GUID category = NULL_GUID;
+	if (majorType == MFMediaType_Audio)
+		category = MFT_CATEGORY_AUDIO_DECODER;
+	else if (majorType == MFMediaType_Video)
+		category = MFT_CATEGORY_VIDEO_DECODER;
+	else
+		return NULL_GUID;
+
+	MFT_REGISTER_TYPE_INFO input = {majorType, mediaSubtype};
 	IMFActivate **activator = nullptr;
 	UINT32 numDecoders;
 
 	if (FAILED(MFTEnumEx(
-		MFT_CATEGORY_VIDEO_DECODER,
-		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_HARDWARE,
+		category,
+		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | (MFT_ENUM_FLAG_HARDWARE * hwaccel),
 		&input,
 		nullptr,
 		&activator,
@@ -142,7 +163,7 @@ static GUID getBestPixelFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *med
 	GUID result = NULL_GUID;
 	bool found = false;
 
-	for (UINT32 i = 0; i < numDecoders; i++)
+	for (UINT32 i = 0; i < numDecoders && found == false; i++)
 	{
 		ComPtr<IMFActivate> act(activator[i], false);
 		// https://www.winehq.org/pipermail/wine-devel/2020-March/162153.html
@@ -167,75 +188,7 @@ static GUID getBestPixelFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *med
 
 				if (SUCCEEDED(outputType->GetGUID(MF_MT_SUBTYPE, &outputMediaType)))
 				{
-					if (mediaTypeCombination.find(outputMediaType) != mediaTypeCombination.end())
-					{
-						result = outputMediaType;
-						found = true;
-						break;
-					}
-				}
-			}
-
-			act->ShutdownObject();
-		}
-	}
-
-	CoTaskMemFree(activator);
-	return result;
-}
-
-
-static GUID getBestAudioFormat(decltype(MFTEnumEx) *MFTEnumEx, IMFMediaType *mediaType)
-{
-	using namespace nav::mediafoundation;
-
-	GUID inputMediaType;
-	if (FAILED(mediaType->GetGUID(MF_MT_SUBTYPE, &inputMediaType)))
-		return NULL_GUID;
-
-	MFT_REGISTER_TYPE_INFO input = {MFMediaType_Audio, inputMediaType};
-	IMFActivate **activator = nullptr;
-	UINT32 numDecoders;
-
-	if (FAILED(MFTEnumEx(
-		MFT_CATEGORY_AUDIO_DECODER,
-		MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_HARDWARE,
-		&input,
-		nullptr,
-		&activator,
-		&numDecoders
-	)))
-		return NULL_GUID;
-
-	GUID result = NULL_GUID;
-	bool found = false;
-
-	for (UINT32 i = 0; i < numDecoders; i++)
-	{
-		ComPtr<IMFActivate> act(activator[i], false);
-		// https://www.winehq.org/pipermail/wine-devel/2020-March/162153.html
-		ComPtr<IMFTransform> transform;
-
-		if (SUCCEEDED(act->ActivateObject(IMFTransform_GUID, (void**) transform.dptr())))
-		{
-			if (FAILED(transform->SetInputType(0, mediaType, 0)))
-			{
-				act->ShutdownObject();
-				continue;
-			}
-
-			for (UINT32 j = 0;; j++)
-			{
-				ComPtr<IMFMediaType> outputType;
-
-				if (HRESULT hr = transform->GetOutputAvailableType(0, j, outputType.dptr()); FAILED(hr))
-					break;
-
-				GUID outputMediaType;
-
-				if (SUCCEEDED(outputType->GetGUID(MF_MT_SUBTYPE, &outputMediaType)))
-				{
-					if (audioTypeCombination.find(outputMediaType) != audioTypeCombination.end())
+					if (map.find(outputMediaType) != map.end())
 					{
 						result = outputMediaType;
 						found = true;
@@ -516,7 +469,7 @@ MediaFoundationState::MediaFoundationState(
 
 				if (!failed)
 				{
-					GUID bestAudioFormat = getBestAudioFormat(NAV_FFCALL(MFTEnumEx), mfMediaType.get());
+					GUID bestAudioFormat = getBestFormatGeneric(NAV_FFCALL(MFTEnumEx), mfMediaType.get(), audioTypeCombination, false);
 					if (bestAudioFormat == NULL_GUID)
 						bestAudioFormat = MFAudioFormat_PCM;
 
@@ -570,7 +523,7 @@ MediaFoundationState::MediaFoundationState(
 					partialType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
 
 					// Query best pixel format before brute-forcing.
-					GUID bestPixelFormat = getBestPixelFormat(NAV_FFCALL(MFTEnumEx), mfMediaType.get());
+					GUID bestPixelFormat = getBestFormatGeneric(NAV_FFCALL(MFTEnumEx), mfMediaType.get(), mediaTypeCombination[hwaccel.active], hwaccel.active);
 					if (bestPixelFormat != NULL_GUID)
 					{
 						partialType->SetGUID(MF_MT_SUBTYPE, bestPixelFormat);
@@ -578,14 +531,14 @@ MediaFoundationState::MediaFoundationState(
 						if (SUCCEEDED(mfsr->SetCurrentMediaType(i, nullptr, partialType.get())))
 						{
 							gotCodec = true;
-							pixfmt = mediaTypeCombination[bestPixelFormat];
+							pixfmt = mediaTypeCombination[hwaccel.active][bestPixelFormat];
 						}
 					}
 
 					if (gotCodec == false)
 					{
 						// Try best known combination
-						for (const auto &comb: mediaTypeCombination)
+						for (const auto &comb: mediaTypeCombination[hwaccel.active])
 						{
 							partialType->SetGUID(MF_MT_SUBTYPE, comb.first);
 
@@ -790,9 +743,12 @@ nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t s
 	if (ComPtr<IMF2DBuffer2> buf2d2 = buf2d.dcast<IMF2DBuffer2>(IMF2DBuffer2_GUID))
 	{
 		BYTE *dummy = nullptr;
-		DWORD dummy2 = 0;
-		if (HRESULT hr = buf2d2->Lock2DSize(MF2DBuffer_LockFlags_Read, &source, &stride, &dummy, &dummy2); SUCCEEDED(hr))
+		DWORD actualContSize = 0;
+		if (HRESULT hr = buf2d2->Lock2DSize(MF2DBuffer_LockFlags_Read, &source, &stride, &dummy, &actualContSize); SUCCEEDED(hr))
+		{
+			contSize = actualContSize;
 			lockWithBuffer1 = false;
+		}
 	}
 
 	if (lockWithBuffer1)
