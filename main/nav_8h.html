@@ -99,7 +99,8 @@ $(document).ready(function(){initNavTree('nav_8h.html',''); initResizable(); });
 
 <p>NPad's Audio Video decoding library.  
 <a href="#details">More...</a></p>
-<div class="textblock"><code>#include &quot;audioformat.h&quot;</code><br />
+<div class="textblock"><code>#include &quot;attributes.h&quot;</code><br />
+<code>#include &quot;audioformat.h&quot;</code><br />
 <code>#include &quot;input.h&quot;</code><br />
 <code>#include &quot;types.h&quot;</code><br />
 </div>
@@ -155,9 +156,9 @@ Functions</h2></td></tr>
 <tr class="memitem:aaf10ace2be410693e7b36104447f64e5" id="r_aaf10ace2be410693e7b36104447f64e5"><td class="memItemLeft" align="right" valign="top">NAV_API const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aaf10ace2be410693e7b36104447f64e5">nav_backend_info</a> (size_t index)</td></tr>
 <tr class="memdesc:aaf10ace2be410693e7b36104447f64e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional information of a certain backend.  <br /></td></tr>
 <tr class="separator:aaf10ace2be410693e7b36104447f64e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad82451ebe67f1e622e1ad5061be1e1b3" id="r_ad82451ebe67f1e622e1ad5061be1e1b3"><td class="memItemLeft" align="right" valign="top">NAV_API nav_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ad82451ebe67f1e622e1ad5061be1e1b3">nav_open</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename, const <a class="el" href="structnav__settings.html">nav_settings</a> *settings)</td></tr>
-<tr class="memdesc:ad82451ebe67f1e622e1ad5061be1e1b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open new NAV instance.  <br /></td></tr>
-<tr class="separator:ad82451ebe67f1e622e1ad5061be1e1b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc22e72666c1d8d51f7b4424c601c5ad" id="r_abc22e72666c1d8d51f7b4424c601c5ad"><td class="memItemLeft" align="right" valign="top">NAV_API NAV_NODISCARD nav_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#abc22e72666c1d8d51f7b4424c601c5ad">nav_open</a> (<a class="el" href="structnav__input.html">nav_input</a> *input, const char *filename, const <a class="el" href="structnav__settings.html">nav_settings</a> *settings)</td></tr>
+<tr class="memdesc:abc22e72666c1d8d51f7b4424c601c5ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open new NAV instance.  <br /></td></tr>
+<tr class="separator:abc22e72666c1d8d51f7b4424c601c5ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7f48ffd6fd650c1026c31703975bcc5b" id="r_a7f48ffd6fd650c1026c31703975bcc5b"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7f48ffd6fd650c1026c31703975bcc5b">nav_close</a> (nav_t *nav)</td></tr>
 <tr class="memdesc:a7f48ffd6fd650c1026c31703975bcc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close existing NAV instance.  <br /></td></tr>
 <tr class="separator:a7f48ffd6fd650c1026c31703975bcc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -182,9 +183,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a7e1fae372826de749013aebf2e8232e2" id="r_a7e1fae372826de749013aebf2e8232e2"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7e1fae372826de749013aebf2e8232e2">nav_seek</a> (nav_t *nav, double position)</td></tr>
 <tr class="memdesc:a7e1fae372826de749013aebf2e8232e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set media position.  <br /></td></tr>
 <tr class="separator:a7e1fae372826de749013aebf2e8232e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2f6de627f93f34657cf7d43d3eb73254" id="r_a2f6de627f93f34657cf7d43d3eb73254"><td class="memItemLeft" align="right" valign="top">NAV_API nav_frame_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a2f6de627f93f34657cf7d43d3eb73254">nav_read</a> (nav_t *nav)</td></tr>
-<tr class="memdesc:a2f6de627f93f34657cf7d43d3eb73254"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode stream from NAV instance.  <br /></td></tr>
-<tr class="separator:a2f6de627f93f34657cf7d43d3eb73254"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abaae1179e933cec3c0640f6a863f1a47" id="r_abaae1179e933cec3c0640f6a863f1a47"><td class="memItemLeft" align="right" valign="top">NAV_API NAV_NODISCARD nav_frame_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#abaae1179e933cec3c0640f6a863f1a47">nav_read</a> (nav_t *nav)</td></tr>
+<tr class="memdesc:abaae1179e933cec3c0640f6a863f1a47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode stream from NAV instance.  <br /></td></tr>
+<tr class="separator:abaae1179e933cec3c0640f6a863f1a47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaad98c19e438b3f5e9be281e9a322d81" id="r_aaad98c19e438b3f5e9be281e9a322d81"><td class="memItemLeft" align="right" valign="top">NAV_API nav_streamtype&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aaad98c19e438b3f5e9be281e9a322d81">nav_streaminfo_type</a> (nav_streaminfo_t *streaminfo)</td></tr>
 <tr class="memdesc:aaad98c19e438b3f5e9be281e9a322d81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream type.  <br /></td></tr>
 <tr class="separator:aaad98c19e438b3f5e9be281e9a322d81"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -804,14 +805,14 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="ad82451ebe67f1e622e1ad5061be1e1b3" name="ad82451ebe67f1e622e1ad5061be1e1b3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad82451ebe67f1e622e1ad5061be1e1b3">&#9670;&#160;</a></span>nav_open()</h2>
+<a id="abc22e72666c1d8d51f7b4424c601c5ad" name="abc22e72666c1d8d51f7b4424c601c5ad"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abc22e72666c1d8d51f7b4424c601c5ad">&#9670;&#160;</a></span>nav_open()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">NAV_API nav_t * nav_open </td>
+          <td class="memname">NAV_API NAV_NODISCARD nav_t * nav_open </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structnav__input.html">nav_input</a> *&#160;</td>
           <td class="paramname"><em>input</em>, </td>
@@ -851,14 +852,14 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a2f6de627f93f34657cf7d43d3eb73254" name="a2f6de627f93f34657cf7d43d3eb73254"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2f6de627f93f34657cf7d43d3eb73254">&#9670;&#160;</a></span>nav_read()</h2>
+<a id="abaae1179e933cec3c0640f6a863f1a47" name="abaae1179e933cec3c0640f6a863f1a47"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abaae1179e933cec3c0640f6a863f1a47">&#9670;&#160;</a></span>nav_read()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">NAV_API nav_frame_t * nav_read </td>
+          <td class="memname">NAV_API NAV_NODISCARD nav_frame_t * nav_read </td>
           <td>(</td>
           <td class="paramtype">nav_t *&#160;</td>
           <td class="paramname"><em>nav</em></td><td>)</td>
@@ -952,7 +953,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </div><div class="memdoc">
 
 <p>Set if specific stream should be enabled. </p>
-<p>Disabled stream won't generate data during <a class="el" href="nav_8h.html#a2f6de627f93f34657cf7d43d3eb73254" title="Decode stream from NAV instance.">nav_read()</a>. This can serve as optimization.</p>
+<p>Disabled stream won't generate data during <a class="el" href="nav_8h.html#abaae1179e933cec3c0640f6a863f1a47" title="Decode stream from NAV instance.">nav_read()</a>. This can serve as optimization.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
@@ -1031,7 +1032,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </div><div class="memdoc">
 
 <p>Check if stream at specific index is enabled. </p>
-<p>Disabled stream won't generate data during <a class="el" href="nav_8h.html#a2f6de627f93f34657cf7d43d3eb73254" title="Decode stream from NAV instance.">nav_read()</a>.</p>
+<p>Disabled stream won't generate data during <a class="el" href="nav_8h.html#abaae1179e933cec3c0640f6a863f1a47" title="Decode stream from NAV instance.">nav_read()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
