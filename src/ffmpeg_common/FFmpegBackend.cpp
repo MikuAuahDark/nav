@@ -354,7 +354,7 @@ constexpr std::tuple<unsigned int, unsigned int> extractVersion(unsigned int ver
 template<unsigned int ver>
 bool isVersionCompatible(unsigned int(*func)())
 {
-	constexpr auto [cmaj, cmin] = extractVersion(ver);
+	auto [cmaj, cmin] = extractVersion(ver);
 	auto [rmaj, rmin] = extractVersion(func());
 	return rmaj == cmaj && rmin >= cmin;
 }
