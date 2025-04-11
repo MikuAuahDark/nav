@@ -215,6 +215,12 @@ static size_t bruteForceExtraHeight(uint32_t width, uint32_t height, size_t cont
 		case NAV_PIXELFORMAT_YUV420:
 		case NAV_PIXELFORMAT_NV12:
 		{
+			// Try with this formula first
+			size_t i = contigSize * 2 / (3 * w) - h;
+			if ((w * (h + i) + 2 * ((w + 1) / 2) * ((h + i + 1) / 2)) == contigSize)
+				return i;
+
+			// Brute-force
 			for (size_t i = 0; i <= MAX_ADD_HEIGHT; i++)
 			{
 				size_t size = w * (h + i) + 2 * ((w + 1) / 2) * ((h + i + 1) / 2);
