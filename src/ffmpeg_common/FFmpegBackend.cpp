@@ -354,9 +354,9 @@ constexpr std::tuple<unsigned int, unsigned int> extractVersion(unsigned int ver
 template<unsigned int ver>
 bool isVersionCompatible(unsigned int(*func)())
 {
-	constexpr std::tuple<unsigned int, unsigned int> compilever = extractVersion(ver);
-	std::tuple<unsigned int, unsigned int> runtimever = extractVersion(func());
-	return std::get<0>(runtimever) == std::get<0>(compilever) && (std::get<1>(runtimever) >= std::get<1>(compilever));
+	constexpr auto [cmaj, cmin] = extractVersion(ver);
+	auto [rmaj, rmin] = extractVersion(func());
+	return rmaj == cmaj && rmin >= cmin;
 }
 
 template<typename T>
@@ -866,7 +866,7 @@ FFmpegBackend::FFmpegBackend()
 FFmpegBackend::~FFmpegBackend()
 {}
 
-State *FFmpegBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
+State *FFmpegBackend::open(nav_input *input, const char *filename, [[maybe_unused]] const nav_settings *settings)
 {
 	constexpr int BUFSIZE = 4096;
 

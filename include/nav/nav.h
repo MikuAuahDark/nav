@@ -33,6 +33,7 @@
 #	define NAV_API extern
 #endif /* NAV_SHARED */
 
+#include "attributes.h"
 #include "audioformat.h"
 #include "input.h"
 #include "types.h"
@@ -121,7 +122,7 @@ NAV_API const char *nav_backend_info(size_t index);
  * @return Pointer to NAV instance, or NULL on failure.
  * @note When the function errors, the input ownership will be given back to the caller.
  */
-NAV_API nav_t *nav_open(nav_input *input, const char *filename, const nav_settings *settings);
+NAV_API NAV_NODISCARD nav_t *nav_open(nav_input *input, const char *filename, const nav_settings *settings);
 
 /**
  * @brief Close existing NAV instance.
@@ -199,7 +200,7 @@ NAV_API double nav_seek(nav_t *nav, double position);
  * @note nav_error() will return NULL on EOS, non-NULL otherwise.
  * @sa nav_frame_free
  */
-NAV_API nav_frame_t *nav_read(nav_t *nav);
+NAV_API NAV_NODISCARD nav_frame_t *nav_read(nav_t *nav);
 
 /**
  * @brief Get stream type.
