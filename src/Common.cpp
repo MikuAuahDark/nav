@@ -68,6 +68,22 @@ bool getEnvvarBool(const std::string& name)
 	);
 }
 
+std::optional<int> getEnvvarInt(const std::string &name)
+{
+	const char *value = getenv(name.c_str());
+	if (value == nullptr)
+		return std::nullopt;
+	
+	try
+	{
+		return std::stoi(value);
+	}
+	catch (const std::exception &e)
+	{
+		return std::nullopt;
+	}
+}
+
 bool checkBackendDisabled(const std::string &backendNameUppercase)
 {
 	return getEnvvarBool("NAV_DISABLE_" + backendNameUppercase);

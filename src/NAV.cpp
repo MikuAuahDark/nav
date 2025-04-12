@@ -1,6 +1,7 @@
 #include <exception>
 #include <mutex>
 #include <numeric>
+#include <thread>
 #include <vector>
 
 #include "Internal.hpp"
@@ -56,6 +57,15 @@ public:
 				defaultOrder.push_back(i + 1);
 			defaultOrder.push_back(0);
 
+			defaultSettings = {
+				NAV_SETTINGS_VERSION,
+				nullptr,
+				std::max<uint32_t>(std::thread::hardware_concurrency(), 1),
+				nav::getEnvvarBool("NAV_DISABLE_HWACCEL")
+			};
+			if (std::optional<int> threadCount = nav::getEnvvarInt("NAV_THREAD_COUNT"))
+				defaultSettings.max_threads = (uint32_t) std::max(threadCount.value(), 1);
+
 			initialized = true;
 		}
 
@@ -69,18 +79,16 @@ public:
 
 	nav::State *open(nav_input *input, const char *filename, const nav_settings *settings)
 	{
-		static nav_settings defaultSettings = {
-			NAV_SETTINGS_VERSION,
-			nullptr,
-			nav::getEnvvarBool("NAV_DISABLE_HWACCEL")
-		};
 		ensureInit();
 
 		if (settings == nullptr)
 			settings = &defaultSettings;
 
+		nav_settings newSettings = *settings;
+		newSettings.max_threads = std::max<uint32_t>(newSettings.max_threads, 1);
+
 		std::vector<std::string> errors;
-		const size_t *order = settings->backend_order ? settings->backend_order : defaultOrder.data();
+		const size_t *order = newSettings.backend_order ? newSettings.backend_order : defaultOrder.data();
 
 		for (size_t backendIndex = *order; *order; order++)
 		{
@@ -90,7 +98,7 @@ public:
 
 				try
 				{
-					return b->open(input, filename, settings);
+					return b->open(input, filename, &newSettings);
 				}
 				catch (const std::exception &e)
 				{
@@ -129,6 +137,7 @@ private:
 	std::vector<nav::Backend*(*)()> factory;
 	std::vector<size_t> defaultOrder;
 	std::mutex mutex;
+	nav_settings defaultSettings;
 } backendContainer({
 #ifdef NAV_BACKEND_ANDROIDNDK
 	&nav::androidndk::create,

@@ -27,7 +27,7 @@ class FFmpegBackend;
 class FFmpegState: public State
 {
 public:
-	FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext);
+	FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext, const nav_settings &settings);
 	~FFmpegState() override;
 	size_t getStreamCount() noexcept override;
 	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;

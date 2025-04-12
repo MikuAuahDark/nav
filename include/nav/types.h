@@ -82,6 +82,12 @@ typedef struct nav_settings
 	 * will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default
 	 * order (which is `{1, 2, 3, ..., nav_backend_count(), 0}`). */
 	const size_t *backend_order;
+	/* Hint to backend on how many threads to use. If this is 0, it defaults to value of NAV_THREAD_COUNT environment
+	 * variable, or amount of threads in the current user system.
+	 * **Note**: NAV won't check if the specified `max_threads` exceeded the amount of the system CPU thread count,
+	 * but it ensure the value is at least 1.
+	 */
+	uint32_t max_threads;
 	/* If true, this hints backends to prefer CPU decoding. */
 	bool disable_hwaccel;
 } nav_settings;

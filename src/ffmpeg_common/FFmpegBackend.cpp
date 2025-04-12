@@ -379,7 +379,7 @@ struct CallOnLeave
 namespace nav::_NAV_FFMPEG_NAMESPACE
 {
 
-FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, UniqueAVIOContext &ioctx)
+FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, UniqueAVIOContext &ioctx, const nav_settings &settings)
 : f(backend)
 , formatContext(std::move(fmtctx))
 , ioContext(std::move(ioctx))
@@ -432,7 +432,10 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 					good = NAV_FFCALL(avcodec_parameters_to_context)(codecContext, stream->codecpar) >= 0;
 
 				if (good)
+				{
+					codecContext->thread_count = (int) settings.max_threads;
 					good = NAV_FFCALL(avcodec_open2)(codecContext, codec, nullptr) >= 0;
+				}
 
 				if (good)
 				{
@@ -866,7 +869,7 @@ FFmpegBackend::FFmpegBackend()
 FFmpegBackend::~FFmpegBackend()
 {}
 
-State *FFmpegBackend::open(nav_input *input, const char *filename, [[maybe_unused]] const nav_settings *settings)
+State *FFmpegBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
 {
 	constexpr int BUFSIZE = 4096;
 
@@ -901,7 +904,7 @@ State *FFmpegBackend::open(nav_input *input, const char *filename, [[maybe_unuse
 		throw throwFromAVError(NAV_FFCALL(av_strerror), errcode);
 	}
 
-	return new FFmpegState(this, formatContext, ioContext);
+	return new FFmpegState(this, formatContext, ioContext, *settings);
 }
 
 const char *FFmpegBackend::getName() const noexcept
@@ -951,7 +954,7 @@ const char *FFmpegBackend::getInfo()
 
 Backend *create()
 {
-	if (checkBackendDisabled(_NAV_FFMPEG_DISABLEMENT))
+	if (checkBackendDisabled(_NAV_FFMPEG_DISABLEMENT) || checkBackendDisabled("FFMPEG"))
 		return nullptr;
 
 	try

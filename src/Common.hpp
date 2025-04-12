@@ -2,6 +2,7 @@
 #define _NAV_COMMON_H_
 
 #include <numeric>
+#include <optional>
 #include <string>
 #include <vector>
 #include <type_traits>
@@ -49,6 +50,7 @@ constexpr nav_audioformat makeAudioFormat(uint8_t bps, bool is_float, bool is_si
 }
 
 bool getEnvvarBool(const std::string &name);
+std::optional<int> getEnvvarInt(const std::string &name);
 bool checkBackendDisabled(const std::string &backendNameUppercase);
 
 #ifdef _WIN32
