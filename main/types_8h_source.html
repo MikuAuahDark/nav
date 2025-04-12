@@ -162,12 +162,18 @@ $(document).ready(function(){initNavTree('types_8h_source.html',''); initResizab
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="comment">     * will try to load using 2nd backend first, then trying the 1st backend. This can be NULL to use default</span></div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="comment">     * order (which is `{1, 2, 3, ..., nav_backend_count(), 0}`). */</span></div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    <span class="keyword">const</span> <span class="keywordtype">size_t</span> *backend_order;</div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    <span class="comment">/* If true, this hints backends to prefer CPU decoding. */</span></div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <span class="keywordtype">bool</span> disable_hwaccel;</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>} <a class="code hl_struct" href="structnav__settings.html">nav_settings</a>;</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    <span class="comment">/* Hint to backend on how many threads to use. If this is 0, it defaults to value of NAV_THREAD_COUNT environment</span></div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="comment">     * variable, or amount of threads in the current user system.</span></div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="comment">     * **Note**: NAV won&#39;t check if the specified `max_threads` exceeded the amount of the system CPU thread count,</span></div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span><span class="comment">     * but it ensure the value is at least 1.</span></div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="comment">     */</span></div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    uint32_t max_threads;</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>    <span class="comment">/* If true, this hints backends to prefer CPU decoding. */</span></div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    <span class="keywordtype">bool</span> disable_hwaccel;</div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>} <a class="code hl_struct" href="structnav__settings.html">nav_settings</a>;</div>
 </div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="preprocessor">#endif </span><span class="comment">/* _NAV_TYPES_H_ */</span><span class="preprocessor"></span></div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="preprocessor">#endif </span><span class="comment">/* _NAV_TYPES_H_ */</span><span class="preprocessor"></span></div>
 <div class="ttc" id="astructnav__settings_html"><div class="ttname"><a href="structnav__settings.html">nav_settings</a></div><div class="ttdef"><b>Definition</b> types.h:78</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
