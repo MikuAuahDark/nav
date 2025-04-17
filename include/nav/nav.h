@@ -131,19 +131,26 @@ NAV_NODISCARD NAV_API nav_t *nav_open(nav_input *input, const char *filename, co
 NAV_API void nav_close(nav_t *nav);
 
 /**
+ * @brief Get backend index that crated this NAV instance.
+ * @param nav Pointer to NAV instance.
+ * @return **1-based index** of the backend that created this NAV instance.
+ */
+NAV_API size_t nav_backend_index(const nav_t *nav);
+
+/**
  * @brief Get amount of streams in the NAV instance.
  * @param nav Pointer to NAV instance.
  * @return Amount of streams. 
  */
-NAV_API size_t nav_nstreams(nav_t *nav);
+NAV_API size_t nav_nstreams(const nav_t *nav);
 
 /**
  * @brief Get stream information
  * @param nav Pointer to NAV instance.
  * @param index Stream index.
- * @return Pointer to NAV stream information.
+ * @return Pointer to NAV stream information, or NULL on failure.
  */
-NAV_API nav_streaminfo_t *nav_stream_info(nav_t *nav, size_t index);
+NAV_API const nav_streaminfo_t *nav_stream_info(const nav_t *nav, size_t index);
 
 /**
  * @brief Check if stream at specific index is enabled.
@@ -155,7 +162,7 @@ NAV_API nav_streaminfo_t *nav_stream_info(nav_t *nav, size_t index);
  * @return 1 if enabled, 0 otherwise.
  * @sa nav_stream_enable
  */
-NAV_API nav_bool nav_stream_is_enabled(nav_t *nav, size_t index);
+NAV_API nav_bool nav_stream_is_enabled(const nav_t *nav, size_t index);
 
 /**
  * @brief Set if specific stream should be enabled.
@@ -207,14 +214,15 @@ NAV_NODISCARD NAV_API nav_frame_t *nav_read(nav_t *nav);
  * @param streaminfo Pointer to NAV stream information.
  * @return Stream type. 
  */
-NAV_API nav_streamtype nav_streaminfo_type(nav_streaminfo_t *streaminfo);
+NAV_API nav_streamtype nav_streaminfo_type(const nav_streaminfo_t *streaminfo);
+
 
 /**
  * @brief Calculate the size in bytes of single audio sample frame.
  * @param streaminfo Pointer to NAV stream information.
  * @return Size of 1 sample frame, in bytes.
  */
-NAV_API size_t nav_audio_size(nav_streaminfo_t *streaminfo);
+NAV_API size_t nav_audio_size(const nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get audio sample rate.
@@ -222,7 +230,7 @@ NAV_API size_t nav_audio_size(nav_streaminfo_t *streaminfo);
  * @return Audio sample rate.
  * @note This call only return meaningful value if the stream is an audio.
  */
-NAV_API uint32_t nav_audio_sample_rate(nav_streaminfo_t *streaminfo);
+NAV_API uint32_t nav_audio_sample_rate(const nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get number of audio channels.
@@ -230,7 +238,7 @@ NAV_API uint32_t nav_audio_sample_rate(nav_streaminfo_t *streaminfo);
  * @return Number of audio channels.
  * @note This call only return meaningful value if the stream is an audio.
  */
-NAV_API uint32_t nav_audio_nchannels(nav_streaminfo_t *streaminfo);
+NAV_API uint32_t nav_audio_nchannels(const nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get the bitwise audio format.
@@ -239,15 +247,33 @@ NAV_API uint32_t nav_audio_nchannels(nav_streaminfo_t *streaminfo);
  * @note The bitwise audio format is same as [SDL's AudioFormat](https://wiki.libsdl.org/SDL3/SDL_AudioFormat)
  * @note This call only return meaningful value if the stream is an audio.
  */
-NAV_API nav_audioformat nav_audio_format(nav_streaminfo_t *streaminfo);
+NAV_API nav_audioformat nav_audio_format(const nav_streaminfo_t *streaminfo);
 
 /**
- * @brief Calculate the size of uncompressed video frame.
+ * @brief Calculate the size of uncompressed video frame without any padding.
  * @param streaminfo Pointer to NAV stream information.
  * @return Size of 1 video frame, in bytes.
  * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API size_t nav_video_size(nav_streaminfo_t *streaminfo);
+NAV_API size_t nav_video_size(const nav_streaminfo_t *streaminfo);
+/**
+ * @brief Get amount of planes for this video format.
+ * @param streaminfo Pointer to NAV stream information.
+ * @return Amount of planes for this video.
+ * @note This call only return meaningful value if the stream is a video.
+ */
+NAV_API size_t nav_video_plane_count(nav_pixelformat pixfmt);
+
+/**
+ * @brief Get the dimension of video plane without any padding, in bytes.
+ * 
+ * @param streaminfo Pointer to NAV stream information.
+ * @param index Plane indices.
+ * @param width Pointer to store the plane width in bytes.
+ * @param height Pointer to store the plane height in bytes.
+ * @note This call only return meaningful value if the stream is a video.
+ */
+NAV_API void nav_video_plane_dimensions(const nav_streaminfo_t *streaminfo, size_t index, size_t *width, size_t *height);
 
 /**
  * @brief Get video dimensions.
@@ -256,7 +282,7 @@ NAV_API size_t nav_video_size(nav_streaminfo_t *streaminfo);
  * @param height Pointer to store the video height.
  * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API void nav_video_dimensions(nav_streaminfo_t *streaminfo, uint32_t *width, uint32_t *height);
+NAV_API void nav_video_dimensions(const nav_streaminfo_t *streaminfo, uint32_t *width, uint32_t *height);
 
 /**
  * @brief Get video decode pixel format.
@@ -264,7 +290,7 @@ NAV_API void nav_video_dimensions(nav_streaminfo_t *streaminfo, uint32_t *width,
  * @return Video pixel format.
  * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API nav_pixelformat nav_video_pixel_format(nav_streaminfo_t *streaminfo);
+NAV_API nav_pixelformat nav_video_pixel_format(const nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get video frames per second.
@@ -273,52 +299,52 @@ NAV_API nav_pixelformat nav_video_pixel_format(nav_streaminfo_t *streaminfo);
  * @note This function may be an approximate.
  * @note This call only return meaningful value if the stream is a video.
  */
-NAV_API double nav_video_fps(nav_streaminfo_t *streaminfo);
+NAV_API double nav_video_fps(const nav_streaminfo_t *streaminfo);
 
 /**
  * @brief Get stream index correspond to the NAV frame instance.
  * @param frame Pointer to the NAV frame instance.
  * @return Stream index of the NAV frame. 
  */
-NAV_API size_t nav_frame_streamindex(nav_frame_t *frame);
+NAV_API size_t nav_frame_streamindex(const nav_frame_t *frame);
 
 /**
  * @brief Get stream type correspond to the NAV frame instance.
  * @param frame Pointer to the NAV frame instance.
  * @return Stream info of the NAV frame. 
  */
-NAV_API nav_streaminfo_t *nav_frame_streaminfo(nav_frame_t *frame);
+NAV_API const nav_streaminfo_t *nav_frame_streaminfo(const nav_frame_t *frame);
 
 /**
  * @brief Get presentation timestamp of this frame.
  * @param frame Pointer to the NAV frame instance.
  * @return Presentation time of the decoded data in seconds, or -1 if unknown.
  */
-NAV_API double nav_frame_tell(nav_frame_t *frame);
+NAV_API double nav_frame_tell(const nav_frame_t *frame);
 
 /**
- * @brief Get decoded data size.
+ * @brief Make the current frame available for reading.
  * @param frame Pointer to the NAV frame instance.
- * @return Decoded data size, in bytes.
- * @sa nav_audio_size
- * @sa nav_video_size
+ * @param strides Pointer to store the list of strides/pitch of each plane in bytes. Negative stride means plane is bottom-up. For audio, this always positive.
+ * @param nplanes Pointer to store the amount of planes. For audio, this always writes 1. This can be NULL.
+ * @return Array of pointer to each plane, or NULL on failure. Subsequent calls to this function return same pointer.
+ * @note nav_frame_release must only be called once regardless on how many times nav_frame_acquire is called.
+ * @sa nav_streaminfo_type_plane_count
+ * @sa nav_frame_release
  */
-NAV_API size_t nav_frame_size(nav_frame_t *frame);
+NAV_NODISCARD NAV_API const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes);
 
 /**
- * @brief Get decoded data buffer.
- * 
- * For video frame, this will contain the picture, laid out depending on the stream nav_pixelformat.
- * 
- * For audio frame, this will contain the audio samples depending on the nav_audioformat, interleaved.
- * 
+ * @brief Release the previously-acquired frame, making the acquired pointer invalid.
  * @param frame Pointer to the NAV frame instance.
- * @return Decoded data buffer.
+ * @sa nav_frame_acquire
  */
-NAV_API const void *nav_frame_buffer(nav_frame_t *frame);
+NAV_API void nav_frame_release(nav_frame_t *frame);
 
 /**
  * @brief Free the NAV frame instance.
+ * 
+ * If the frame was acquired, it will be released.
  * @param frame Pointer to the NAV frame instance.
  */
 NAV_API void nav_frame_free(nav_frame_t *frame);

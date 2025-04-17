@@ -170,6 +170,28 @@ struct HWAccelState
 	bool active;
 };
 
+class MediaFoundationFrame: public Frame
+{
+public:
+	MediaFoundationFrame(nav_streaminfo_t *sinfo, ComPtr<IMFMediaBuffer> &buffer, double pts, size_t si);
+	size_t getStreamIndex() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo() const noexcept override;
+	double tell() const noexcept override;
+	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
+	void release() noexcept override;
+
+private:
+	void acquireDefault();
+	void acquire2D();
+
+	AcquireData acquireData;
+	ComPtr<IMFMediaBuffer> mediaBuffer;
+	ComPtr<IMF2DBuffer> buffer2D;
+	double pts;
+	nav_streaminfo_t *streamInfo;
+	size_t index;
+};
+
 class MediaFoundationState: public State
 {
 public:
@@ -182,9 +204,11 @@ public:
 		HWAccelState *hwaccelState
 	);
 	~MediaFoundationState() override;
-	size_t getStreamCount() noexcept override;
-	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
-	bool isStreamEnabled(size_t index) noexcept override;
+	
+	nav::Backend *getBackend() const noexcept override;
+	size_t getStreamCount() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo(size_t index) const noexcept override;
+	bool isStreamEnabled(size_t index) const noexcept override;
 	bool setStreamEnabled(size_t index, bool enabled) override;
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
@@ -193,7 +217,6 @@ public:
 
 private:
 	nav_frame_t *decode(ComPtr<IMFSample> &mfSample, size_t streamIndex, LONGLONG timestamp);
-	nav_frame_t *decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t streamIndex, LONGLONG timestamp);
 
 	MediaFoundationBackend *backend;
 

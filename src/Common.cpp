@@ -7,18 +7,30 @@
 #endif
 
 #include "Common.hpp"
+#include "Error.hpp"
 
 namespace nav
 {
 
 FrameVector::FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, double position, const void *data, size_t size)
 : buffer(size)
+, data(streaminfo->planes(), nullptr)
+, planeWidths(streaminfo->planes(), 0)
 , streaminfo(streaminfo)
 , streamindex(streamindex)
 , position(position)
 {
 	if (data)
 		std::copy((const uint8_t*) data, ((const uint8_t*) data) + size, buffer.data());
+	
+	// Partition data, assume no padding
+	uint8_t *start = buffer.data();
+	for (size_t i = 0; i < streaminfo->planes(); i++)
+	{
+		this->data[i] = start;
+		planeWidths[i] = streaminfo->plane_width(i);
+		start += streaminfo->plane_width(i) * streaminfo->plane_height(i);
+	}
 }
 
 FrameVector::~FrameVector()
@@ -39,14 +51,24 @@ double FrameVector::tell() const noexcept
 	return position;
 }
 
-size_t FrameVector::size() const noexcept
+const uint8_t *const *FrameVector::acquire(ptrdiff_t **strides, size_t *nplanes)
 {
-	return buffer.size();
+	if (strides == nullptr)
+	{
+		error::set("strides is null");
+		return nullptr;
+	}
+
+	if (nplanes)
+		*nplanes = streaminfo->planes();
+
+	*strides = planeWidths.data();
+
+	return data.data();
 }
 
-void *FrameVector::data() noexcept
+void FrameVector::release() noexcept
 {
-	return buffer.data();
 }
 
 bool FrameVector::operator<(const FrameVector &rhs) const noexcept

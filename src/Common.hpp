@@ -12,6 +12,13 @@
 namespace nav
 {
 
+struct AcquireData
+{
+	uint8_t *source; // Note: It may not writable.
+	std::vector<uint8_t*> planes;
+	std::vector<ptrdiff_t> strides;
+};
+
 struct FrameVector: public nav_frame_t
 {
 	FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, double position, const void *data, size_t size);
@@ -19,13 +26,15 @@ struct FrameVector: public nav_frame_t
 	size_t getStreamIndex() const noexcept override;
 	nav_streaminfo_t *getStreamInfo() const noexcept override;
 	double tell() const noexcept override;
-	size_t size() const noexcept override;
-	void *data() noexcept override;
+	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
+	void release() noexcept override;
 
 	bool operator<(const FrameVector &rhs) const noexcept;
 
 private:
 	std::vector<uint8_t> buffer;
+	std::vector<uint8_t*> data;
+	std::vector<ptrdiff_t> planeWidths;
 	nav_streaminfo_t *streaminfo;
 	size_t streamindex;
 	double position;
@@ -52,6 +61,7 @@ constexpr nav_audioformat makeAudioFormat(uint8_t bps, bool is_float, bool is_si
 bool getEnvvarBool(const std::string &name);
 std::optional<int> getEnvvarInt(const std::string &name);
 bool checkBackendDisabled(const std::string &backendNameUppercase);
+size_t planeCount(nav_pixelformat fmt) noexcept;
 
 #ifdef _WIN32
 std::wstring fromUTF8(const std::string &str);

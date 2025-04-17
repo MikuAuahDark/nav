@@ -36,7 +36,7 @@ constexpr GUID IMF2DBuffer_GUID = {0x7DC9D5F9, 0x9ED9, 0x44ec, {0x9B, 0xBF, 0x06
 constexpr GUID IMF2DBuffer2_GUID = {0x33ae5ea6, 0x4316, 0x436f, {0x8d, 0xdd, 0xd7, 0x3d, 0x22, 0xf8, 0x29, 0xec}};
 constexpr GUID ID3D11Multithread_GUID = {0x9B7E4E00, 0x342C, 0x4106, {0xA1, 0x9F, 0x4F, 0x27, 0x04, 0xF6, 0x89, 0xF0}};
 
-constexpr uint64_t MF_100NS_UNIT = 10000000;
+constexpr LONGLONG MF_100NS_UNIT = 10000000;
 
 struct GUIDLessThan
 {
@@ -427,6 +427,195 @@ HRESULT STDMETHODCALLTYPE NavInputStream::UnlockRegion(ULARGE_INTEGER libOffset,
 	return STG_E_INVALIDFUNCTION;
 }
 
+
+
+MediaFoundationFrame::MediaFoundationFrame(nav_streaminfo_t *sinfo, ComPtr<IMFMediaBuffer> &buffer, double pts, size_t si)
+: acquireData()
+, mediaBuffer(buffer)
+, buffer2D(buffer.dcast<IMF2DBuffer>(IMF2DBuffer_GUID))
+, pts(pts)
+, streamInfo(sinfo)
+, index(si)
+{}
+
+size_t MediaFoundationFrame::getStreamIndex() const noexcept
+{
+	return index;
+}
+
+const nav_streaminfo_t *MediaFoundationFrame::getStreamInfo() const noexcept
+{
+	return streamInfo;
+}
+
+double MediaFoundationFrame::tell() const noexcept
+{
+	return pts;
+}
+
+const uint8_t *const *MediaFoundationFrame::acquire(ptrdiff_t **strides, size_t *nplanes)
+{
+	if (acquireData.source == nullptr)
+	{
+		// These will throw exception on failure
+		if (streamInfo->type == NAV_STREAMTYPE_VIDEO && buffer2D)
+			acquire2D();
+		else
+			acquireDefault();
+	}
+
+	if (nplanes)
+		*nplanes = acquireData.planes.size();
+	*strides = acquireData.strides.data();
+	return acquireData.planes.data();
+}
+
+void MediaFoundationFrame::acquireDefault()
+{
+	BYTE *source;
+	DWORD maxbufsize, bufsize;
+
+	if (HRESULT hr = mediaBuffer->Lock(&source, &maxbufsize, &bufsize); FAILED(hr))
+		runtimeErrorWithHRESULT("IMFMediaBuffer::Lock failed", hr);
+
+	if (bufsize == 0)
+		bufsize = maxbufsize;
+
+	switch (streamInfo->type)
+	{
+		case NAV_STREAMTYPE_UNKNOWN:
+		default:
+			throw std::runtime_error("Assertion failed (unknown stream info) @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+		case NAV_STREAMTYPE_AUDIO:
+		{
+			acquireData.source = source;
+			acquireData.planes.push_back(source);
+			acquireData.strides.push_back(bufsize);
+			break;
+		}
+		case NAV_STREAMTYPE_VIDEO:
+		{
+			uint8_t *current = source;
+			acquireData.source = source;
+
+			for (size_t i = 0; i < streamInfo->planes(); i++)
+			{
+				size_t pw = streamInfo->plane_width(i);
+				acquireData.strides.push_back((ptrdiff_t) pw);
+				acquireData.planes.push_back(current);
+				current += pw * streamInfo->plane_height(i);
+			}
+
+			break;
+		}
+	}
+}
+
+void MediaFoundationFrame::acquire2D()
+{
+	BYTE *source = nullptr;
+	LONG stride = 0;
+	DWORD contSize = 0;
+
+
+	bool lockWithBuffer1 = true;
+	if (ComPtr<IMF2DBuffer2> buf2dv2 = buffer2D.dcast<IMF2DBuffer2>(IMF2DBuffer2_GUID))
+	{
+		BYTE *dummy = nullptr;
+
+		if (HRESULT hr = buf2dv2->Lock2DSize(MF2DBuffer_LockFlags_Read, &source, &stride, &dummy, &contSize); FAILED(hr))
+			runtimeErrorWithHRESULT("IMF2DBuffer2::Lock2DSize failed", hr);
+	}
+	else
+	{
+		if (HRESULT hr = buffer2D->GetContiguousLength(&contSize); FAILED(hr))
+			runtimeErrorWithHRESULT("IMF2DBuffer::GetContiguousLength failed", hr);
+		if (HRESULT hr = buffer2D->Lock2D(&source, &stride); FAILED(hr))
+			runtimeErrorWithHRESULT("IMF2DBuffer::Lock2D failed", hr);
+	}
+
+	// HACK: Some pixel format doesn't provide a way to know additional padding at height.
+	size_t extraHeight = bruteForceExtraHeight(
+		(uint32_t) stride, streamInfo->video.height,
+		contSize,
+		streamInfo->video.format
+	);
+
+	uint8_t *current = acquireData.source;
+	size_t height = streamInfo->video.height + extraHeight;
+
+	switch (streamInfo->video.format)
+	{
+		case NAV_PIXELFORMAT_UNKNOWN:
+		default:
+			throw std::logic_error("Assertion failed (unknown pixel format) @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+		case NAV_PIXELFORMAT_RGB8:
+		{
+			if (streamInfo->planes() != 1)
+				throw std::logic_error("NAV_PIXELFORMAT_RGB8 planes != 1 @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+
+			acquireData.strides.push_back(stride);
+			acquireData.planes.push_back(current);
+			break;
+		}
+		case NAV_PIXELFORMAT_YUV420:
+		case NAV_PIXELFORMAT_YUV444:
+		{
+			size_t currentWidth = (size_t) abs(stride);
+			size_t currentHeight = height;
+
+			for (size_t i = 0; i < streamInfo->planes(); i++)
+			{
+				acquireData.strides.push_back(currentWidth);
+				acquireData.planes.push_back(current);
+
+				if (stride >= 0)
+					current += currentWidth * currentHeight;
+				else
+					current -= currentWidth * currentHeight;
+
+				if (i == 0 && streamInfo->video.format == NAV_PIXELFORMAT_YUV420)
+				{
+					// Divide by half
+					currentWidth = (currentWidth + 1) / 2;
+					currentHeight = (currentHeight + 1) / 2;
+				}
+			}
+		}
+		case NAV_PIXELFORMAT_NV12:
+		{
+			if (streamInfo->planes() != 2)
+				throw std::logic_error("NAV_PIXELFORMAT_NV12 planes != 2 @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
+
+			// Y plane
+			acquireData.strides.push_back(stride);
+			acquireData.planes.push_back(current);
+
+			// UV plane
+			ptrdiff_t uvStride = stride < 0 ? (((stride - 1) / 2) * 2) : (((stride + 1) / 2) * 2);
+			acquireData.strides.push_back(stride);
+			acquireData.planes.push_back(current + uvStride * (ptrdiff_t) height);
+
+			break;
+		}
+	}
+}
+
+void MediaFoundationFrame::release() noexcept
+{
+	if (acquireData.source)
+	{
+		if (buffer2D)
+			buffer2D->Unlock2D();
+		else
+			mediaBuffer->Unlock();
+	}
+	
+	acquireData = {};
+}
+
+
+
 MediaFoundationState::MediaFoundationState(
 	MediaFoundationBackend *backend,
 	nav_input *input,
@@ -593,12 +782,17 @@ MediaFoundationState::MediaFoundationState(
 MediaFoundationState::~MediaFoundationState()
 {}
 
-size_t MediaFoundationState::getStreamCount() noexcept
+Backend *MediaFoundationState::getBackend() const noexcept
+{
+	return backend;
+}
+
+size_t MediaFoundationState::getStreamCount() const noexcept
 {
 	return streamInfoList.size();
 }
 
-nav_streaminfo_t *MediaFoundationState::getStreamInfo(size_t index) noexcept
+const nav_streaminfo_t *MediaFoundationState::getStreamInfo(size_t index) const noexcept
 {
 	if (index >= streamInfoList.size())
 	{
@@ -609,7 +803,7 @@ nav_streaminfo_t *MediaFoundationState::getStreamInfo(size_t index) noexcept
 	return &streamInfoList[index];
 }
 
-bool MediaFoundationState::isStreamEnabled(size_t index) noexcept
+bool MediaFoundationState::isStreamEnabled(size_t index) const noexcept
 {
 	BOOL enabled = FALSE;
 
@@ -652,12 +846,12 @@ double MediaFoundationState::getDuration() noexcept
 	if (FAILED(mfSourceReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &pvar)))
 		return -1.0;
 	
-	return derationalize(pvar.uhVal.QuadPart, MF_100NS_UNIT);
+	return derationalize(pvar.uhVal.QuadPart, (ULONGLONG) MF_100NS_UNIT);
 }
 
 double MediaFoundationState::getPosition() noexcept
 {
-	return derationalize(currentPosition, MF_100NS_UNIT);
+	return derationalize(currentPosition, (ULONGLONG) MF_100NS_UNIT);
 }
 
 double MediaFoundationState::setPosition(double position)
@@ -713,130 +907,16 @@ nav_frame_t *MediaFoundationState::decode(ComPtr<IMFSample> &mfSample, size_t st
 	ComPtr<IMFMediaBuffer> mfMediaBuffer;
 	if (HRESULT hr = mfSample->GetBufferByIndex(0, mfMediaBuffer.dptr()); FAILED(hr))
 		runtimeErrorWithHRESULT("IMFSample::GetBufferByIndex failed", hr);
-	
-	if (ComPtr<IMF2DBuffer> buf2d = mfMediaBuffer.dcast<IMF2DBuffer>(IMF2DBuffer_GUID))
-		return decode2D(buf2d, streamIndex, timestamp);
 
-	BYTE *source;
-	if (HRESULT hr = mfMediaBuffer->Lock(&source, &maxbufsize, &bufsize); FAILED(hr))
-		runtimeErrorWithHRESULT("IMFMediaBuffer::Lock failed", hr);
-	
-	if (bufsize == 0)
-		bufsize = maxbufsize;
-
-	nav::FrameVector *frame = new (std::nothrow) nav::FrameVector(
+	return new MediaFoundationFrame(
 		&streamInfoList[streamIndex],
-		streamIndex,
-		derationalize(timestamp, (int64_t) MF_100NS_UNIT),
-		source,
-		bufsize
+		mfMediaBuffer,
+		derationalize(timestamp, MF_100NS_UNIT),
+		streamIndex
 	);
-	mfMediaBuffer->Unlock();
-	return frame;
 }
 
-nav_frame_t *MediaFoundationState::decode2D(ComPtr<IMF2DBuffer> &buf2d, size_t streamIndex, LONGLONG timestamp)
-{
-	BYTE *source = nullptr;
-	nav_streaminfo_t *streamInfo = &streamInfoList[streamIndex];
-	LONG stride = 0;
-	DWORD contSize = 0;
 
-	if (HRESULT hr = buf2d->GetContiguousLength(&contSize); FAILED(hr))
-		runtimeErrorWithHRESULT("IMF2DBuffer::GetContiguousLength failed", hr);
-
-	bool lockWithBuffer1 = true;
-	if (ComPtr<IMF2DBuffer2> buf2d2 = buf2d.dcast<IMF2DBuffer2>(IMF2DBuffer2_GUID))
-	{
-		BYTE *dummy = nullptr;
-		DWORD actualContSize = 0;
-		if (HRESULT hr = buf2d2->Lock2DSize(MF2DBuffer_LockFlags_Read, &source, &stride, &dummy, &actualContSize); SUCCEEDED(hr))
-		{
-			contSize = actualContSize;
-			lockWithBuffer1 = false;
-		}
-	}
-
-	if (lockWithBuffer1)
-	{
-		if (HRESULT hr = buf2d->Lock2D(&source, &stride); FAILED(hr))
-			runtimeErrorWithHRESULT("IMF2DBuffer::Lock2D failed", hr);
-	}
-
-	nav::FrameVector *frame = nullptr;
-	try
-	{
-		frame = new nav::FrameVector(
-			streamInfo,
-			streamIndex,
-			derationalize(timestamp, (int64_t) MF_100NS_UNIT),
-			nullptr,
-			streamInfo->video.size()
-		);
-	}
-	catch (...)
-	{
-		buf2d->Unlock2D();
-		throw;
-	}
-
-	uint8_t *frameData = (uint8_t*) frame->data();
-	
-	// HACK: Some pixel format doesn't provide a way to know additional padding at height.
-	size_t extraHeight = bruteForceExtraHeight((uint32_t) stride, streamInfo->video.height, contSize, streamInfo->video.format);
-
-	int nplanes = 1;
-	size_t planeWidth[3] = {streamInfo->video.width, 0, 0};
-	size_t planeHeight[3] = {streamInfo->video.height, 0, 0};
-	size_t sourceExtraHeight[3] = {extraHeight, 0, 0};
-	ptrdiff_t sourceStrides[3] = {stride, 0, 0};
-
-	switch (streamInfo->video.format)
-	{
-		case NAV_PIXELFORMAT_RGB8:
-			planeWidth[0] *= 3;
-			[[fallthrough]];
-		case NAV_PIXELFORMAT_UNKNOWN:
-		default:
-			break;
-		case NAV_PIXELFORMAT_NV12:
-			planeWidth[1] = ((planeWidth[0] + 1) / 2) * 2;
-			planeHeight[1] = (planeHeight[0] + 1) / 2;
-			sourceStrides[1] = ((sourceStrides[0] + 1) / 2) * 2;
-			sourceExtraHeight[1] = (sourceExtraHeight[0] + 1) / 2;
-			nplanes = 2;
-			break;
-		case NAV_PIXELFORMAT_YUV420:
-			planeWidth[1] = planeWidth[2] = (planeWidth[0] + 1) / 2;
-			planeHeight[1] = planeHeight[2] = (planeHeight[0] + 1) / 2;
-			sourceStrides[1] = sourceStrides[2] = (sourceStrides[0] + 1) / 2;
-			sourceExtraHeight[1] = sourceExtraHeight[2] = (sourceExtraHeight[0] + 1) / 2;
-			nplanes = 3;
-			break;
-		case NAV_PIXELFORMAT_YUV444:
-			planeWidth[1] = planeWidth[2] = planeWidth[0];
-			planeHeight[1] = planeHeight[2] = planeHeight[0];
-			sourceStrides[1] = sourceStrides[2] = sourceStrides[0];
-			sourceExtraHeight[1] = sourceExtraHeight[2] = sourceExtraHeight[0];
-			nplanes = 3;
-			break;
-	}
-
-	for (int i = 0; i < nplanes; i++)
-	{
-		for (int y = 0; y < planeHeight[i]; y++)
-		{
-			std::copy(source, source + planeWidth[i], frameData);
-			frameData += planeWidth[i];
-			source += sourceStrides[i];
-		}
-
-		source += sourceStrides[i] * ((ptrdiff_t) sourceExtraHeight[i]);
-	}
-
-	buf2d->Unlock2D();
-	return frame;
-}
 
 #undef NAV_FFCALL
 #define NAV_FFCALL(n) func_##n

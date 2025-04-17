@@ -131,6 +131,17 @@ public:
 		return nullptr;
 	}
 
+	size_t getBackendIndex(nav::Backend *backend)
+	{
+		for (size_t i = 0; i < activeBackend.size(); i++)
+		{
+			if (activeBackend[i] == backend)
+				return i + 1;
+		}
+
+		return 0;
+	}
+
 private:
 	bool initialized;
 	std::vector<nav::Backend*> activeBackend;
@@ -244,19 +255,26 @@ extern "C" void nav_close(nav_t *state)
 	delete state;
 }
 
-extern "C" size_t nav_nstreams(nav_t *state)
+extern "C" size_t nav_backend_index(nav_t *state)
+{
+	nav::error::set("");
+	nav::Backend *b = state->getBackend();
+	return backendContainer.getBackendIndex(b);
+}
+
+extern "C" size_t nav_nstreams(const nav_t *state)
 {
 	nav::error::set("");
 	return state->getStreamCount();
 }
 
-extern "C" nav_streaminfo_t *nav_stream_info(nav_t *state, size_t index)
+extern "C" const nav_streaminfo_t *nav_stream_info(const nav_t *state, size_t index)
 {
 	nav::error::set("");
 	return state->getStreamInfo(index);
 }
 
-extern "C" nav_bool nav_stream_is_enabled(nav_t *state, size_t index)
+extern "C" nav_bool nav_stream_is_enabled(const nav_t *state, size_t index)
 {
 	nav::error::set("");
 	return (nav_bool) state->isStreamEnabled(index);
@@ -289,13 +307,19 @@ extern "C" nav_frame_t *nav_read(nav_t *state)
 	return wrapcall<nav_frame_t*>(state, &nav::State::read, nullptr);
 }
 
-extern "C" nav_streamtype nav_streaminfo_type(nav_streaminfo_t *sinfo)
+extern "C" nav_streamtype nav_streaminfo_type(const nav_streaminfo_t *sinfo)
 {
 	nav::error::set("");
 	return sinfo->type;
 }
 
-extern "C" size_t nav_audio_size(nav_streaminfo_t *sinfo)
+extern "C" size_t nav_video_plane_count(nav_pixelformat fmt)
+{
+	nav::error::set("");
+	return nav::planeCount(fmt);
+}
+
+extern "C" size_t nav_audio_size(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_AUDIO)
 	{
@@ -307,7 +331,7 @@ extern "C" size_t nav_audio_size(nav_streaminfo_t *sinfo)
 	return sinfo->audio.size();
 }
 
-extern "C" uint32_t nav_audio_sample_rate(nav_streaminfo_t *sinfo)
+extern "C" uint32_t nav_audio_sample_rate(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_AUDIO)
 	{
@@ -319,7 +343,7 @@ extern "C" uint32_t nav_audio_sample_rate(nav_streaminfo_t *sinfo)
 	return sinfo->audio.sample_rate;
 }
 
-extern "C" uint32_t nav_audio_nchannels(nav_streaminfo_t *sinfo)
+extern "C" uint32_t nav_audio_nchannels(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_AUDIO)
 	{
@@ -331,7 +355,7 @@ extern "C" uint32_t nav_audio_nchannels(nav_streaminfo_t *sinfo)
 	return sinfo->audio.nchannels;
 }
 
-extern "C" nav_audioformat nav_audio_format(nav_streaminfo_t *sinfo)
+extern "C" nav_audioformat nav_audio_format(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_AUDIO)
 	{
@@ -343,7 +367,7 @@ extern "C" nav_audioformat nav_audio_format(nav_streaminfo_t *sinfo)
 	return sinfo->audio.format;
 }
 
-extern "C" size_t nav_video_size(nav_streaminfo_t *sinfo)
+extern "C" size_t nav_video_size(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_VIDEO)
 	{
@@ -352,10 +376,27 @@ extern "C" size_t nav_video_size(nav_streaminfo_t *sinfo)
 	}
 
 	nav::error::set("");
-	return sinfo->video.size();
+	size_t result = 0;
+	for (size_t i = 0; i < sinfo->planes(); i++)
+		result += sinfo->plane_width(i) * sinfo->plane_height(i);
+	
+	return result;
 }
 
-extern "C" void nav_video_dimensions(nav_streaminfo_t *sinfo, uint32_t *width, uint32_t *height)
+extern "C" void nav_video_plane_dimensions(const nav_streaminfo_t *sinfo, size_t index, size_t *width, size_t *height)
+{
+	if (sinfo->type != NAV_STREAMTYPE_VIDEO)
+	{
+		nav::error::set("Not a video stream");
+		return;
+	}
+
+	nav::error::set("");
+	*width = sinfo->plane_width(index);
+	*height = sinfo->plane_height(index);
+}
+
+extern "C" void nav_video_dimensions(const nav_streaminfo_t *sinfo, uint32_t *width, uint32_t *height)
 {
 	if (sinfo->type != NAV_STREAMTYPE_VIDEO)
 	{
@@ -369,7 +410,7 @@ extern "C" void nav_video_dimensions(nav_streaminfo_t *sinfo, uint32_t *width, u
 	*height = sinfo->video.height;
 }
 
-extern "C" nav_pixelformat nav_video_pixel_format(nav_streaminfo_t *sinfo)
+extern "C" nav_pixelformat nav_video_pixel_format(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_VIDEO)
 	{
@@ -381,7 +422,7 @@ extern "C" nav_pixelformat nav_video_pixel_format(nav_streaminfo_t *sinfo)
 	return sinfo->video.format;
 }
 
-extern "C" double nav_video_fps(nav_streaminfo_t *sinfo)
+extern "C" double nav_video_fps(const nav_streaminfo_t *sinfo)
 {
 	if (sinfo->type != NAV_STREAMTYPE_VIDEO)
 	{
@@ -393,32 +434,33 @@ extern "C" double nav_video_fps(nav_streaminfo_t *sinfo)
 	return sinfo->video.fps;
 }
 
-extern "C" size_t nav_frame_streamindex(nav_frame_t *frame)
+extern "C" size_t nav_frame_streamindex(const nav_frame_t *frame)
 {
 	nav::error::set("");
 	return frame->getStreamIndex();
 }
 
-extern "C" nav_streaminfo_t *nav_frame_streaminfo(nav_frame_t *frame)
+extern "C" const nav_streaminfo_t *nav_frame_streaminfo(const nav_frame_t *frame)
 {
 	nav::error::set("");
 	return frame->getStreamInfo();
 }
 
-extern "C" double nav_frame_tell(nav_frame_t *frame)
+extern "C" double nav_frame_tell(const nav_frame_t *frame)
 {
 	nav::error::set("");
 	return frame->tell();
 }
 
-extern "C" size_t nav_frame_size(nav_frame_t *frame)
+extern "C" const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes)
 {
-	return frame->size();
+	return wrapcall<const uint8_t *const *>(frame, nav_frame_t::acquire, nullptr, strides, nplanes);
 }
 
-extern "C" const void *nav_frame_buffer(nav_frame_t *frame)
+extern "C" void nav_frame_release(nav_frame_t *frame)
 {
-	return frame->data();
+	nav::error::set("");
+	return frame->release();
 }
 
 extern "C" void nav_frame_free(nav_frame_t *frame)
