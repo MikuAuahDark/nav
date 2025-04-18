@@ -24,14 +24,35 @@ using UniqueAVFrame = std::unique_ptr<AVFrame, ffmpeg_common::DoublePointerDelet
 
 class FFmpegBackend;
 
+class FFmpegFrame: public Frame
+{
+public:
+	FFmpegFrame(FFmpegBackend *backend, nav_streaminfo_t *sinfo, AVFrame *frame, double pts, size_t si);
+	~FFmpegFrame() override;
+	size_t getStreamIndex() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo() const noexcept override;
+	double tell() const noexcept override;
+	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
+	void release() noexcept override;
+
+private:
+	AcquireData acquireData;
+	double pts;
+	AVFrame *frame;
+	FFmpegBackend *f;
+	nav_streaminfo_t *streamInfo;
+	size_t index;
+};
+
 class FFmpegState: public State
 {
 public:
 	FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &formatContext, UniqueAVIOContext &ioContext, const nav_settings &settings);
 	~FFmpegState() override;
-	size_t getStreamCount() noexcept override;
-	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
-	bool isStreamEnabled(size_t index) noexcept override;
+	Backend *getBackend() const noexcept override;
+	size_t getStreamCount() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo(size_t index) const noexcept override;
+	bool isStreamEnabled(size_t index) const noexcept override;
 	bool setStreamEnabled(size_t index, bool enabled) override;
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
@@ -69,6 +90,7 @@ public:
 
 private:
 	friend class FFmpegState;
+	friend class FFmpegFrame;
 
 	DynLib avutil, avcodec, avformat, swscale, swresample;
 	std::string info;

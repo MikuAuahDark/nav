@@ -1,5 +1,6 @@
 #if defined(_NAV_PROXY_FUNCTION_POINTER) && defined(_NAV_FFMPEG_VERSION)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_alloc)
+_NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_clone)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_free)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_frame_unref)
 _NAV_PROXY_FUNCTION_POINTER(avutil, av_get_packed_sample_fmt)

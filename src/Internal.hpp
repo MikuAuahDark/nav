@@ -26,8 +26,6 @@ typedef nav_t State;
 typedef nav_streaminfo_t StreamInfo;
 typedef nav_frame_t Frame;
 
-
-
 }
 
 struct nav_t
@@ -259,6 +257,11 @@ struct nav_frame_t
 	virtual double tell() const noexcept = 0;
 	virtual const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) = 0;
 	virtual void release() noexcept = 0;
+
+	inline bool operator<(const nav_frame_t &other) const noexcept
+	{
+		return tell() < other.tell();
+	}
 };
 
 #endif /* _NAV_INTERNAL_HPP_ */

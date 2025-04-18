@@ -28,8 +28,8 @@ struct FrameVector: public nav_frame_t
 	double tell() const noexcept override;
 	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
 	void release() noexcept override;
-
-	bool operator<(const FrameVector &rhs) const noexcept;
+	// Backward compatibility only
+	uint8_t *pointer() noexcept;
 
 private:
 	std::vector<uint8_t> buffer;

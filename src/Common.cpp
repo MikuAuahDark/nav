@@ -71,9 +71,9 @@ void FrameVector::release() noexcept
 {
 }
 
-bool FrameVector::operator<(const FrameVector &rhs) const noexcept
+uint8_t *FrameVector::pointer() noexcept
 {
-	return position < rhs.position;
+	return buffer.data();
 }
 
 bool getEnvvarBool(const std::string& name)
