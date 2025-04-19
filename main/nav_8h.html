@@ -162,15 +162,18 @@ Functions</h2></td></tr>
 <tr class="memitem:a7f48ffd6fd650c1026c31703975bcc5b" id="r_a7f48ffd6fd650c1026c31703975bcc5b"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7f48ffd6fd650c1026c31703975bcc5b">nav_close</a> (nav_t *nav)</td></tr>
 <tr class="memdesc:a7f48ffd6fd650c1026c31703975bcc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close existing NAV instance.  <br /></td></tr>
 <tr class="separator:a7f48ffd6fd650c1026c31703975bcc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d0c05bd9064b6cdca6ad2eaa6371ef0" id="r_a5d0c05bd9064b6cdca6ad2eaa6371ef0"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a5d0c05bd9064b6cdca6ad2eaa6371ef0">nav_nstreams</a> (nav_t *nav)</td></tr>
-<tr class="memdesc:a5d0c05bd9064b6cdca6ad2eaa6371ef0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get amount of streams in the NAV instance.  <br /></td></tr>
-<tr class="separator:a5d0c05bd9064b6cdca6ad2eaa6371ef0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ace36cc29f81474fc803ce99c7850e4ed" id="r_ace36cc29f81474fc803ce99c7850e4ed"><td class="memItemLeft" align="right" valign="top">NAV_API nav_streaminfo_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ace36cc29f81474fc803ce99c7850e4ed">nav_stream_info</a> (nav_t *nav, size_t index)</td></tr>
-<tr class="memdesc:ace36cc29f81474fc803ce99c7850e4ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream information.  <br /></td></tr>
-<tr class="separator:ace36cc29f81474fc803ce99c7850e4ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae7399921d5b9c982beb6b1a042ab9b4d" id="r_ae7399921d5b9c982beb6b1a042ab9b4d"><td class="memItemLeft" align="right" valign="top">NAV_API nav_bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ae7399921d5b9c982beb6b1a042ab9b4d">nav_stream_is_enabled</a> (nav_t *nav, size_t index)</td></tr>
-<tr class="memdesc:ae7399921d5b9c982beb6b1a042ab9b4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if stream at specific index is enabled.  <br /></td></tr>
-<tr class="separator:ae7399921d5b9c982beb6b1a042ab9b4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3b6996b42c43fc75bff07897420993a0" id="r_a3b6996b42c43fc75bff07897420993a0"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a3b6996b42c43fc75bff07897420993a0">nav_backend_index</a> (const nav_t *nav)</td></tr>
+<tr class="memdesc:a3b6996b42c43fc75bff07897420993a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get backend index that crated this NAV instance.  <br /></td></tr>
+<tr class="separator:a3b6996b42c43fc75bff07897420993a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac451368761a80df276dc1b3323857787" id="r_ac451368761a80df276dc1b3323857787"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ac451368761a80df276dc1b3323857787">nav_nstreams</a> (const nav_t *nav)</td></tr>
+<tr class="memdesc:ac451368761a80df276dc1b3323857787"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get amount of streams in the NAV instance.  <br /></td></tr>
+<tr class="separator:ac451368761a80df276dc1b3323857787"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7317d21ca36e86d8397ea21651953c2f" id="r_a7317d21ca36e86d8397ea21651953c2f"><td class="memItemLeft" align="right" valign="top">NAV_API const nav_streaminfo_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7317d21ca36e86d8397ea21651953c2f">nav_stream_info</a> (const nav_t *nav, size_t index)</td></tr>
+<tr class="memdesc:a7317d21ca36e86d8397ea21651953c2f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream information.  <br /></td></tr>
+<tr class="separator:a7317d21ca36e86d8397ea21651953c2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a47c113dcef24c86b6d6c55504a286665" id="r_a47c113dcef24c86b6d6c55504a286665"><td class="memItemLeft" align="right" valign="top">NAV_API nav_bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a47c113dcef24c86b6d6c55504a286665">nav_stream_is_enabled</a> (const nav_t *nav, size_t index)</td></tr>
+<tr class="memdesc:a47c113dcef24c86b6d6c55504a286665"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if stream at specific index is enabled.  <br /></td></tr>
+<tr class="separator:a47c113dcef24c86b6d6c55504a286665"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6e47a2027bf07a1c7289e3d55da513dd" id="r_a6e47a2027bf07a1c7289e3d55da513dd"><td class="memItemLeft" align="right" valign="top">NAV_API nav_bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a6e47a2027bf07a1c7289e3d55da513dd">nav_stream_enable</a> (nav_t *nav, size_t index, nav_bool enable)</td></tr>
 <tr class="memdesc:a6e47a2027bf07a1c7289e3d55da513dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set if specific stream should be enabled.  <br /></td></tr>
 <tr class="separator:a6e47a2027bf07a1c7289e3d55da513dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -186,48 +189,54 @@ Functions</h2></td></tr>
 <tr class="memitem:ab6bb30c8bfb4a55c1ff6a28245e4bb18" id="r_ab6bb30c8bfb4a55c1ff6a28245e4bb18"><td class="memItemLeft" align="right" valign="top">NAV_NODISCARD NAV_API nav_frame_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ab6bb30c8bfb4a55c1ff6a28245e4bb18">nav_read</a> (nav_t *nav)</td></tr>
 <tr class="memdesc:ab6bb30c8bfb4a55c1ff6a28245e4bb18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode stream from NAV instance.  <br /></td></tr>
 <tr class="separator:ab6bb30c8bfb4a55c1ff6a28245e4bb18"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaad98c19e438b3f5e9be281e9a322d81" id="r_aaad98c19e438b3f5e9be281e9a322d81"><td class="memItemLeft" align="right" valign="top">NAV_API nav_streamtype&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aaad98c19e438b3f5e9be281e9a322d81">nav_streaminfo_type</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:aaad98c19e438b3f5e9be281e9a322d81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream type.  <br /></td></tr>
-<tr class="separator:aaad98c19e438b3f5e9be281e9a322d81"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2dcf0d054ed8f70e62b3c87a434a5bed" id="r_a2dcf0d054ed8f70e62b3c87a434a5bed"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a2dcf0d054ed8f70e62b3c87a434a5bed">nav_audio_size</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:a2dcf0d054ed8f70e62b3c87a434a5bed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the size in bytes of single audio sample frame.  <br /></td></tr>
-<tr class="separator:a2dcf0d054ed8f70e62b3c87a434a5bed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a355fd685df0ae445bb2bfc11a46f28ec" id="r_a355fd685df0ae445bb2bfc11a46f28ec"><td class="memItemLeft" align="right" valign="top">NAV_API uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a355fd685df0ae445bb2bfc11a46f28ec">nav_audio_sample_rate</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:a355fd685df0ae445bb2bfc11a46f28ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get audio sample rate.  <br /></td></tr>
-<tr class="separator:a355fd685df0ae445bb2bfc11a46f28ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab6ce953553f5c63df17811aa7ac49517" id="r_ab6ce953553f5c63df17811aa7ac49517"><td class="memItemLeft" align="right" valign="top">NAV_API uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ab6ce953553f5c63df17811aa7ac49517">nav_audio_nchannels</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:ab6ce953553f5c63df17811aa7ac49517"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get number of audio channels.  <br /></td></tr>
-<tr class="separator:ab6ce953553f5c63df17811aa7ac49517"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aab61c56c755e5432ae1966af5c364850" id="r_aab61c56c755e5432ae1966af5c364850"><td class="memItemLeft" align="right" valign="top">NAV_API nav_audioformat&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aab61c56c755e5432ae1966af5c364850">nav_audio_format</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:aab61c56c755e5432ae1966af5c364850"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bitwise audio format.  <br /></td></tr>
-<tr class="separator:aab61c56c755e5432ae1966af5c364850"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6f8ff169a5cfd12e614b3c1285312fb9" id="r_a6f8ff169a5cfd12e614b3c1285312fb9"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a6f8ff169a5cfd12e614b3c1285312fb9">nav_video_size</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:a6f8ff169a5cfd12e614b3c1285312fb9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the size of uncompressed video frame.  <br /></td></tr>
-<tr class="separator:a6f8ff169a5cfd12e614b3c1285312fb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adc20eb3e017d1b338213f5fde4efd8fa" id="r_adc20eb3e017d1b338213f5fde4efd8fa"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#adc20eb3e017d1b338213f5fde4efd8fa">nav_video_dimensions</a> (nav_streaminfo_t *streaminfo, uint32_t *width, uint32_t *height)</td></tr>
-<tr class="memdesc:adc20eb3e017d1b338213f5fde4efd8fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get video dimensions.  <br /></td></tr>
-<tr class="separator:adc20eb3e017d1b338213f5fde4efd8fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a969149b0f467e49c7b2b64dcee5c0a6e" id="r_a969149b0f467e49c7b2b64dcee5c0a6e"><td class="memItemLeft" align="right" valign="top">NAV_API nav_pixelformat&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a969149b0f467e49c7b2b64dcee5c0a6e">nav_video_pixel_format</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:a969149b0f467e49c7b2b64dcee5c0a6e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get video decode pixel format.  <br /></td></tr>
-<tr class="separator:a969149b0f467e49c7b2b64dcee5c0a6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab35428cee4866fcecb13c1dbfe6daec4" id="r_ab35428cee4866fcecb13c1dbfe6daec4"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ab35428cee4866fcecb13c1dbfe6daec4">nav_video_fps</a> (nav_streaminfo_t *streaminfo)</td></tr>
-<tr class="memdesc:ab35428cee4866fcecb13c1dbfe6daec4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get video frames per second.  <br /></td></tr>
-<tr class="separator:ab35428cee4866fcecb13c1dbfe6daec4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a29777cf65f7f98f23e1fb905d9460d09" id="r_a29777cf65f7f98f23e1fb905d9460d09"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a29777cf65f7f98f23e1fb905d9460d09">nav_frame_streamindex</a> (nav_frame_t *frame)</td></tr>
-<tr class="memdesc:a29777cf65f7f98f23e1fb905d9460d09"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream index correspond to the NAV frame instance.  <br /></td></tr>
-<tr class="separator:a29777cf65f7f98f23e1fb905d9460d09"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acf42efd2f752040904d08b8d3817a12a" id="r_acf42efd2f752040904d08b8d3817a12a"><td class="memItemLeft" align="right" valign="top">NAV_API nav_streaminfo_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#acf42efd2f752040904d08b8d3817a12a">nav_frame_streaminfo</a> (nav_frame_t *frame)</td></tr>
-<tr class="memdesc:acf42efd2f752040904d08b8d3817a12a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream type correspond to the NAV frame instance.  <br /></td></tr>
-<tr class="separator:acf42efd2f752040904d08b8d3817a12a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3e65a3408b951ea32eee2cc43e82923a" id="r_a3e65a3408b951ea32eee2cc43e82923a"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a3e65a3408b951ea32eee2cc43e82923a">nav_frame_tell</a> (nav_frame_t *frame)</td></tr>
-<tr class="memdesc:a3e65a3408b951ea32eee2cc43e82923a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get presentation timestamp of this frame.  <br /></td></tr>
-<tr class="separator:a3e65a3408b951ea32eee2cc43e82923a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0695bd6297d7053a9689514af262800d" id="r_a0695bd6297d7053a9689514af262800d"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a0695bd6297d7053a9689514af262800d">nav_frame_size</a> (nav_frame_t *frame)</td></tr>
-<tr class="memdesc:a0695bd6297d7053a9689514af262800d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get decoded data size.  <br /></td></tr>
-<tr class="separator:a0695bd6297d7053a9689514af262800d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a115e9e8c1f3792065e7686c302ccf5c3" id="r_a115e9e8c1f3792065e7686c302ccf5c3"><td class="memItemLeft" align="right" valign="top">NAV_API const void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a115e9e8c1f3792065e7686c302ccf5c3">nav_frame_buffer</a> (nav_frame_t *frame)</td></tr>
-<tr class="memdesc:a115e9e8c1f3792065e7686c302ccf5c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get decoded data buffer.  <br /></td></tr>
-<tr class="separator:a115e9e8c1f3792065e7686c302ccf5c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed2cf20f0953ad6a59b4e1111ba832eb" id="r_aed2cf20f0953ad6a59b4e1111ba832eb"><td class="memItemLeft" align="right" valign="top">NAV_API nav_streamtype&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aed2cf20f0953ad6a59b4e1111ba832eb">nav_streaminfo_type</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:aed2cf20f0953ad6a59b4e1111ba832eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream type.  <br /></td></tr>
+<tr class="separator:aed2cf20f0953ad6a59b4e1111ba832eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a857c9287306c5f6707672d506766c343" id="r_a857c9287306c5f6707672d506766c343"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a857c9287306c5f6707672d506766c343">nav_audio_size</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:a857c9287306c5f6707672d506766c343"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the size in bytes of single audio sample frame.  <br /></td></tr>
+<tr class="separator:a857c9287306c5f6707672d506766c343"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae6fb2b10790c7ee7f2dcccf912fbb14a" id="r_ae6fb2b10790c7ee7f2dcccf912fbb14a"><td class="memItemLeft" align="right" valign="top">NAV_API uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ae6fb2b10790c7ee7f2dcccf912fbb14a">nav_audio_sample_rate</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:ae6fb2b10790c7ee7f2dcccf912fbb14a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get audio sample rate.  <br /></td></tr>
+<tr class="separator:ae6fb2b10790c7ee7f2dcccf912fbb14a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a14f4edaa8498b35f443c03ac92e972f2" id="r_a14f4edaa8498b35f443c03ac92e972f2"><td class="memItemLeft" align="right" valign="top">NAV_API uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a14f4edaa8498b35f443c03ac92e972f2">nav_audio_nchannels</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:a14f4edaa8498b35f443c03ac92e972f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get number of audio channels.  <br /></td></tr>
+<tr class="separator:a14f4edaa8498b35f443c03ac92e972f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae4707b0a3e59efeafa5ac54a6b0ef12c" id="r_ae4707b0a3e59efeafa5ac54a6b0ef12c"><td class="memItemLeft" align="right" valign="top">NAV_API nav_audioformat&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ae4707b0a3e59efeafa5ac54a6b0ef12c">nav_audio_format</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:ae4707b0a3e59efeafa5ac54a6b0ef12c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the bitwise audio format.  <br /></td></tr>
+<tr class="separator:ae4707b0a3e59efeafa5ac54a6b0ef12c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a15d0fbb9236821141d10ed3fe53b92a6" id="r_a15d0fbb9236821141d10ed3fe53b92a6"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a15d0fbb9236821141d10ed3fe53b92a6">nav_video_size</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:a15d0fbb9236821141d10ed3fe53b92a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate the size of uncompressed video frame without any padding.  <br /></td></tr>
+<tr class="separator:a15d0fbb9236821141d10ed3fe53b92a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec97c703178c5a46cbac73759b815097" id="r_aec97c703178c5a46cbac73759b815097"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aec97c703178c5a46cbac73759b815097">nav_video_plane_count</a> (nav_pixelformat pixfmt)</td></tr>
+<tr class="memdesc:aec97c703178c5a46cbac73759b815097"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get amount of planes for this video format.  <br /></td></tr>
+<tr class="separator:aec97c703178c5a46cbac73759b815097"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aefcacab4a03512adcf1d8f4e5e2dca82" id="r_aefcacab4a03512adcf1d8f4e5e2dca82"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aefcacab4a03512adcf1d8f4e5e2dca82">nav_video_plane_dimensions</a> (const nav_streaminfo_t *streaminfo, size_t index, size_t *width, size_t *height)</td></tr>
+<tr class="memdesc:aefcacab4a03512adcf1d8f4e5e2dca82"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the dimension of video plane without any padding, in bytes.  <br /></td></tr>
+<tr class="separator:aefcacab4a03512adcf1d8f4e5e2dca82"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1aff5c71e9fe270a463d1c0b4373be5" id="r_af1aff5c71e9fe270a463d1c0b4373be5"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#af1aff5c71e9fe270a463d1c0b4373be5">nav_video_dimensions</a> (const nav_streaminfo_t *streaminfo, uint32_t *width, uint32_t *height)</td></tr>
+<tr class="memdesc:af1aff5c71e9fe270a463d1c0b4373be5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get video dimensions.  <br /></td></tr>
+<tr class="separator:af1aff5c71e9fe270a463d1c0b4373be5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c36be2b4d8ff52e3261a071e2052ee1" id="r_a0c36be2b4d8ff52e3261a071e2052ee1"><td class="memItemLeft" align="right" valign="top">NAV_API nav_pixelformat&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a0c36be2b4d8ff52e3261a071e2052ee1">nav_video_pixel_format</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:a0c36be2b4d8ff52e3261a071e2052ee1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get video decode pixel format.  <br /></td></tr>
+<tr class="separator:a0c36be2b4d8ff52e3261a071e2052ee1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95da88ec5829be678057a121f9b88421" id="r_a95da88ec5829be678057a121f9b88421"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a95da88ec5829be678057a121f9b88421">nav_video_fps</a> (const nav_streaminfo_t *streaminfo)</td></tr>
+<tr class="memdesc:a95da88ec5829be678057a121f9b88421"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get video frames per second.  <br /></td></tr>
+<tr class="separator:a95da88ec5829be678057a121f9b88421"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0599eec8761f90de4003d53736aa299f" id="r_a0599eec8761f90de4003d53736aa299f"><td class="memItemLeft" align="right" valign="top">NAV_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a0599eec8761f90de4003d53736aa299f">nav_frame_streamindex</a> (const nav_frame_t *frame)</td></tr>
+<tr class="memdesc:a0599eec8761f90de4003d53736aa299f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream index correspond to the NAV frame instance.  <br /></td></tr>
+<tr class="separator:a0599eec8761f90de4003d53736aa299f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a967143f6f2fde7d51a5c31234c17009e" id="r_a967143f6f2fde7d51a5c31234c17009e"><td class="memItemLeft" align="right" valign="top">NAV_API const nav_streaminfo_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a967143f6f2fde7d51a5c31234c17009e">nav_frame_streaminfo</a> (const nav_frame_t *frame)</td></tr>
+<tr class="memdesc:a967143f6f2fde7d51a5c31234c17009e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get stream type correspond to the NAV frame instance.  <br /></td></tr>
+<tr class="separator:a967143f6f2fde7d51a5c31234c17009e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af8c4e6978656ae33244bbf79915299b5" id="r_af8c4e6978656ae33244bbf79915299b5"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#af8c4e6978656ae33244bbf79915299b5">nav_frame_tell</a> (const nav_frame_t *frame)</td></tr>
+<tr class="memdesc:af8c4e6978656ae33244bbf79915299b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get presentation timestamp of this frame.  <br /></td></tr>
+<tr class="separator:af8c4e6978656ae33244bbf79915299b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2717c908795502fdadc2841ca036beb9" id="r_a2717c908795502fdadc2841ca036beb9"><td class="memItemLeft" align="right" valign="top">NAV_NODISCARD NAV_API const uint8_t *const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a2717c908795502fdadc2841ca036beb9">nav_frame_acquire</a> (nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes)</td></tr>
+<tr class="memdesc:a2717c908795502fdadc2841ca036beb9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Make the current frame available for reading.  <br /></td></tr>
+<tr class="separator:a2717c908795502fdadc2841ca036beb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c70fc91fdbbe1dd22a147e6f1d0f9e0" id="r_a1c70fc91fdbbe1dd22a147e6f1d0f9e0"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a1c70fc91fdbbe1dd22a147e6f1d0f9e0">nav_frame_release</a> (nav_frame_t *frame)</td></tr>
+<tr class="memdesc:a1c70fc91fdbbe1dd22a147e6f1d0f9e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Release the previously-acquired frame, making the acquired pointer invalid.  <br /></td></tr>
+<tr class="separator:a1c70fc91fdbbe1dd22a147e6f1d0f9e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac628d8d090c150cdd70fc02f5717c866" id="r_ac628d8d090c150cdd70fc02f5717c866"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ac628d8d090c150cdd70fc02f5717c866">nav_frame_free</a> (nav_frame_t *frame)</td></tr>
 <tr class="memdesc:ac628d8d090c150cdd70fc02f5717c866"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free the NAV frame instance.  <br /></td></tr>
 <tr class="separator:ac628d8d090c150cdd70fc02f5717c866"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -238,8 +247,8 @@ Functions</h2></td></tr>
 <dl class="section version"><dt>Version</dt><dd>0.1.0 </dd></dl>
 <dl class="section copyright"><dt>Copyright</dt><dd>Copyright (c) 2024 Miku AuahDark Licensed under zlib/libpng license. </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="aab61c56c755e5432ae1966af5c364850" name="aab61c56c755e5432ae1966af5c364850"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aab61c56c755e5432ae1966af5c364850">&#9670;&#160;</a></span>nav_audio_format()</h2>
+<a id="ae4707b0a3e59efeafa5ac54a6b0ef12c" name="ae4707b0a3e59efeafa5ac54a6b0ef12c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae4707b0a3e59efeafa5ac54a6b0ef12c">&#9670;&#160;</a></span>nav_audio_format()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -247,7 +256,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">NAV_API nav_audioformat nav_audio_format </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -268,8 +277,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="ab6ce953553f5c63df17811aa7ac49517" name="ab6ce953553f5c63df17811aa7ac49517"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab6ce953553f5c63df17811aa7ac49517">&#9670;&#160;</a></span>nav_audio_nchannels()</h2>
+<a id="a14f4edaa8498b35f443c03ac92e972f2" name="a14f4edaa8498b35f443c03ac92e972f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a14f4edaa8498b35f443c03ac92e972f2">&#9670;&#160;</a></span>nav_audio_nchannels()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -277,7 +286,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API uint32_t nav_audio_nchannels </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -296,8 +305,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a355fd685df0ae445bb2bfc11a46f28ec" name="a355fd685df0ae445bb2bfc11a46f28ec"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a355fd685df0ae445bb2bfc11a46f28ec">&#9670;&#160;</a></span>nav_audio_sample_rate()</h2>
+<a id="ae6fb2b10790c7ee7f2dcccf912fbb14a" name="ae6fb2b10790c7ee7f2dcccf912fbb14a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae6fb2b10790c7ee7f2dcccf912fbb14a">&#9670;&#160;</a></span>nav_audio_sample_rate()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -305,7 +314,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API uint32_t nav_audio_sample_rate </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -324,8 +333,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a2dcf0d054ed8f70e62b3c87a434a5bed" name="a2dcf0d054ed8f70e62b3c87a434a5bed"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2dcf0d054ed8f70e62b3c87a434a5bed">&#9670;&#160;</a></span>nav_audio_size()</h2>
+<a id="a857c9287306c5f6707672d506766c343" name="a857c9287306c5f6707672d506766c343"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a857c9287306c5f6707672d506766c343">&#9670;&#160;</a></span>nav_audio_size()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -333,7 +342,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API size_t nav_audio_size </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -368,6 +377,33 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 <p>Get amount of available backends. </p>
 <dl class="section return"><dt>Returns</dt><dd>Amount of available backends. 0 means no backends are available. </dd></dl>
+
+</div>
+</div>
+<a id="a3b6996b42c43fc75bff07897420993a0" name="a3b6996b42c43fc75bff07897420993a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3b6996b42c43fc75bff07897420993a0">&#9670;&#160;</a></span>nav_backend_index()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API size_t nav_backend_index </td>
+          <td>(</td>
+          <td class="paramtype">const nav_t *&#160;</td>
+          <td class="paramname"><em>nav</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get backend index that crated this NAV instance. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><b>1-based index</b> of the backend that created this NAV instance. </dd></dl>
 
 </div>
 </div>
@@ -529,32 +565,52 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a115e9e8c1f3792065e7686c302ccf5c3" name="a115e9e8c1f3792065e7686c302ccf5c3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a115e9e8c1f3792065e7686c302ccf5c3">&#9670;&#160;</a></span>nav_frame_buffer()</h2>
+<a id="a2717c908795502fdadc2841ca036beb9" name="a2717c908795502fdadc2841ca036beb9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2717c908795502fdadc2841ca036beb9">&#9670;&#160;</a></span>nav_frame_acquire()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">NAV_API const void * nav_frame_buffer </td>
+          <td class="memname">NAV_NODISCARD NAV_API const uint8_t *const  * nav_frame_acquire </td>
           <td>(</td>
           <td class="paramtype">nav_frame_t *&#160;</td>
-          <td class="paramname"><em>frame</em></td><td>)</td>
+          <td class="paramname"><em>frame</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">ptrdiff_t **&#160;</td>
+          <td class="paramname"><em>strides</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>nplanes</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Get decoded data buffer. </p>
-<p>For video frame, this will contain the picture, laid out depending on the stream nav_pixelformat.</p>
-<p>For audio frame, this will contain the audio samples depending on the nav_audioformat, interleaved.</p>
+<p>Make the current frame available for reading. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
+    <tr><td class="paramname">strides</td><td>Pointer to store the list of strides/pitch of each plane in bytes. Negative stride means plane is bottom-up. For audio, this always positive. </td></tr>
+    <tr><td class="paramname">nplanes</td><td>Pointer to store the amount of planes. For audio, this always writes 1. This can be NULL. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Decoded data buffer. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Array of pointer to each plane, or NULL on failure. Subsequent calls to this function return same pointer. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>nav_frame_release must only be called once regardless on how many times nav_frame_acquire is called. </dd></dl>
+<dl class="section see"><dt>See also</dt><dd>nav_streaminfo_type_plane_count </dd>
+<dd>
+<a class="el" href="nav_8h.html#a1c70fc91fdbbe1dd22a147e6f1d0f9e0" title="Release the previously-acquired frame, making the acquired pointer invalid.">nav_frame_release</a> </dd></dl>
 
 </div>
 </div>
@@ -575,7 +631,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </div><div class="memdoc">
 
 <p>Free the NAV frame instance. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>If the frame was acquired, it will be released. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
   </table>
@@ -584,14 +640,14 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a0695bd6297d7053a9689514af262800d" name="a0695bd6297d7053a9689514af262800d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0695bd6297d7053a9689514af262800d">&#9670;&#160;</a></span>nav_frame_size()</h2>
+<a id="a1c70fc91fdbbe1dd22a147e6f1d0f9e0" name="a1c70fc91fdbbe1dd22a147e6f1d0f9e0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c70fc91fdbbe1dd22a147e6f1d0f9e0">&#9670;&#160;</a></span>nav_frame_release()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">NAV_API size_t nav_frame_size </td>
+          <td class="memname">NAV_API void nav_frame_release </td>
           <td>(</td>
           <td class="paramtype">nav_frame_t *&#160;</td>
           <td class="paramname"><em>frame</em></td><td>)</td>
@@ -600,22 +656,19 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Get decoded data size. </p>
+<p>Release the previously-acquired frame, making the acquired pointer invalid. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Decoded data size, in bytes. </dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="nav_8h.html#a2dcf0d054ed8f70e62b3c87a434a5bed" title="Calculate the size in bytes of single audio sample frame.">nav_audio_size</a> </dd>
-<dd>
-<a class="el" href="nav_8h.html#a6f8ff169a5cfd12e614b3c1285312fb9" title="Calculate the size of uncompressed video frame.">nav_video_size</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="nav_8h.html#a2717c908795502fdadc2841ca036beb9" title="Make the current frame available for reading.">nav_frame_acquire</a> </dd></dl>
 
 </div>
 </div>
-<a id="a29777cf65f7f98f23e1fb905d9460d09" name="a29777cf65f7f98f23e1fb905d9460d09"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a29777cf65f7f98f23e1fb905d9460d09">&#9670;&#160;</a></span>nav_frame_streamindex()</h2>
+<a id="a0599eec8761f90de4003d53736aa299f" name="a0599eec8761f90de4003d53736aa299f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0599eec8761f90de4003d53736aa299f">&#9670;&#160;</a></span>nav_frame_streamindex()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -623,7 +676,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API size_t nav_frame_streamindex </td>
           <td>(</td>
-          <td class="paramtype">nav_frame_t *&#160;</td>
+          <td class="paramtype">const nav_frame_t *&#160;</td>
           <td class="paramname"><em>frame</em></td><td>)</td>
           <td></td>
         </tr>
@@ -641,16 +694,16 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="acf42efd2f752040904d08b8d3817a12a" name="acf42efd2f752040904d08b8d3817a12a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acf42efd2f752040904d08b8d3817a12a">&#9670;&#160;</a></span>nav_frame_streaminfo()</h2>
+<a id="a967143f6f2fde7d51a5c31234c17009e" name="a967143f6f2fde7d51a5c31234c17009e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a967143f6f2fde7d51a5c31234c17009e">&#9670;&#160;</a></span>nav_frame_streaminfo()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">NAV_API nav_streaminfo_t * nav_frame_streaminfo </td>
+          <td class="memname">NAV_API const nav_streaminfo_t * nav_frame_streaminfo </td>
           <td>(</td>
-          <td class="paramtype">nav_frame_t *&#160;</td>
+          <td class="paramtype">const nav_frame_t *&#160;</td>
           <td class="paramname"><em>frame</em></td><td>)</td>
           <td></td>
         </tr>
@@ -668,8 +721,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a3e65a3408b951ea32eee2cc43e82923a" name="a3e65a3408b951ea32eee2cc43e82923a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3e65a3408b951ea32eee2cc43e82923a">&#9670;&#160;</a></span>nav_frame_tell()</h2>
+<a id="af8c4e6978656ae33244bbf79915299b5" name="af8c4e6978656ae33244bbf79915299b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af8c4e6978656ae33244bbf79915299b5">&#9670;&#160;</a></span>nav_frame_tell()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -677,7 +730,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API double nav_frame_tell </td>
           <td>(</td>
-          <td class="paramtype">nav_frame_t *&#160;</td>
+          <td class="paramtype">const nav_frame_t *&#160;</td>
           <td class="paramname"><em>frame</em></td><td>)</td>
           <td></td>
         </tr>
@@ -778,8 +831,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="a5d0c05bd9064b6cdca6ad2eaa6371ef0" name="a5d0c05bd9064b6cdca6ad2eaa6371ef0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d0c05bd9064b6cdca6ad2eaa6371ef0">&#9670;&#160;</a></span>nav_nstreams()</h2>
+<a id="ac451368761a80df276dc1b3323857787" name="ac451368761a80df276dc1b3323857787"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac451368761a80df276dc1b3323857787">&#9670;&#160;</a></span>nav_nstreams()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -787,7 +840,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API size_t nav_nstreams </td>
           <td>(</td>
-          <td class="paramtype">nav_t *&#160;</td>
+          <td class="paramtype">const nav_t *&#160;</td>
           <td class="paramname"><em>nav</em></td><td>)</td>
           <td></td>
         </tr>
@@ -967,16 +1020,16 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="ace36cc29f81474fc803ce99c7850e4ed" name="ace36cc29f81474fc803ce99c7850e4ed"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ace36cc29f81474fc803ce99c7850e4ed">&#9670;&#160;</a></span>nav_stream_info()</h2>
+<a id="a7317d21ca36e86d8397ea21651953c2f" name="a7317d21ca36e86d8397ea21651953c2f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7317d21ca36e86d8397ea21651953c2f">&#9670;&#160;</a></span>nav_stream_info()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">NAV_API nav_streaminfo_t * nav_stream_info </td>
+          <td class="memname">NAV_API const nav_streaminfo_t * nav_stream_info </td>
           <td>(</td>
-          <td class="paramtype">nav_t *&#160;</td>
+          <td class="paramtype">const nav_t *&#160;</td>
           <td class="paramname"><em>nav</em>, </td>
         </tr>
         <tr>
@@ -1001,12 +1054,12 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to NAV stream information. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to NAV stream information, or NULL on failure. </dd></dl>
 
 </div>
 </div>
-<a id="ae7399921d5b9c982beb6b1a042ab9b4d" name="ae7399921d5b9c982beb6b1a042ab9b4d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae7399921d5b9c982beb6b1a042ab9b4d">&#9670;&#160;</a></span>nav_stream_is_enabled()</h2>
+<a id="a47c113dcef24c86b6d6c55504a286665" name="a47c113dcef24c86b6d6c55504a286665"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a47c113dcef24c86b6d6c55504a286665">&#9670;&#160;</a></span>nav_stream_is_enabled()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1014,7 +1067,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API nav_bool nav_stream_is_enabled </td>
           <td>(</td>
-          <td class="paramtype">nav_t *&#160;</td>
+          <td class="paramtype">const nav_t *&#160;</td>
           <td class="paramname"><em>nav</em>, </td>
         </tr>
         <tr>
@@ -1045,8 +1098,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="aaad98c19e438b3f5e9be281e9a322d81" name="aaad98c19e438b3f5e9be281e9a322d81"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaad98c19e438b3f5e9be281e9a322d81">&#9670;&#160;</a></span>nav_streaminfo_type()</h2>
+<a id="aed2cf20f0953ad6a59b4e1111ba832eb" name="aed2cf20f0953ad6a59b4e1111ba832eb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aed2cf20f0953ad6a59b4e1111ba832eb">&#9670;&#160;</a></span>nav_streaminfo_type()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1054,7 +1107,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API nav_streamtype nav_streaminfo_type </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -1139,8 +1192,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="adc20eb3e017d1b338213f5fde4efd8fa" name="adc20eb3e017d1b338213f5fde4efd8fa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adc20eb3e017d1b338213f5fde4efd8fa">&#9670;&#160;</a></span>nav_video_dimensions()</h2>
+<a id="af1aff5c71e9fe270a463d1c0b4373be5" name="af1aff5c71e9fe270a463d1c0b4373be5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af1aff5c71e9fe270a463d1c0b4373be5">&#9670;&#160;</a></span>nav_video_dimensions()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1148,7 +1201,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API void nav_video_dimensions </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em>, </td>
         </tr>
         <tr>
@@ -1184,8 +1237,8 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
-<a id="ab35428cee4866fcecb13c1dbfe6daec4" name="ab35428cee4866fcecb13c1dbfe6daec4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab35428cee4866fcecb13c1dbfe6daec4">&#9670;&#160;</a></span>nav_video_fps()</h2>
+<a id="a95da88ec5829be678057a121f9b88421" name="a95da88ec5829be678057a121f9b88421"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a95da88ec5829be678057a121f9b88421">&#9670;&#160;</a></span>nav_video_fps()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1193,7 +1246,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
         <tr>
           <td class="memname">NAV_API double nav_video_fps </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -1214,8 +1267,8 @@ This call only return meaningful value if the stream is a video. </dd></dl>
 
 </div>
 </div>
-<a id="a969149b0f467e49c7b2b64dcee5c0a6e" name="a969149b0f467e49c7b2b64dcee5c0a6e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a969149b0f467e49c7b2b64dcee5c0a6e">&#9670;&#160;</a></span>nav_video_pixel_format()</h2>
+<a id="a0c36be2b4d8ff52e3261a071e2052ee1" name="a0c36be2b4d8ff52e3261a071e2052ee1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0c36be2b4d8ff52e3261a071e2052ee1">&#9670;&#160;</a></span>nav_video_pixel_format()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1223,7 +1276,7 @@ This call only return meaningful value if the stream is a video. </dd></dl>
         <tr>
           <td class="memname">NAV_API nav_pixelformat nav_video_pixel_format </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
@@ -1242,8 +1295,87 @@ This call only return meaningful value if the stream is a video. </dd></dl>
 
 </div>
 </div>
-<a id="a6f8ff169a5cfd12e614b3c1285312fb9" name="a6f8ff169a5cfd12e614b3c1285312fb9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6f8ff169a5cfd12e614b3c1285312fb9">&#9670;&#160;</a></span>nav_video_size()</h2>
+<a id="aec97c703178c5a46cbac73759b815097" name="aec97c703178c5a46cbac73759b815097"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aec97c703178c5a46cbac73759b815097">&#9670;&#160;</a></span>nav_video_plane_count()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API size_t nav_video_plane_count </td>
+          <td>(</td>
+          <td class="paramtype">nav_pixelformat&#160;</td>
+          <td class="paramname"><em>pixfmt</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get amount of planes for this video format. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">streaminfo</td><td>Pointer to NAV stream information. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Amount of planes for this video format. </dd></dl>
+
+</div>
+</div>
+<a id="aefcacab4a03512adcf1d8f4e5e2dca82" name="aefcacab4a03512adcf1d8f4e5e2dca82"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aefcacab4a03512adcf1d8f4e5e2dca82">&#9670;&#160;</a></span>nav_video_plane_dimensions()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API void nav_video_plane_dimensions </td>
+          <td>(</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
+          <td class="paramname"><em>streaminfo</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>index</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>width</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>height</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the dimension of video plane without any padding, in bytes. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">streaminfo</td><td>Pointer to NAV stream information. </td></tr>
+    <tr><td class="paramname">index</td><td>Plane indices. </td></tr>
+    <tr><td class="paramname">width</td><td>Pointer to store the plane width in bytes. </td></tr>
+    <tr><td class="paramname">height</td><td>Pointer to store the plane height in bytes. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>This call only return meaningful value if the stream is a video. </dd></dl>
+
+</div>
+</div>
+<a id="a15d0fbb9236821141d10ed3fe53b92a6" name="a15d0fbb9236821141d10ed3fe53b92a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a15d0fbb9236821141d10ed3fe53b92a6">&#9670;&#160;</a></span>nav_video_size()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1251,14 +1383,14 @@ This call only return meaningful value if the stream is a video. </dd></dl>
         <tr>
           <td class="memname">NAV_API size_t nav_video_size </td>
           <td>(</td>
-          <td class="paramtype">nav_streaminfo_t *&#160;</td>
+          <td class="paramtype">const nav_streaminfo_t *&#160;</td>
           <td class="paramname"><em>streaminfo</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Calculate the size of uncompressed video frame. </p>
+<p>Calculate the size of uncompressed video frame without any padding. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">streaminfo</td><td>Pointer to NAV stream information. </td></tr>
