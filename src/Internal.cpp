@@ -5,5 +5,4 @@ nav_t::~nav_t()
 
 nav_frame_t::~nav_frame_t()
 {
-	release();
 }

@@ -255,7 +255,7 @@ extern "C" void nav_close(nav_t *state)
 	delete state;
 }
 
-extern "C" size_t nav_backend_index(nav_t *state)
+extern "C" size_t nav_backend_index(const nav_t *state)
 {
 	nav::error::set("");
 	nav::Backend *b = state->getBackend();
@@ -377,7 +377,7 @@ extern "C" size_t nav_video_size(const nav_streaminfo_t *sinfo)
 
 	nav::error::set("");
 	size_t result = 0;
-	for (size_t i = 0; i < sinfo->planes(); i++)
+	for (size_t i = 0; i < nav::planeCount(sinfo->video.format); i++)
 		result += sinfo->plane_width(i) * sinfo->plane_height(i);
 	
 	return result;
@@ -454,7 +454,7 @@ extern "C" double nav_frame_tell(const nav_frame_t *frame)
 
 extern "C" const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes)
 {
-	return wrapcall<const uint8_t *const *>(frame, nav_frame_t::acquire, nullptr, strides, nplanes);
+	return wrapcall<const uint8_t *const *>(frame, &nav::Frame::acquire, nullptr, strides, nplanes);
 }
 
 extern "C" void nav_frame_release(nav_frame_t *frame)
@@ -465,5 +465,6 @@ extern "C" void nav_frame_release(nav_frame_t *frame)
 
 extern "C" void nav_frame_free(nav_frame_t *frame)
 {
+	frame->release();
 	delete frame;
 }

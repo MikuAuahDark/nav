@@ -256,11 +256,11 @@ NAV_API nav_audioformat nav_audio_format(const nav_streaminfo_t *streaminfo);
  * @note This call only return meaningful value if the stream is a video.
  */
 NAV_API size_t nav_video_size(const nav_streaminfo_t *streaminfo);
+
 /**
  * @brief Get amount of planes for this video format.
  * @param streaminfo Pointer to NAV stream information.
- * @return Amount of planes for this video.
- * @note This call only return meaningful value if the stream is a video.
+ * @return Amount of planes for this video format.
  */
 NAV_API size_t nav_video_plane_count(nav_pixelformat pixfmt);
 

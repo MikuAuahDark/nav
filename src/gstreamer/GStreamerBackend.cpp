@@ -120,6 +120,157 @@ struct GstVideoFrameLock: GstVideoFrame
 	bool success;
 };
 
+
+
+GStreamerAudioFrame::GStreamerAudioFrame(
+	GStreamerBackend *backend,
+	GstBuffer *buf,
+	nav_streaminfo_t *sinfo,
+	size_t si,
+	double pts
+)
+: acquireData()
+, mapInfo(GST_MAP_INFO_INIT)
+, memory(nullptr)
+, pts(pts)
+, f(backend)
+, buffer(nullptr)
+, streamInfo(sinfo)
+, streamIndex(si)
+{
+	buffer = NAV_FFCALL(gst_buffer_ref)(buf);
+	memory = NAV_FFCALL(gst_buffer_get_all_memory)(buffer);
+}
+
+GStreamerAudioFrame::~GStreamerAudioFrame()
+{
+	NAV_FFCALL(gst_buffer_unref)(buffer);
+}
+
+size_t GStreamerAudioFrame::getStreamIndex() const noexcept
+{
+	return streamIndex;
+}
+
+const nav_streaminfo_t *GStreamerAudioFrame::getStreamInfo() const noexcept
+{
+	return streamInfo;
+}
+
+double GStreamerAudioFrame::tell() const noexcept
+{
+	return pts;
+}
+
+const uint8_t *const *GStreamerAudioFrame::acquire(ptrdiff_t **strides, size_t *nplanes)
+{
+	if (acquireData.source == nullptr)
+	{
+		if (!NAV_FFCALL(gst_memory_map)(memory, &mapInfo, GST_MAP_READ))
+			throw std::runtime_error("Cannot map memory");
+
+		acquireData.source = (uint8_t *) mapInfo.data;
+		acquireData.planes.push_back(acquireData.source);
+		acquireData.strides.push_back((ptrdiff_t) mapInfo.size);
+	}
+
+	if (nplanes)
+		*nplanes = acquireData.planes.size();
+	*strides = acquireData.strides.data();
+	return acquireData.planes.data();
+}
+
+void GStreamerAudioFrame::release() noexcept
+{
+	if (acquireData.source)
+	{
+		NAV_FFCALL(gst_memory_unmap)(memory, &mapInfo);
+		acquireData = {};
+	}
+}
+
+
+GStreamerVideoFrame::GStreamerVideoFrame(
+	GStreamerBackend *backend,
+	UniqueGst<GstVideoInfo> &&videoInfo,
+	GstBuffer *buffer,
+	nav_streaminfo_t *sinfo,
+	size_t si,
+	double pts
+)
+: acquireData()
+, videoFrame(GST_VIDEO_FRAME_INIT)
+, videoInfo(std::move(videoInfo))
+, pts(pts)
+, f(backend)
+, buffer(nullptr)
+, streamInfo(sinfo)
+, streamIndex(si)
+{
+	this->buffer = NAV_FFCALL(gst_buffer_ref)(buffer);
+}
+
+GStreamerVideoFrame::~GStreamerVideoFrame()
+{
+	NAV_FFCALL(gst_buffer_unref)(buffer);
+}
+
+size_t GStreamerVideoFrame::getStreamIndex() const noexcept
+{
+	return streamIndex;
+}
+
+const nav_streaminfo_t *GStreamerVideoFrame::getStreamInfo() const noexcept
+{
+	return streamInfo;
+}
+
+double GStreamerVideoFrame::tell() const noexcept
+{
+	return pts;
+}
+
+const uint8_t *const *GStreamerVideoFrame::acquire(ptrdiff_t **strides, size_t *nplanes)
+{
+	if (!acquireData.source)
+	{
+		if (!NAV_FFCALL(gst_video_frame_map)(&videoFrame, videoInfo.get(), buffer, GST_MAP_READ))
+			throw std::runtime_error("Cannot map video frame");
+
+		acquireData.source = (uint8_t *) videoFrame.buffer; // Just for marking
+		size_t nplanes = planeCount(streamInfo->video.format);
+		if (nplanes != GST_VIDEO_FRAME_N_PLANES(&videoFrame))
+			throw std::logic_error("Planes does not match");
+
+		acquireData.planes.resize(nplanes);
+		acquireData.strides.resize(nplanes);
+
+		for (size_t i = 0; i < nplanes; i++)
+		{
+			uint8_t *data = (uint8_t *) GST_VIDEO_FRAME_PLANE_DATA(&videoFrame, i);
+			data += GST_VIDEO_FRAME_PLANE_OFFSET(&videoFrame, i);
+
+			acquireData.planes[i] = data;
+			acquireData.strides[i] = GST_VIDEO_FRAME_PLANE_STRIDE(&videoFrame, i);
+		}
+	}
+
+	if (nplanes)
+		*nplanes = acquireData.planes.size();
+	*strides = acquireData.strides.data();
+	return acquireData.planes.data();
+}
+
+void GStreamerVideoFrame::release() noexcept
+{
+	if (acquireData.source)
+	{
+		NAV_FFCALL(gst_video_frame_unmap)(&videoFrame);
+		acquireData = {};
+	}
+}
+
+
 GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 : f(backend)
 , input(*input)
@@ -291,13 +442,17 @@ GStreamerState::~GStreamerState()
 		input.closef();
 }
 
-size_t GStreamerState::getStreamCount() noexcept
+Backend *GStreamerState::getBackend() const noexcept
+{
+	return f;
+}
+
+size_t GStreamerState::getStreamCount() const noexcept
 {
 	return streams.size();
 }
 
-
-nav_streaminfo_t *GStreamerState::getStreamInfo(size_t index) noexcept
+const nav_streaminfo_t *GStreamerState::getStreamInfo(size_t index) const noexcept
 {
 	if (index >= streams.size())
 	{
@@ -308,7 +463,7 @@ nav_streaminfo_t *GStreamerState::getStreamInfo(size_t index) noexcept
 	return &streams[index]->streamInfo;
 }
 
-bool GStreamerState::isStreamEnabled(size_t index) noexcept
+bool GStreamerState::isStreamEnabled(size_t index) const noexcept
 {
 	if (index >= streams.size())
 	{
@@ -382,7 +537,7 @@ nav_frame_t *GStreamerState::read()
 		// Pull queued frames.
 		if (!queuedFrames.empty())
 		{
-			FrameVector *front = queuedFrames.top();
+			Frame *front = queuedFrames.top();
 			queuedFrames.pop();
 			return front;
 		}
@@ -488,7 +643,7 @@ void GStreamerState::clearQueuedFrames()
 {
 	while (!queuedFrames.empty())
 	{
-		FrameVector *fv = queuedFrames.top();
+		Frame *fv = queuedFrames.top();
 		delete fv;
 		queuedFrames.pop();
 	}
@@ -531,7 +686,7 @@ void GStreamerState::pollBus(bool noexc)
 	}
 }
 
-FrameVector *GStreamerState::dispatchDecode(GstBuffer *buffer, size_t streamIndex)
+Frame *GStreamerState::dispatchDecode(GstBuffer *buffer, size_t streamIndex)
 {
 	std::unique_ptr<AppSinkWrapper> &sw = streams[streamIndex];
 
@@ -544,69 +699,23 @@ FrameVector *GStreamerState::dispatchDecode(GstBuffer *buffer, size_t streamInde
 		if (!NAV_FFCALL(gst_video_info_from_caps)(videoInfo.get(), caps.get()))
 			return nullptr;
 
-		GstVideoFrameLock videoFrame(f, videoInfo.get(), buffer, GST_MAP_READ);
-		FrameVector *frame = new FrameVector(
+		return new GStreamerVideoFrame(
+			f,
+			std::move(videoInfo),
+			buffer,
 			&sw->streamInfo,
 			streamIndex,
-			derationalize<guint64>(buffer->pts, GST_SECOND),
-			nullptr,
-			sw->streamInfo.video.size()
+			derationalize<guint64>(buffer->pts, GST_SECOND)
 		);
-
-		int nplanes;
-		size_t planeWidth[8] = {sw->streamInfo.video.width, 0};
-		size_t planeHeight[8] = {sw->streamInfo.video.height, 0};
-		switch (sw->streamInfo.video.format)
-		{
-			case NAV_PIXELFORMAT_RGB8:
-				planeWidth[0] *= 3;
-				[[fallthrough]];
-			case NAV_PIXELFORMAT_UNKNOWN:
-			default:
-				nplanes = 1;
-				break;
-			case NAV_PIXELFORMAT_NV12:
-				nplanes = 2;
-				planeWidth[1] = ((planeWidth[0] + 1) / 2) * 2;
-				planeHeight[1] = (planeHeight[0] + 1) / 2;
-				break;
-			case NAV_PIXELFORMAT_YUV444:
-				planeWidth[1] = planeWidth[2] = planeWidth[0];
-				planeHeight[1] = planeHeight[2] = planeHeight[0];
-				nplanes = 3;
-				break;
-			case NAV_PIXELFORMAT_YUV420:
-				planeWidth[1] = planeWidth[2] = (planeWidth[0] + 1) / 2;
-				planeHeight[1] = planeHeight[2] = (planeHeight[0] + 1) / 2;
-				nplanes = 3;
-				break;
-		}
-
-		uint8_t *frameBuffer = (uint8_t*) frame->data();
-		for (int i = 0; i < nplanes; i++)
-		{
-			const guint8 *currentLine = GST_VIDEO_FRAME_COMP_DATA(&videoFrame, i);
-
-			for (size_t y = 0; y < planeHeight[i]; y++)
-			{
-				std::copy(currentLine, currentLine + planeWidth[i], frameBuffer);
-				frameBuffer += planeWidth[i];
-				currentLine += GST_VIDEO_FRAME_COMP_STRIDE(&videoFrame, i);
-			}
-		}
-
-		return frame;
 	}
 	else
 	{
-		UniqueGst<GstMemory> memory {NAV_FFCALL(gst_buffer_get_all_memory)(buffer), NAV_FFCALL(gst_memory_unref)};
-		GstMemoryMapLock mapInfo(f, memory.get(), GST_MAP_READ, true);
-		return new FrameVector(
+		return new GStreamerAudioFrame(
+			f,
+			buffer,
 			&sw->streamInfo,
 			sw->streamIndex,
-			derationalize<guint64>(buffer->pts, GST_SECOND),
-			mapInfo.data,
-			mapInfo.size
+			derationalize<guint64>(buffer->pts, GST_SECOND)
 		);
 	}
 }
@@ -757,7 +866,7 @@ GStreamerState::AppSinkWrapper::~AppSinkWrapper()
 {
 }
 
-bool GStreamerState::FrameComparator::operator()(const FrameVector *lhs, const FrameVector *rhs) const noexcept
+bool GStreamerState::FrameComparator::operator()(const Frame *lhs, const Frame *rhs) const noexcept
 {
 	return lhs->operator<(*rhs);
 }
@@ -829,7 +938,7 @@ const char *GStreamerBackend::getInfo()
 	return version.c_str();
 }
 
-State *GStreamerBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
+State *GStreamerBackend::open(nav_input *input, const char *filename, [[maybe_unused]] const nav_settings *settings)
 {
 	return new GStreamerState(this, input);
 }

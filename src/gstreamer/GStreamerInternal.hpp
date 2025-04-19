@@ -28,14 +28,72 @@ using UniqueGstElement = UniqueGstObject<GstElement>;
 
 class GStreamerBackend;
 
+class GStreamerAudioFrame: public Frame
+{
+public:
+	GStreamerAudioFrame(
+		GStreamerBackend *backend,
+		GstBuffer *buffer,
+		nav_streaminfo_t *sinfo,
+		size_t si,
+		double pts
+	);
+	~GStreamerAudioFrame() override;
+	size_t getStreamIndex() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo() const noexcept override;
+	double tell() const noexcept override;
+	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
+	void release() noexcept override;
+
+private:
+	AcquireData acquireData;
+	GstMapInfo mapInfo;
+	GstMemory *memory;
+	double pts;
+	GStreamerBackend *f;
+	GstBuffer *buffer;
+	nav_streaminfo_t *streamInfo;
+	size_t streamIndex;
+};
+
+class GStreamerVideoFrame: public Frame
+{
+public:
+	GStreamerVideoFrame(
+		GStreamerBackend *backend,
+		UniqueGst<GstVideoInfo> &&videoInfo,
+		GstBuffer *buffer,
+		nav_streaminfo_t *sinfo,
+		size_t si,
+		double pts
+	);
+	~GStreamerVideoFrame() override;
+	size_t getStreamIndex() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo() const noexcept override;
+	double tell() const noexcept override;
+	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
+	void release() noexcept override;
+
+private:
+	AcquireData acquireData;
+	GstVideoFrame videoFrame;
+	UniqueGst<GstVideoInfo> videoInfo;
+	double pts;
+	GStreamerBackend *f;
+	GstBuffer *buffer;
+	nav_streaminfo_t *streamInfo;
+	size_t streamIndex;
+};
+
 class GStreamerState: public State
 {
 public:
 	GStreamerState(GStreamerBackend *backend, nav_input *input);
 	~GStreamerState() override;
-	size_t getStreamCount() noexcept override;
-	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
-	bool isStreamEnabled(size_t index) noexcept override;
+	Backend *getBackend() const noexcept override;
+	size_t getStreamCount() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo(size_t index) const noexcept override;
+	bool isStreamEnabled(size_t index) const noexcept override;
 	bool setStreamEnabled(size_t index, bool enabled) override;
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
@@ -66,7 +124,7 @@ private:
 
 	struct FrameComparator
 	{
-		bool operator()(const FrameVector *lhs, const FrameVector *rhs) const noexcept;
+		bool operator()(const Frame *lhs, const Frame *rhs) const noexcept;
 	};
 
 	GStreamerBackend *f;
@@ -75,14 +133,14 @@ private:
 	UniqueGstElement pipeline;
 	GstElement *source, *decoder;
 	std::vector<std::unique_ptr<AppSinkWrapper>> streams;
-	std::priority_queue<FrameVector*, std::deque<FrameVector*>, FrameComparator> queuedFrames;
+	std::priority_queue<Frame*, std::deque<Frame*>, FrameComparator> queuedFrames;
 	bool padProbed, eos;
 
 	GstCaps *newVideoCapsForNAV();
 	GstCaps *newAudioCapsForNAV();
 	void clearQueuedFrames();
 	void pollBus(bool noexception = false);
-	FrameVector *dispatchDecode(GstBuffer *buffer, size_t streamIndex);
+	Frame *dispatchDecode(GstBuffer *buffer, size_t streamIndex);
 	static void padAdded(GstElement *element, GstPad *newPad, GStreamerState *self);
 	static void noMorePads(GstElement *element, GStreamerState *self);
 	static void needData(GstElement *element, guint length, GStreamerState *self);

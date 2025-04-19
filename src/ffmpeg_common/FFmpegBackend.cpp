@@ -425,7 +425,7 @@ const uint8_t *const *FFmpegFrame::acquire(ptrdiff_t **strides, size_t *nplanes)
 	return acquireData.planes.data();
 }
 
-void FFmpegFrame::release()
+void FFmpegFrame::release() noexcept
 {
 }
 
@@ -519,6 +519,8 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 								0, nullptr
 							) >= 0;
 #else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 							resampler = NAV_FFCALL(swr_alloc_set_opts)(
 								nullptr,
 								stream->codecpar->channel_layout,
@@ -529,6 +531,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 								stream->codecpar->sample_rate,
 								0, nullptr
 							);
+#pragma GCC diagnostic pop
 							good = resampler;
 #endif
 						}
@@ -544,7 +547,10 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 #if _NAV_FFMPEG_VERSION >= 6
 							sinfo.audio.nchannels = stream->codecpar->ch_layout.nb_channels;
 #else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
 							sinfo.audio.nchannels = stream->codecpar->channels;
+#pragma GCC diagnostic pop
 #endif
 							sinfo.type = NAV_STREAMTYPE_AUDIO;
 						}
@@ -805,6 +811,8 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 				// Skipping conversion
 				return new FFmpegFrame(f, streamInfo, tempFrame.get(), position, index);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 			std::unique_ptr<FrameVector> result(new FrameVector(
 				streamInfo,
 				index,
@@ -820,6 +828,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 					* NAV_AUDIOFORMAT_BYTESIZE(streamInfo->audio.format)
 				)
 			));
+#pragma GCC diagnostic pop
 
 			if (resampler)
 			{

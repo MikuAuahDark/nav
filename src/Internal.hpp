@@ -26,6 +26,8 @@ typedef nav_t State;
 typedef nav_streaminfo_t StreamInfo;
 typedef nav_frame_t Frame;
 
+class Backend;
+
 }
 
 struct nav_t
@@ -96,38 +98,6 @@ struct nav_streaminfo_t
 			}
 		}
 	};
-
-	inline size_t planes() const
-	{
-		switch (type)
-		{
-			case NAV_STREAMTYPE_UNKNOWN:
-			default:
-				return 0;
-			case NAV_STREAMTYPE_VIDEO:
-			{
-				switch (video.format)
-				{
-					case NAV_PIXELFORMAT_UNKNOWN:
-					default:
-						return 0;
-					case NAV_PIXELFORMAT_YUV420:
-					case NAV_PIXELFORMAT_YUV444:
-						return 3;
-					case NAV_PIXELFORMAT_NV12:
-						return 2;
-					case NAV_PIXELFORMAT_RGB8:
-						return 1;
-				}
-
-				return 0;
-			}
-			case NAV_STREAMTYPE_AUDIO:
-				return 1;
-		}
-
-		return 0;
-	}
 
 	inline size_t plane_width(size_t index) const
 	{

@@ -498,7 +498,7 @@ void MediaFoundationFrame::acquireDefault()
 			uint8_t *current = source;
 			acquireData.source = source;
 
-			for (size_t i = 0; i < streamInfo->planes(); i++)
+			for (size_t i = 0; i < planeCount(streamInfo->video.format); i++)
 			{
 				size_t pw = streamInfo->plane_width(i);
 				acquireData.strides.push_back((ptrdiff_t) pw);
@@ -551,7 +551,7 @@ void MediaFoundationFrame::acquire2D()
 			throw std::logic_error("Assertion failed (unknown pixel format) @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
 		case NAV_PIXELFORMAT_RGB8:
 		{
-			if (streamInfo->planes() != 1)
+			if (planeCount(streamInfo->video.format) != 1)
 				throw std::logic_error("NAV_PIXELFORMAT_RGB8 planes != 1 @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
 
 			acquireData.strides.push_back(stride);
@@ -564,7 +564,7 @@ void MediaFoundationFrame::acquire2D()
 			size_t currentWidth = (size_t) abs(stride);
 			size_t currentHeight = height;
 
-			for (size_t i = 0; i < streamInfo->planes(); i++)
+			for (size_t i = 0; i < planeCount(streamInfo->video.format); i++)
 			{
 				acquireData.strides.push_back(currentWidth);
 				acquireData.planes.push_back(current);
@@ -584,7 +584,7 @@ void MediaFoundationFrame::acquire2D()
 		}
 		case NAV_PIXELFORMAT_NV12:
 		{
-			if (streamInfo->planes() != 2)
+			if (planeCount(streamInfo->video.format) != 2)
 				throw std::logic_error("NAV_PIXELFORMAT_NV12 planes != 2 @ " __FILE__ ":" NAV_STRINGIZE(__LINE__) ". Please report!");
 
 			// Y plane

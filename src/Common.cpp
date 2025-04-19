@@ -14,8 +14,8 @@ namespace nav
 
 FrameVector::FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, double position, const void *data, size_t size)
 : buffer(size)
-, data(streaminfo->planes(), nullptr)
-, planeWidths(streaminfo->planes(), 0)
+, data(planeCount(streaminfo->video.format), nullptr)
+, planeWidths(planeCount(streaminfo->video.format), 0)
 , streaminfo(streaminfo)
 , streamindex(streamindex)
 , position(position)
@@ -25,7 +25,7 @@ FrameVector::FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, doubl
 	
 	// Partition data, assume no padding
 	uint8_t *start = buffer.data();
-	for (size_t i = 0; i < streaminfo->planes(); i++)
+	for (size_t i = 0; i < planeCount(streaminfo->video.format); i++)
 	{
 		this->data[i] = start;
 		planeWidths[i] = streaminfo->plane_width(i);
@@ -60,7 +60,7 @@ const uint8_t *const *FrameVector::acquire(ptrdiff_t **strides, size_t *nplanes)
 	}
 
 	if (nplanes)
-		*nplanes = streaminfo->planes();
+		*nplanes = planeCount(streaminfo->video.format);
 
 	*strides = planeWidths.data();
 
@@ -109,6 +109,23 @@ std::optional<int> getEnvvarInt(const std::string &name)
 bool checkBackendDisabled(const std::string &backendNameUppercase)
 {
 	return getEnvvarBool("NAV_DISABLE_" + backendNameUppercase);
+}
+
+size_t planeCount(nav_pixelformat fmt) noexcept
+{
+	switch (fmt)
+	{
+		case NAV_PIXELFORMAT_UNKNOWN:
+		default:
+			return 0;
+		case NAV_PIXELFORMAT_RGB8:
+			return 1;
+		case NAV_PIXELFORMAT_NV12:
+			return 2;
+		case NAV_PIXELFORMAT_YUV420:
+		case NAV_PIXELFORMAT_YUV444:
+			return 3;
+	}
 }
 
 #ifdef _WIN32
