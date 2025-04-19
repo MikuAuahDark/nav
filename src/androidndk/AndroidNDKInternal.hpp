@@ -47,9 +47,10 @@ class AndroidNDKState: public State
 public:
 	AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtractor &ext, MediaSourceWrapper &ds);
 	~AndroidNDKState() override;
-	size_t getStreamCount() noexcept override;
-	nav_streaminfo_t *getStreamInfo(size_t index) noexcept override;
-	bool isStreamEnabled(size_t index) noexcept override;
+	Backend *getBackend() const noexcept override;
+	size_t getStreamCount() const noexcept override;
+	const nav_streaminfo_t *getStreamInfo(size_t index) const noexcept override;
+	bool isStreamEnabled(size_t index) const noexcept override;
 	bool setStreamEnabled(size_t index, bool enabled) override;
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;

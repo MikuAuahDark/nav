@@ -102,13 +102,13 @@ nav_pixelformat getNDKPixelFormat(int format)
 	}
 }
 
-inline void THROW_IF_ERROR(media_status_t status)
+inline void checkError(media_status_t status)
 {
 	if (status != AMEDIA_OK)
 		throw std::runtime_error(getMediaStatusText(status));
 }
 
-inline bool CHECK_IF_ERROR_AND_SET(media_status_t status)
+inline bool setErrorOnFail(media_status_t status)
 {
 	if (status != AMEDIA_OK)
 		nav::error::set(getMediaStatusText(status));
@@ -365,12 +365,17 @@ AndroidNDKState::~AndroidNDKState()
 	}
 }
 
-size_t AndroidNDKState::getStreamCount() noexcept
+Backend *AndroidNDKState::getBackend() const noexcept
+{
+	return f;
+}
+
+size_t AndroidNDKState::getStreamCount() const noexcept
 {
 	return activeStream.size();
 }
 
-nav_streaminfo_t *AndroidNDKState::getStreamInfo(size_t index) noexcept
+const nav_streaminfo_t *AndroidNDKState::getStreamInfo(size_t index) const noexcept
 {
 	if (index >= streamInfo.size())
 	{
@@ -381,7 +386,7 @@ nav_streaminfo_t *AndroidNDKState::getStreamInfo(size_t index) noexcept
 	return &streamInfo[index];
 }
 
-bool AndroidNDKState::isStreamEnabled(size_t i) noexcept
+bool AndroidNDKState::isStreamEnabled(size_t i) const noexcept
 {
 	if (i >= activeStream.size())
 	{
@@ -406,7 +411,7 @@ bool AndroidNDKState::setStreamEnabled(size_t i, bool enabled)
     else
         status = NAV_FFCALL(AMediaExtractor_unselectTrack)(extractor.get(), i);
 
-	if (CHECK_IF_ERROR_AND_SET(status))
+	if (setErrorOnFail(status))
 		activeStream[i] = enabled;
 
 	return status == AMEDIA_OK;
@@ -426,7 +431,7 @@ double AndroidNDKState::setPosition(double off)
 {
 	int64_t targetPosUs = (int64_t) (off * double(MICROSECOND));
 	media_status_t result = NAV_FFCALL(AMediaExtractor_seekTo)(extractor.get(), targetPosUs, AMEDIAEXTRACTOR_SEEK_PREVIOUS_SYNC);
-	THROW_IF_ERROR(result);
+	checkError(result);
 
 	for (const UniqueMediaCodec &codec: decoders)
 	{
@@ -465,7 +470,7 @@ nav_frame_t *AndroidNDKState::read()
 
 			if (bufferIndex < AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED)
 			{
-                CHECK_IF_ERROR_AND_SET((media_status_t) bufferIndex);
+                setErrorOnFail((media_status_t) bufferIndex);
                 return nullptr;
             }
             else if (bufferIndex >= 0)
@@ -511,7 +516,7 @@ nav_frame_t *AndroidNDKState::read()
 				bufferIndex = NAV_FFCALL(AMediaCodec_dequeueInputBuffer)(codec.get(), -1);
 				if (bufferIndex < AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED)
 				{
-					CHECK_IF_ERROR_AND_SET((media_status_t) bufferIndex);
+					setErrorOnFail((media_status_t) bufferIndex);
 					return nullptr;
 				}
 
@@ -556,14 +561,14 @@ AndroidNDKBackend::AndroidNDKBackend()
 AndroidNDKBackend::~AndroidNDKBackend()
 {}
 
-State *AndroidNDKBackend::open(nav_input *input, const char *filename, const nav_settings *settings)
+State *AndroidNDKBackend::open(nav_input *input, const char *filename, [[maybe_unused]] const nav_settings *settings)
 {
 	UniqueMediaExtractor extractor(NAV_FFCALL(AMediaExtractor_new)(), NAV_FFCALL(AMediaExtractor_delete));
 	if (!extractor)
 		throw std::runtime_error("Cannot allocate AMediaExtractor");
 
 	MediaSourceWrapper mediaSource(this, input);
-	THROW_IF_ERROR(NAV_FFCALL(AMediaExtractor_setDataSourceCustom)(extractor.get(), mediaSource.get()));
+	checkError(NAV_FFCALL(AMediaExtractor_setDataSourceCustom)(extractor.get(), mediaSource.get()));
 
 	return new AndroidNDKState(this, extractor, mediaSource);
 }
