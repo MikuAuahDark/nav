@@ -517,8 +517,6 @@ void MediaFoundationFrame::acquire2D()
 	LONG stride = 0;
 	DWORD contSize = 0;
 
-
-	bool lockWithBuffer1 = true;
 	if (ComPtr<IMF2DBuffer2> buf2dv2 = buffer2D.dcast<IMF2DBuffer2>(IMF2DBuffer2_GUID))
 	{
 		BYTE *dummy = nullptr;
@@ -541,6 +539,7 @@ void MediaFoundationFrame::acquire2D()
 		streamInfo->video.format
 	);
 
+	acquireData.source = (uint8_t *) source;
 	uint8_t *current = acquireData.source;
 	size_t height = streamInfo->video.height + extraHeight;
 
@@ -556,6 +555,7 @@ void MediaFoundationFrame::acquire2D()
 
 			acquireData.strides.push_back(stride);
 			acquireData.planes.push_back(current);
+
 			break;
 		}
 		case NAV_PIXELFORMAT_YUV420:
@@ -581,6 +581,8 @@ void MediaFoundationFrame::acquire2D()
 					currentHeight = (currentHeight + 1) / 2;
 				}
 			}
+
+			break;
 		}
 		case NAV_PIXELFORMAT_NV12:
 		{
@@ -593,8 +595,8 @@ void MediaFoundationFrame::acquire2D()
 
 			// UV plane
 			ptrdiff_t uvStride = stride < 0 ? (((stride - 1) / 2) * 2) : (((stride + 1) / 2) * 2);
-			acquireData.strides.push_back(stride);
-			acquireData.planes.push_back(current + uvStride * (ptrdiff_t) height);
+			acquireData.strides.push_back(uvStride);
+			acquireData.planes.push_back(current + stride * (ptrdiff_t) height);
 
 			break;
 		}

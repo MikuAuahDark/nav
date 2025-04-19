@@ -25,11 +25,20 @@ FrameVector::FrameVector(nav_streaminfo_t *streaminfo, size_t streamindex, doubl
 	
 	// Partition data, assume no padding
 	uint8_t *start = buffer.data();
-	for (size_t i = 0; i < planeCount(streaminfo->video.format); i++)
+
+	if (streaminfo->type == NAV_STREAMTYPE_VIDEO)
 	{
-		this->data[i] = start;
-		planeWidths[i] = streaminfo->plane_width(i);
-		start += streaminfo->plane_width(i) * streaminfo->plane_height(i);
+		for (size_t i = 0; i < planeCount(streaminfo->video.format); i++)
+		{
+			this->data[i] = start;
+			planeWidths[i] = streaminfo->plane_width(i);
+			start += streaminfo->plane_width(i) * streaminfo->plane_height(i);
+		}
+	}
+	else
+	{
+		planeWidths[0] = buffer.size();
+		this->data[0] = start;
 	}
 }
 
