@@ -199,7 +199,7 @@ GStreamerVideoFrame::GStreamerVideoFrame(
 	double pts
 )
 : acquireData()
-, videoFrame(GST_VIDEO_FRAME_INIT)
+, videoFrame()
 , videoInfo(std::move(videoInfo))
 , pts(pts)
 , f(backend)
