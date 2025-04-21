@@ -96,30 +96,6 @@ struct GstMemoryMapLock: GstMapInfo
 	bool success;
 };
 
-struct GstVideoFrameLock: GstVideoFrame
-{
-	GstVideoFrameLock(const GstVideoFrameLock &) = delete;
-	GstVideoFrameLock(const GstVideoFrameLock &&) = delete;
-	GstVideoFrameLock(GStreamerBackend *f, GstVideoInfo *info, GstBuffer *buffer, GstMapFlags flags)
-	: GstVideoFrame({})
-	, f(f)
-	, success(false)
-	{
-		success = NAV_FFCALL(gst_video_frame_map)(this, info, buffer, flags);
-
-		if (!success)
-			throw std::runtime_error("Cannot map video frame");
-	}
-
-	~GstVideoFrameLock()
-	{
-		NAV_FFCALL(gst_video_frame_unmap)(this);
-	}
-
-	GStreamerBackend *f;
-	bool success;
-};
-
 
 
 GStreamerAudioFrame::GStreamerAudioFrame(
@@ -247,10 +223,7 @@ const uint8_t *const *GStreamerVideoFrame::acquire(ptrdiff_t **strides, size_t *
 
 		for (size_t i = 0; i < nplanes; i++)
 		{
-			uint8_t *data = (uint8_t *) GST_VIDEO_FRAME_PLANE_DATA(&videoFrame, i);
-			data += GST_VIDEO_FRAME_PLANE_OFFSET(&videoFrame, i);
-
-			acquireData.planes[i] = data;
+			acquireData.planes[i] = (uint8_t *) GST_VIDEO_FRAME_PLANE_DATA(&videoFrame, i);
 			acquireData.strides[i] = GST_VIDEO_FRAME_PLANE_STRIDE(&videoFrame, i);
 		}
 	}
@@ -545,29 +518,26 @@ nav_frame_t *GStreamerState::read()
 		// Pull samples from sinks
 		for (std::unique_ptr<AppSinkWrapper> &sw: streams)
 		{
+			UniqueGst<GstSample> sample {nullptr, NAV_FFCALL(gst_sample_unref)};
+			gboolean eos = 0;
+			GstSample *sampleRaw = nullptr;
+			NAV_FFCALL(g_signal_emit_by_name)(sw->sink, "try-pull-sample", 1000, &sampleRaw); // wait 1us
+			sample.reset(sampleRaw);
+
 			if (sw->enabled)
 			{
 				nactive++;
 
-				if (!sw->eos)
+				if (sample)
 				{
-					UniqueGst<GstSample> sample {nullptr, NAV_FFCALL(gst_sample_unref)};
-					gboolean eos = 0;
-					GstSample *sampleRaw = nullptr;
-					NAV_FFCALL(g_signal_emit_by_name)(sw->sink, "try-pull-sample", 500000, &sampleRaw); // wait 0.5ms
-					sample.reset(sampleRaw);
-
-					if (sample)
-					{
-						GstBuffer *buffer = NAV_FFCALL(gst_sample_get_buffer)(sample.get());
-						queuedFrames.push(dispatchDecode(buffer, sw->streamIndex));
-					}
-					else
-					{
-						NAV_FFCALL(g_object_get)(sw->sink, "eos", &eos, nullptr);
-						if (eos)
-							sw->eos = true;
-					}
+					GstBuffer *buffer = NAV_FFCALL(gst_sample_get_buffer)(sample.get());
+					queuedFrames.push(dispatchDecode(buffer, sw->streamIndex));
+				}
+				else
+				{
+					NAV_FFCALL(g_object_get)(sw->sink, "eos", &eos, nullptr);
+					if (eos)
+						sw->eos = true;
 				}
 
 				neos = neos + sw->eos;
@@ -739,6 +709,8 @@ void GStreamerState::padAdded(GstElement *element, GstPad *pad, GStreamerState *
 
 	if (videoStream || audioStream)
 	{
+		// FIXME: Create a fakesink for disabled streams such that
+		// appsource -> (demux) -> fakesink, if the stream is disabled.
 		std::unique_ptr<AppSinkWrapper> &streamWrapper = self->streams.back();
 		GstElement *queue = NAV_FFCALL(gst_element_factory_make)("queue", nullptr);
 		GstElement *converter = NAV_FFCALL(gst_element_factory_make)(videoStream ? "videoconvert" : "audioconvert", nullptr);
