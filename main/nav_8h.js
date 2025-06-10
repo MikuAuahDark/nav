@@ -14,6 +14,8 @@ var nav_8h =
     [ "nav_error", "nav_8h.html#ac8256d0e17e5e44b0b88339068d838d9", null ],
     [ "nav_frame_acquire", "nav_8h.html#a2717c908795502fdadc2841ca036beb9", null ],
     [ "nav_frame_free", "nav_8h.html#ac628d8d090c150cdd70fc02f5717c866", null ],
+    [ "nav_frame_hwacceltype", "nav_8h.html#a8fc01cc4b95dcd0ae7d9801eb0bd32ba", null ],
+    [ "nav_frame_hwhandle", "nav_8h.html#abb0b05af36f32fae6df1872e528ff0ff", null ],
     [ "nav_frame_release", "nav_8h.html#a1c70fc91fdbbe1dd22a147e6f1d0f9e0", null ],
     [ "nav_frame_streamindex", "nav_8h.html#a0599eec8761f90de4003d53736aa299f", null ],
     [ "nav_frame_streaminfo", "nav_8h.html#a967143f6f2fde7d51a5c31234c17009e", null ],

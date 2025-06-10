@@ -231,9 +231,15 @@ Functions</h2></td></tr>
 <tr class="memitem:af8c4e6978656ae33244bbf79915299b5" id="r_af8c4e6978656ae33244bbf79915299b5"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#af8c4e6978656ae33244bbf79915299b5">nav_frame_tell</a> (const nav_frame_t *frame)</td></tr>
 <tr class="memdesc:af8c4e6978656ae33244bbf79915299b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get presentation timestamp of this frame.  <br /></td></tr>
 <tr class="separator:af8c4e6978656ae33244bbf79915299b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8fc01cc4b95dcd0ae7d9801eb0bd32ba" id="r_a8fc01cc4b95dcd0ae7d9801eb0bd32ba"><td class="memItemLeft" align="right" valign="top">NAV_API nav_hwacceltype&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a8fc01cc4b95dcd0ae7d9801eb0bd32ba">nav_frame_hwacceltype</a> (const nav_frame_t *frame)</td></tr>
+<tr class="memdesc:a8fc01cc4b95dcd0ae7d9801eb0bd32ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get hardware acceleration type of this frame.  <br /></td></tr>
+<tr class="separator:a8fc01cc4b95dcd0ae7d9801eb0bd32ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2717c908795502fdadc2841ca036beb9" id="r_a2717c908795502fdadc2841ca036beb9"><td class="memItemLeft" align="right" valign="top">NAV_NODISCARD NAV_API const uint8_t *const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a2717c908795502fdadc2841ca036beb9">nav_frame_acquire</a> (nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes)</td></tr>
 <tr class="memdesc:a2717c908795502fdadc2841ca036beb9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Make the current frame available for reading.  <br /></td></tr>
 <tr class="separator:a2717c908795502fdadc2841ca036beb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abb0b05af36f32fae6df1872e528ff0ff" id="r_abb0b05af36f32fae6df1872e528ff0ff"><td class="memItemLeft" align="right" valign="top">NAV_NODISCARD NAV_API void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#abb0b05af36f32fae6df1872e528ff0ff">nav_frame_hwhandle</a> (nav_frame_t *frame)</td></tr>
+<tr class="memdesc:abb0b05af36f32fae6df1872e528ff0ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the hardware-acceleration-specific handle.  <br /></td></tr>
+<tr class="separator:abb0b05af36f32fae6df1872e528ff0ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c70fc91fdbbe1dd22a147e6f1d0f9e0" id="r_a1c70fc91fdbbe1dd22a147e6f1d0f9e0"><td class="memItemLeft" align="right" valign="top">NAV_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a1c70fc91fdbbe1dd22a147e6f1d0f9e0">nav_frame_release</a> (nav_frame_t *frame)</td></tr>
 <tr class="memdesc:a1c70fc91fdbbe1dd22a147e6f1d0f9e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Release the previously-acquired frame, making the acquired pointer invalid.  <br /></td></tr>
 <tr class="separator:a1c70fc91fdbbe1dd22a147e6f1d0f9e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -598,7 +604,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </div><div class="memdoc">
 
 <p>Make the current frame available for reading. </p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>For hardware-accelerated video decoding, this copies the image contents from GPU to CPU. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
     <tr><td class="paramname">strides</td><td>Pointer to store the list of strides/pitch of each plane in bytes. Negative stride means plane is bottom-up. For audio, this always positive. </td></tr>
@@ -607,7 +613,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Array of pointer to each plane, or NULL on failure. Subsequent calls to this function return same pointer. </dd></dl>
-<dl class="section note"><dt>Note</dt><dd>nav_frame_release must only be called once regardless on how many times nav_frame_acquire is called. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd><code>nav_frame_release</code> must only be called once regardless on how many times <code>nav_frame_acquire</code> is called. </dd></dl>
 <dl class="section see"><dt>See also</dt><dd>nav_streaminfo_type_plane_count </dd>
 <dd>
 <a class="el" href="nav_8h.html#a1c70fc91fdbbe1dd22a147e6f1d0f9e0" title="Release the previously-acquired frame, making the acquired pointer invalid.">nav_frame_release</a> </dd></dl>
@@ -637,6 +643,63 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a8fc01cc4b95dcd0ae7d9801eb0bd32ba" name="a8fc01cc4b95dcd0ae7d9801eb0bd32ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8fc01cc4b95dcd0ae7d9801eb0bd32ba">&#9670;&#160;</a></span>nav_frame_hwacceltype()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API nav_hwacceltype nav_frame_hwacceltype </td>
+          <td>(</td>
+          <td class="paramtype">const nav_frame_t *&#160;</td>
+          <td class="paramname"><em>frame</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get hardware acceleration type of this frame. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Hardware acceleration type of the current NAV frame. </dd></dl>
+
+</div>
+</div>
+<a id="abb0b05af36f32fae6df1872e528ff0ff" name="abb0b05af36f32fae6df1872e528ff0ff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abb0b05af36f32fae6df1872e528ff0ff">&#9670;&#160;</a></span>nav_frame_hwhandle()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_NODISCARD NAV_API void * nav_frame_hwhandle </td>
+          <td>(</td>
+          <td class="paramtype">nav_frame_t *&#160;</td>
+          <td class="paramname"><em>frame</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the hardware-acceleration-specific handle. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">frame</td><td>Pointer to the NAV frame instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Hardware-acceleration-specific handle casted to <code>void*</code> or NULL on failure. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>NAV owns the handle, so <code>nav_frame_free</code> will free it. </dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>The image contents of the handle when keeping <code>nav_frame_t</code> is not guaranteed to be same after decoding another frame! Copy the image contents to (other) device or to CPU (with <code>nav_frame_acquire</code>) if necessary. </dd></dl>
+<dl class="section see"><dt>See also</dt><dd>nav_hwacceltype </dd></dl>
 
 </div>
 </div>
