@@ -452,9 +452,21 @@ extern "C" double nav_frame_tell(const nav_frame_t *frame)
 	return frame->tell();
 }
 
+extern "C" nav_hwacceltype nav_frame_hwacceltype(const nav_frame_t *frame)
+{
+	nav::error::set("");
+	return NAV_HWACCELTYPE_NONE;
+}
+
 extern "C" const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes)
 {
 	return wrapcall<const uint8_t *const *>(frame, &nav::Frame::acquire, nullptr, strides, nplanes);
+}
+
+extern "C" void *nav_frame_hwhandle(nav_frame_t *frame)
+{
+	nav::error::set("NYI");
+	return nullptr;
 }
 
 extern "C" void nav_frame_release(nav_frame_t *frame)

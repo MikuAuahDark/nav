@@ -72,6 +72,18 @@ typedef enum nav_backendtype
 	NAV_BACKENDTYPE_3RD_PARTY
 } nav_backendtype;
 
+typedef enum nav_hwacceltype
+{
+	/* Not hardware accelerated or unknown hardware acceleration. */
+	NAV_HWACCELTYPE_NONE,
+	/* Hardware-accelerated by Vulkan. The HW-accelerated handle is `VkImageView*`. */
+	NAV_HWACCELTYPE_VULKAN,
+	/* (Windows) Hardware-accelerated by D3D11. The HW-accelerated handle is `ID3D11Texture2D*`. */
+	NAV_HWACCELTYPE_D3D11,
+	/* (Linux) Hardware-accelerated by VA-API. The HW-accelerated handle is `VASurfaceID*`. */
+	NAV_HWACCELTYPE_VAAPI,
+} nav_hwacceltype;
+
 #define NAV_SETTINGS_VERSION 0
 
 typedef struct nav_settings

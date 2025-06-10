@@ -323,16 +323,36 @@ NAV_API const nav_streaminfo_t *nav_frame_streaminfo(const nav_frame_t *frame);
 NAV_API double nav_frame_tell(const nav_frame_t *frame);
 
 /**
+ * @brief Get hardware acceleration type of this frame.
+ * @param frame Pointer to the NAV frame instance.
+ * @return Hardware acceleration type of the current NAV frame.
+ */
+NAV_API nav_hwacceltype nav_frame_hwacceltype(const nav_frame_t *frame);
+
+/**
  * @brief Make the current frame available for reading.
+ * 
+ * For hardware-accelerated video decoding, this copies the image contents from GPU to CPU.
  * @param frame Pointer to the NAV frame instance.
  * @param strides Pointer to store the list of strides/pitch of each plane in bytes. Negative stride means plane is bottom-up. For audio, this always positive.
  * @param nplanes Pointer to store the amount of planes. For audio, this always writes 1. This can be NULL.
  * @return Array of pointer to each plane, or NULL on failure. Subsequent calls to this function return same pointer.
- * @note nav_frame_release must only be called once regardless on how many times nav_frame_acquire is called.
+ * @note `nav_frame_release` must only be called once regardless on how many times `nav_frame_acquire` is called.
  * @sa nav_streaminfo_type_plane_count
  * @sa nav_frame_release
  */
 NAV_NODISCARD NAV_API const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes);
+
+/**
+ * @brief Get the hardware-acceleration-specific handle.
+ * @param frame Pointer to the NAV frame instance.
+ * @return Hardware-acceleration-specific handle casted to `void*` or NULL on failure.
+ * @note NAV owns the handle, so `nav_frame_free` will free it.
+ * @warning The image contents of the handle when keeping `nav_frame_t` is not guaranteed to be same after decoding
+ *          another frame! Copy the image contents to (other) device or to CPU (with `nav_frame_acquire`) if necessary.
+ * @sa nav_hwacceltype
+ */
+NAV_NODISCARD NAV_API void *nav_frame_hwhandle(nav_frame_t *frame);
 
 /**
  * @brief Release the previously-acquired frame, making the acquired pointer invalid.
