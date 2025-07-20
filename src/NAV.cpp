@@ -304,7 +304,7 @@ extern "C" double nav_seek(nav_t *state, double position)
 
 extern "C" bool nav_prepare(nav_t *state)
 {
-	return wrapcall(state, &nav::State::prepare, false, state);
+	return wrapcall(state, &nav::State::prepare, false);
 }
 
 extern "C" bool nav_is_prepared(const nav_t *state)
