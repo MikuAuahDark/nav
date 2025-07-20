@@ -186,6 +186,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a7e1fae372826de749013aebf2e8232e2" id="r_a7e1fae372826de749013aebf2e8232e2"><td class="memItemLeft" align="right" valign="top">NAV_API double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#a7e1fae372826de749013aebf2e8232e2">nav_seek</a> (nav_t *nav, double position)</td></tr>
 <tr class="memdesc:a7e1fae372826de749013aebf2e8232e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set media position.  <br /></td></tr>
 <tr class="separator:a7e1fae372826de749013aebf2e8232e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac715d6c28d07b69e2e9b54a07616e26f" id="r_ac715d6c28d07b69e2e9b54a07616e26f"><td class="memItemLeft" align="right" valign="top">NAV_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ac715d6c28d07b69e2e9b54a07616e26f">nav_prepare</a> (nav_t *nav)</td></tr>
+<tr class="memdesc:ac715d6c28d07b69e2e9b54a07616e26f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize decoders.  <br /></td></tr>
+<tr class="separator:ac715d6c28d07b69e2e9b54a07616e26f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb0043783fa9acaffcded3bd82478018" id="r_aeb0043783fa9acaffcded3bd82478018"><td class="memItemLeft" align="right" valign="top">NAV_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#aeb0043783fa9acaffcded3bd82478018">nav_is_prepared</a> (const nav_t *nav)</td></tr>
+<tr class="memdesc:aeb0043783fa9acaffcded3bd82478018"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if decoders have been initialized.  <br /></td></tr>
+<tr class="separator:aeb0043783fa9acaffcded3bd82478018"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab6bb30c8bfb4a55c1ff6a28245e4bb18" id="r_ab6bb30c8bfb4a55c1ff6a28245e4bb18"><td class="memItemLeft" align="right" valign="top">NAV_NODISCARD NAV_API nav_frame_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nav_8h.html#ab6bb30c8bfb4a55c1ff6a28245e4bb18">nav_read</a> (nav_t *nav)</td></tr>
 <tr class="memdesc:ab6bb30c8bfb4a55c1ff6a28245e4bb18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decode stream from NAV instance.  <br /></td></tr>
 <tr class="separator:ab6bb30c8bfb4a55c1ff6a28245e4bb18"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -894,6 +900,33 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
+<a id="aeb0043783fa9acaffcded3bd82478018" name="aeb0043783fa9acaffcded3bd82478018"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeb0043783fa9acaffcded3bd82478018">&#9670;&#160;</a></span>nav_is_prepared()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API bool nav_is_prepared </td>
+          <td>(</td>
+          <td class="paramtype">const nav_t *&#160;</td>
+          <td class="paramname"><em>nav</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if decoders have been initialized. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Is instance have been prepared for decoding? </dd></dl>
+
+</div>
+</div>
 <a id="ac451368761a80df276dc1b3323857787" name="ac451368761a80df276dc1b3323857787"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac451368761a80df276dc1b3323857787">&#9670;&#160;</a></span>nav_nstreams()</h2>
 
@@ -968,6 +1001,35 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 </div>
 </div>
+<a id="ac715d6c28d07b69e2e9b54a07616e26f" name="ac715d6c28d07b69e2e9b54a07616e26f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac715d6c28d07b69e2e9b54a07616e26f">&#9670;&#160;</a></span>nav_prepare()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NAV_API bool nav_prepare </td>
+          <td>(</td>
+          <td class="paramtype">nav_t *&#160;</td>
+          <td class="paramname"><em>nav</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initialize decoders. </p>
+<p>You can call this once to finalize your stream enablement setup. This will actually initialize all the decoders. Once all the decoder is initialized, changing stream enablement is no longer possible. This is also called by <a class="el" href="nav_8h.html#ab6bb30c8bfb4a55c1ff6a28245e4bb18" title="Decode stream from NAV instance.">nav_read()</a> if it's not been initialized yet.</p>
+<p>Calling this function multiple times is no-op.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Is preparation succeeded? </dd></dl>
+
+</div>
+</div>
 <a id="ab6bb30c8bfb4a55c1ff6a28245e4bb18" name="ab6bb30c8bfb4a55c1ff6a28245e4bb18"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab6bb30c8bfb4a55c1ff6a28245e4bb18">&#9670;&#160;</a></span>nav_read()</h2>
 
@@ -985,6 +1047,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </div><div class="memdoc">
 
 <p>Decode stream from NAV instance. </p>
+<p>If the decoders is not yet initialized, this also initialize the decoders.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
@@ -993,7 +1056,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the NAV decoded frame instance, or NULL on failure. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd><a class="el" href="nav_8h.html#ac8256d0e17e5e44b0b88339068d838d9" title="Get last error message from last invocation of NAV functions.">nav_error()</a> will return NULL on EOS, non-NULL otherwise. </dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="nav_8h.html#ac628d8d090c150cdd70fc02f5717c866" title="Free the NAV frame instance.">nav_frame_free</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="nav_8h.html#ac628d8d090c150cdd70fc02f5717c866" title="Free the NAV frame instance.">nav_frame_free</a> <a class="el" href="nav_8h.html#ac715d6c28d07b69e2e9b54a07616e26f" title="Initialize decoders.">nav_prepare</a> </dd></dl>
 
 </div>
 </div>
@@ -1070,6 +1133,7 @@ This call only return meaningful value if the stream is an audio. </dd></dl>
 
 <p>Set if specific stream should be enabled. </p>
 <p>Disabled stream won't generate data during <a class="el" href="nav_8h.html#ab6bb30c8bfb4a55c1ff6a28245e4bb18" title="Decode stream from NAV instance.">nav_read()</a>. This can serve as optimization.</p>
+<p>This function is only callable if the stream is not yet prepared.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">nav</td><td>Pointer to NAV instance. </td></tr>
