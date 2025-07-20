@@ -22,7 +22,6 @@
 
 /* Notes on MF backend:
  * * Audio is always assumed 16-bit PCM.
- * * Video is always assumed YUV420 planar.
  */
 
 namespace
@@ -34,7 +33,9 @@ constexpr GUID IMFAttributes_GUID = {0x2cd2d921, 0xc447, 0x44a7, {0xa1, 0x3c, 0x
 constexpr GUID IMFTransform_GUID = {0xbf94c121, 0x5b05, 0x4e6f, {0x80, 0x00, 0xba, 0x59, 0x89, 0x61, 0x41, 0x4d}};
 constexpr GUID IMF2DBuffer_GUID = {0x7DC9D5F9, 0x9ED9, 0x44ec, {0x9B, 0xBF, 0x06, 0x00, 0xBB, 0x58, 0x9F, 0xBB}};
 constexpr GUID IMF2DBuffer2_GUID = {0x33ae5ea6, 0x4316, 0x436f, {0x8d, 0xdd, 0xd7, 0x3d, 0x22, 0xf8, 0x29, 0xec}};
+constexpr GUID IMFDXGIBuffer_GUID = {0xe7174cfa, 0x1c9e, 0x48b1, {0x88, 0x66, 0x62, 0x62, 0x26, 0xbf, 0xc2, 0x58}};
 constexpr GUID ID3D11Multithread_GUID = {0x9B7E4E00, 0x342C, 0x4106, {0xA1, 0x9F, 0x4F, 0x27, 0x04, 0xF6, 0x89, 0xF0}};
+constexpr GUID ID3D11Texture2D_GUID = {0x6f15aaf2, 0xd208, 0x4e89, {0x9a, 0xb4, 0x48, 0x95, 0x35, 0xd3, 0x4f, 0x9c}};
 
 constexpr LONGLONG MF_100NS_UNIT = 10000000;
 
@@ -436,7 +437,9 @@ MediaFoundationFrame::MediaFoundationFrame(nav_streaminfo_t *sinfo, ComPtr<IMFMe
 , pts(pts)
 , streamInfo(sinfo)
 , index(si)
-{}
+, ishwaccelerated(bool(mediaBuffer.dcast<IMFDXGIBuffer>(IMFDXGIBuffer_GUID)))
+{
+}
 
 size_t MediaFoundationFrame::getStreamIndex() const noexcept
 {
@@ -616,6 +619,25 @@ void MediaFoundationFrame::release() noexcept
 	acquireData = {};
 }
 
+nav_hwacceltype MediaFoundationFrame::getHWAccelType() const noexcept
+{
+	return ishwaccelerated ? NAV_HWACCELTYPE_D3D11 : NAV_HWACCELTYPE_NONE;
+}
+
+void *MediaFoundationFrame::getHWAccelHandle()
+{
+	ComPtr<IMFDXGIBuffer> dxgiBuffer;
+	if (HRESULT hr = mediaBuffer.cast<IMFDXGIBuffer>(IMFDXGIBuffer_GUID, dxgiBuffer); FAILED(hr))
+		runtimeErrorWithHRESULT("Cannot get DXGI buffer", hr);
+
+	ComPtr<ID3D11Texture2D> texture;
+	if (HRESULT hr = dxgiBuffer->GetResource(ID3D11Texture2D_GUID, (void**) texture.dptr()); FAILED(hr))
+		runtimeErrorWithHRESULT("Cannot get D3D11 texture resource", hr);
+
+	// Release the memory so it's owned back by MediaFoundation
+	return texture.release(true);
+}
+
 
 
 MediaFoundationState::MediaFoundationState(
@@ -631,8 +653,10 @@ MediaFoundationState::MediaFoundationState(
 , inputStream(is)
 , mfByteStream(mfbs)
 , mfSourceReader(mfsr)
-, currentPosition(0)
 , hwaccel()
+, streamInfoList()
+, currentPosition(0)
+, prepared(false)
 {
 	if (hwaccelState)
 		hwaccel = *hwaccelState;
@@ -643,7 +667,7 @@ MediaFoundationState::MediaFoundationState(
 	// Find how many streams
 	for (DWORD i = 0; i < 0xFFFFFFFCU; i++)
 	{
-		ComPtr<IMFMediaType> mfMediaType, mfNativeMediaType;
+		ComPtr<IMFMediaType> mfMediaType;
 		HRESULT hr = mfsr->GetCurrentMediaType(i, mfMediaType.dptr());
 
 		if (hr == MF_E_INVALIDSTREAMNUMBER)
@@ -781,6 +805,34 @@ MediaFoundationState::MediaFoundationState(
 	}
 }
 
+bool MediaFoundationState::prepare()
+{
+	if (!prepared)
+	{
+		// Unset the decoder type
+		for (size_t i = 0; i < streamInfoList.size(); i++)
+		{
+			if (!isStreamEnabled(i))
+			{
+				ComPtr<IMFMediaType> nativeMediaType;
+
+				if (SUCCEEDED(mfSourceReader->GetNativeMediaType((DWORD) i, 0, nativeMediaType.dptr())))
+					// Restore decoder type
+					mfSourceReader->SetCurrentMediaType((DWORD) i, nullptr, nativeMediaType.get());
+			}
+		}
+
+		prepared = true;
+	}
+
+	return true;
+}
+
+bool MediaFoundationState::isPrepared() const noexcept
+{
+	return prepared;
+}
+
 MediaFoundationState::~MediaFoundationState()
 {}
 
@@ -826,6 +878,12 @@ bool MediaFoundationState::isStreamEnabled(size_t index) const noexcept
 
 bool MediaFoundationState::setStreamEnabled(size_t index, bool enabled)
 {
+	if (prepared)
+	{
+		nav::error::set("Decoder already initialized");
+		return false;
+	}
+
 	if (index >= streamInfoList.size())
 	{
 		nav::error::set("Index out of range");

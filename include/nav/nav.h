@@ -169,6 +169,8 @@ NAV_API nav_bool nav_stream_is_enabled(const nav_t *nav, size_t index);
  * 
  * Disabled stream won't generate data during nav_read(). This can serve as optimization.
  * 
+ * This function is only callable if the stream is not yet prepared. 
+ * 
  * @param nav Pointer to NAV instance.
  * @param index Stream index.
  * @param enable 1 to enable, 0 to disable.
@@ -201,11 +203,35 @@ NAV_API double nav_duration(nav_t *nav);
 NAV_API double nav_seek(nav_t *nav, double position);
 
 /**
+ * @brief Initialize decoders.
+ * 
+ * You can call this once to finalize your stream enablement setup. This will actually initialize all the decoders.
+ * Once all the decoder is initialized, changing stream enablement is no longer possible. This is also called by
+ * nav_read() if it's not been initialized yet.
+ * 
+ * Calling this function multiple times is no-op.
+ * 
+ * @param nav Pointer to NAV instance.
+ * @return Is preparation succeeded?
+ */
+NAV_API bool nav_prepare(nav_t *nav);
+
+/**
+ * @brief Check if decoders have been initialized.
+ * @param nav Pointer to NAV instance.
+ * @return Is instance have been prepared for decoding?
+ */
+NAV_API bool nav_is_prepared(const nav_t *nav);
+
+/**
  * @brief Decode stream from NAV instance.
+ * 
+ * If the decoders is not yet initialized, this also initialize the decoders.
+ * 
  * @param nav Pointer to NAV instance.
  * @return Pointer to the NAV decoded frame instance, or NULL on failure.
  * @note nav_error() will return NULL on EOS, non-NULL otherwise.
- * @sa nav_frame_free
+ * @sa nav_frame_free nav_prepare
  */
 NAV_NODISCARD NAV_API nav_frame_t *nav_read(nav_t *nav);
 

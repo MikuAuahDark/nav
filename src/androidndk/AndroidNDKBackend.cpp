@@ -212,6 +212,7 @@ AndroidNDKState::AndroidNDKState(AndroidNDKBackend *backend, UniqueMediaExtracto
 , durationUs(0)
 , positionUs(0)
 , needAdvance(false)
+, prepared(false)
 , activeStream()
 , hasEOS()
 , streamInfo()
@@ -444,6 +445,17 @@ double AndroidNDKState::setPosition(double off)
 
 	positionUs = targetPosUs;
 	return off;
+}
+
+bool AndroidNDKState::prepare()
+{
+	prepared = true;
+	return true;
+}
+
+bool AndroidNDKState::isPrepared() const noexcept
+{
+	return prepared;
 }
 
 nav_frame_t *AndroidNDKState::read()

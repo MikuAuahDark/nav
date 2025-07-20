@@ -85,6 +85,17 @@ uint8_t *FrameVector::pointer() noexcept
 	return buffer.data();
 }
 
+nav_hwacceltype FrameVector::getHWAccelType() const noexcept
+{
+	return NAV_HWACCELTYPE_NONE;
+}
+
+void *FrameVector::getHWAccelHandle()
+{
+	nav::error::set("Not hardware accelerated");
+	return nullptr;
+}
+
 bool getEnvvarBool(const std::string& name)
 {
 	const char *value = getenv(name.c_str());

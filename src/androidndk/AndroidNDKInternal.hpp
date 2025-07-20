@@ -55,13 +55,15 @@ public:
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
 	double setPosition(double off) override;
+	bool prepare() override;
+	bool isPrepared() const noexcept override;
 	nav_frame_t *read() override;
 
 private:
 	AndroidNDKBackend *f;
 	int64_t durationUs;
 	int64_t positionUs;
-	bool needAdvance;
+	bool needAdvance, prepared;
 
 	std::vector<bool> activeStream, hasEOS;
 	std::vector<nav_streaminfo_t> streamInfo;

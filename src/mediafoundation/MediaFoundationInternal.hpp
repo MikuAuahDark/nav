@@ -123,7 +123,7 @@ public:
 		return result;
 	}
 
-	operator bool()
+	explicit operator bool()
 	{
 		return ptr;
 	}
@@ -179,6 +179,8 @@ public:
 	double tell() const noexcept override;
 	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
 	void release() noexcept override;
+	nav_hwacceltype getHWAccelType() const noexcept override;
+	void *getHWAccelHandle() override;
 
 private:
 	void acquireDefault();
@@ -190,6 +192,7 @@ private:
 	double pts;
 	nav_streaminfo_t *streamInfo;
 	size_t index;
+	bool ishwaccelerated;
 };
 
 class MediaFoundationState: public State
@@ -213,6 +216,8 @@ public:
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
 	double setPosition(double position) override;
+	bool prepare() override;
+	bool isPrepared() const noexcept override;
 	nav_frame_t *read() override;
 
 private:
@@ -228,6 +233,7 @@ private:
 
 	std::vector<nav::StreamInfo> streamInfoList;
 	UINT64 currentPosition; // in 100-nanosecond
+	bool prepared;
 };
 
 

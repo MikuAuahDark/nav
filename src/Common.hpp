@@ -30,6 +30,8 @@ struct FrameVector: public nav_frame_t
 	void release() noexcept override;
 	// Backward compatibility only
 	uint8_t *pointer() noexcept;
+	nav_hwacceltype getHWAccelType() const noexcept override;
+	void *getHWAccelHandle() override;
 
 private:
 	std::vector<uint8_t> buffer;

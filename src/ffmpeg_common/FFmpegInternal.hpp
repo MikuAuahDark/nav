@@ -34,6 +34,8 @@ public:
 	double tell() const noexcept override;
 	const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) override;
 	void release() noexcept override;
+	nav_hwacceltype getHWAccelType() const noexcept override;
+	void *getHWAccelHandle() override;
 
 private:
 	AcquireData acquireData;
@@ -57,6 +59,8 @@ public:
 	double getDuration() noexcept override;
 	double getPosition() noexcept override;
 	double setPosition(double off) override;
+	bool prepare() override;
+	bool isPrepared() const noexcept override;
 	nav_frame_t *read() override;
 
 private:
@@ -70,6 +74,7 @@ private:
 	UniqueAVFrame tempFrame;
 	double position;
 	bool eof;
+	bool prepared;
 
 	std::vector<nav_streaminfo_t> streamInfo;
 	std::vector<AVCodecContext*> decoders;

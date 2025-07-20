@@ -41,6 +41,8 @@ struct nav_t
 	virtual double getDuration() noexcept = 0;
 	virtual double getPosition() noexcept = 0;
 	virtual double setPosition(double off) = 0;
+	virtual bool prepare() = 0;
+	virtual bool isPrepared() const noexcept = 0;
 	virtual nav_frame_t *read() = 0;
 };
 
@@ -227,6 +229,8 @@ struct nav_frame_t
 	virtual double tell() const noexcept = 0;
 	virtual const uint8_t *const *acquire(ptrdiff_t **strides, size_t *nplanes) = 0;
 	virtual void release() noexcept = 0;
+	virtual nav_hwacceltype getHWAccelType() const noexcept = 0;
+	virtual void *getHWAccelHandle() = 0;
 
 	inline bool operator<(const nav_frame_t &other) const noexcept
 	{

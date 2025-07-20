@@ -302,8 +302,22 @@ extern "C" double nav_seek(nav_t *state, double position)
 	return wrapcall(state, &nav::State::setPosition, -1., position);
 }
 
+extern "C" bool nav_prepare(nav_t *state)
+{
+	return wrapcall(state, &nav::State::prepare, false, state);
+}
+
+extern "C" bool nav_is_prepared(const nav_t *state)
+{
+	nav::error::set("");
+	return state->isPrepared();
+}
+
 extern "C" nav_frame_t *nav_read(nav_t *state)
 {
+	if (!nav_prepare(state))
+		return nullptr;
+
 	return wrapcall<nav_frame_t*>(state, &nav::State::read, nullptr);
 }
 
@@ -455,7 +469,7 @@ extern "C" double nav_frame_tell(const nav_frame_t *frame)
 extern "C" nav_hwacceltype nav_frame_hwacceltype(const nav_frame_t *frame)
 {
 	nav::error::set("");
-	return NAV_HWACCELTYPE_NONE;
+	return frame->getHWAccelType();
 }
 
 extern "C" const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t **strides, size_t *nplanes)
@@ -465,8 +479,7 @@ extern "C" const uint8_t *const *nav_frame_acquire(nav_frame_t *frame, ptrdiff_t
 
 extern "C" void *nav_frame_hwhandle(nav_frame_t *frame)
 {
-	nav::error::set("NYI");
-	return nullptr;
+	return wrapcall<void*>(frame, &nav::Frame::getHWAccelHandle, nullptr);
 }
 
 extern "C" void nav_frame_release(nav_frame_t *frame)

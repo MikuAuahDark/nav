@@ -429,6 +429,17 @@ void FFmpegFrame::release() noexcept
 {
 }
 
+nav_hwacceltype FFmpegFrame::getHWAccelType() const noexcept
+{
+	return NAV_HWACCELTYPE_NONE;
+}
+
+void *FFmpegFrame::getHWAccelHandle()
+{
+	nav::error::set("Not yet implemented");
+	return nullptr;
+}
+
 FFmpegFrame::~FFmpegFrame()
 {
 	if (frame)
@@ -448,6 +459,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 , tempFrame(NAV_FFCALL(av_frame_alloc)(), {NAV_FFCALL(av_frame_free)})
 , position(0.0)
 , eof(false)
+, prepared(false)
 , streamInfo()
 , decoders()
 , resamplers()
@@ -706,6 +718,17 @@ double FFmpegState::setPosition(double off)
 	position = derationalize<int64_t>(pos, AV_TIME_BASE);
 	eof = false;
 	return position;
+}
+
+bool FFmpegState::prepare()
+{
+	prepared = true;
+	return true;
+}
+
+bool FFmpegState::isPrepared() const noexcept
+{
+	return prepared;
 }
 
 nav_frame_t *FFmpegState::read()

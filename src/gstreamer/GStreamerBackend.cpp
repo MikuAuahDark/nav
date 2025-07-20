@@ -165,6 +165,17 @@ void GStreamerAudioFrame::release() noexcept
 	}
 }
 
+nav_hwacceltype GStreamerAudioFrame::getHWAccelType() const noexcept
+{
+	return NAV_HWACCELTYPE_NONE;
+}
+
+void *GStreamerAudioFrame::getHWAccelHandle()
+{
+	nav::error::set("Not hardware accelerated");
+	return nullptr;
+}
+
 
 GStreamerVideoFrame::GStreamerVideoFrame(
 	GStreamerBackend *backend,
@@ -243,6 +254,17 @@ void GStreamerVideoFrame::release() noexcept
 	}
 }
 
+nav_hwacceltype GStreamerVideoFrame::getHWAccelType() const noexcept
+{
+	return NAV_HWACCELTYPE_NONE;
+}
+
+void *GStreamerVideoFrame::getHWAccelHandle()
+{
+	nav::error::set("Not yet implemented");
+	return nullptr;
+}
+
 
 GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 : f(backend)
@@ -255,6 +277,7 @@ GStreamerState::GStreamerState(GStreamerBackend *backend, nav_input *input)
 , queuedFrames()
 , padProbed(false)
 , eos(false)
+, prepared(false)
 {
 	UniqueGstElement sourceTemp {NAV_FFCALL(gst_element_factory_make)("appsrc", nullptr), NAV_FFCALL(gst_object_unref)};
 	UniqueGstElement decoderTemp {NAV_FFCALL(gst_element_factory_make)("decodebin", nullptr), NAV_FFCALL(gst_object_unref)};
@@ -498,6 +521,17 @@ double GStreamerState::setPosition(double off)
 	eos = false;
 	clearQueuedFrames();
 	return getPosition();
+}
+
+bool GStreamerState::prepare()
+{
+	prepared = true;
+	return true;
+}
+
+bool GStreamerState::isPrepared() const noexcept
+{
+	return prepared;
 }
 
 nav_frame_t *GStreamerState::read()
