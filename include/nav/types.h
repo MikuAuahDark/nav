@@ -101,7 +101,7 @@ typedef struct nav_settings
 	 */
 	uint32_t max_threads;
 	/* If true, this hints backends to prefer CPU decoding. */
-	bool disable_hwaccel;
+	nav_bool disable_hwaccel;
 } nav_settings;
 
 #endif /* _NAV_TYPES_H_ */

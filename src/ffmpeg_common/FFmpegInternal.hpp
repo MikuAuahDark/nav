@@ -27,7 +27,14 @@ class FFmpegBackend;
 class FFmpegFrame: public Frame
 {
 public:
-	FFmpegFrame(FFmpegBackend *backend, nav_streaminfo_t *sinfo, AVFrame *frame, double pts, size_t si);
+	FFmpegFrame(
+		FFmpegBackend *backend,
+		nav_streaminfo_t *sinfo,
+		AVFrame *frame,
+		const AVCodecContext *cctx,
+		double pts,
+		size_t si
+	);
 	~FFmpegFrame() override;
 	size_t getStreamIndex() const noexcept override;
 	const nav_streaminfo_t *getStreamInfo() const noexcept override;
@@ -39,10 +46,11 @@ public:
 
 private:
 	AcquireData acquireData;
-	double pts;
 	AVFrame *frame;
+	const AVCodecContext *codecContext;
 	FFmpegBackend *f;
 	nav_streaminfo_t *streamInfo;
+	double pts;
 	size_t index;
 };
 
@@ -66,6 +74,8 @@ public:
 private:
 	nav_frame_t *decode(AVFrame *frame, size_t index);
 	bool canDecode(size_t index);
+	std::vector<AVHWDeviceType> getHWAccels();
+	static AVPixelFormat pickPixelFormat(AVCodecContext *s, const AVPixelFormat *fmt) noexcept;
 
 	FFmpegBackend *f;
 	UniqueAVFormatContext formatContext;

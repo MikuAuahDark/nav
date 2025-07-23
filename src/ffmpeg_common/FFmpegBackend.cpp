@@ -2,7 +2,9 @@
 
 #include "NAVConfig.hpp"
 
+#include <algorithm>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -24,6 +26,36 @@ extern "C"
 #include "FFmpegInternal.hpp"
 
 #define NAV_FFCALL(name) f->func_##name
+
+static std::vector<AVHWDeviceType> devicePreference = {
+#ifdef _WIN32
+	AV_HWDEVICE_TYPE_D3D11VA,
+#endif
+#if _NAV_FFMPEG_VERSION >= 5
+	AV_HWDEVICE_TYPE_VULKAN,
+#endif
+	AV_HWDEVICE_TYPE_VAAPI
+	// TODO: VideoToolbox HW acceleration.
+	// Apple backend must be done first.
+};
+
+static std::set<AVPixelFormat> supportedHWAccelPixFmt = {
+#if _NAV_FFMPEG_VERSION >= 5
+	AV_PIX_FMT_VULKAN,
+#endif
+	AV_PIX_FMT_D3D11,
+	AV_PIX_FMT_VAAPI
+};
+
+static ptrdiff_t getHWDevicePriority(AVHWDeviceType type)
+{
+    auto it = std::find(devicePreference.begin(), devicePreference.end(), type);
+
+    if (it != devicePreference.end())
+        return std::distance(devicePreference.begin(), it);
+    else
+        return ptrdiff_t((devicePreference.size()) + (size_t) type);
+}
 
 static int inputRead(void *nav_input, uint8_t *buf, int buf_size)
 {
@@ -68,7 +100,7 @@ static int64_t inputSeek(void *nav_input, int64_t offset, int origin)
 	return realoff;
 }
 
-static std::runtime_error throwFromAVError(decltype(&av_strerror) func_av_strerror, int code)
+[[noreturn]] static std::runtime_error throwFromAVError(decltype(&av_strerror) func_av_strerror, int code)
 {
 	constexpr size_t BUFSIZE = 256;
 	char temp[BUFSIZE];
@@ -379,15 +411,16 @@ struct CallOnLeave
 namespace nav::_NAV_FFMPEG_NAMESPACE
 {
 
-FFmpegFrame::FFmpegFrame(FFmpegBackend *f, nav_streaminfo_t *sinfo, AVFrame *frame, double pts, size_t si)
+FFmpegFrame::FFmpegFrame(FFmpegBackend *f, nav_streaminfo_t *sinfo, AVFrame *frame, const AVCodecContext *cctx, double pts, size_t si)
 : f(f) // must be first
 , acquireData()
 , pts(pts)
 , frame(NAV_FFCALL(av_frame_clone)(frame))
 , streamInfo(sinfo)
 , index(si)
+, codecContext(cctx)
 {
-	if (frame == nullptr)
+	if (this->frame == nullptr)
 		throw std::runtime_error("Cannot clone AVFrame");
 }
 
@@ -410,13 +443,37 @@ const uint8_t *const *FFmpegFrame::acquire(ptrdiff_t **strides, size_t *nplanes)
 {
 	if (acquireData.source == nullptr)
 	{
-		// AVFrame is already in CPU
-		for (size_t i = 0; frame->data[i]; i++)
+		AVFrame *targetFrame = frame;
+
+		if (codecContext->hw_device_ctx)
 		{
-			acquireData.planes.push_back(frame->data[i]);
-			acquireData.strides.push_back(frame->linesize[i]);
-			acquireData.source = frame->data[0]; // Just for marking.
+			// Hardware accelerated. Download the frame to CPU.
+			AVFrame *swFrame = NAV_FFCALL(av_frame_alloc)();
+			if (swFrame == nullptr)
+			{
+				nav::error::set("Cannot allocate CPU frame.");
+				return nullptr;
+			}
+
+			if (int r = NAV_FFCALL(av_hwframe_transfer_data)(swFrame, frame, 0); r < 0)
+			{
+				NAV_FFCALL(av_frame_free)(&swFrame);
+				throwFromAVError(NAV_FFCALL(av_strerror), r);
+			}
+
+			targetFrame = swFrame;
 		}
+
+		// AVFrame is already in CPU
+		acquireData.planes.clear();
+		acquireData.strides.clear();
+		for (size_t i = 0; targetFrame->data[i]; i++)
+		{
+			acquireData.planes.push_back(targetFrame->data[i]);
+			acquireData.strides.push_back(targetFrame->linesize[i]);
+		}
+
+		acquireData.source = (uint8_t*) targetFrame;
 	}
 
 	if (nplanes)
@@ -427,16 +484,46 @@ const uint8_t *const *FFmpegFrame::acquire(ptrdiff_t **strides, size_t *nplanes)
 
 void FFmpegFrame::release() noexcept
 {
+	if (codecContext->hw_device_ctx && acquireData.source)
+	{
+		AVFrame *swFrame = (AVFrame *) acquireData.source;
+		NAV_FFCALL(av_frame_free)(&swFrame);
+		acquireData.source = nullptr;
+	}
 }
 
 nav_hwacceltype FFmpegFrame::getHWAccelType() const noexcept
 {
-	return NAV_HWACCELTYPE_NONE;
+	switch ((AVPixelFormat) frame->format)
+	{
+		case AV_PIX_FMT_D3D11:
+			return NAV_HWACCELTYPE_D3D11;
+#if _NAV_FFMPEG_VERSION >= 5
+		case AV_PIX_FMT_VULKAN:
+			return NAV_HWACCELTYPE_VULKAN;
+#endif
+		case AV_PIX_FMT_VAAPI:
+			return NAV_HWACCELTYPE_VAAPI;
+		default:
+			return NAV_HWACCELTYPE_NONE;
+	}
 }
 
 void *FFmpegFrame::getHWAccelHandle()
 {
-	nav::error::set("Not yet implemented");
+	switch ((AVPixelFormat) frame->format)
+	{
+		case AV_PIX_FMT_D3D11:
+			return frame->data[0];
+#if _NAV_FFMPEG_VERSION >= 5
+		case AV_PIX_FMT_VULKAN:
+			nav::error::set("NYI");
+			return nullptr; // TODO: this should be AVVKFrame
+#endif
+		case AV_PIX_FMT_VAAPI:
+			return frame->data[3];
+	}
+	nav::error::set("Not hardware accelerated or unknown hardware acceleration");
 	return nullptr;
 }
 
@@ -444,6 +531,7 @@ FFmpegFrame::~FFmpegFrame()
 {
 	if (frame)
 	{
+		release();
 		NAV_FFCALL(av_frame_unref)(frame);
 		NAV_FFCALL(av_frame_free)(&frame);
 	}
@@ -502,7 +590,56 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 				}
 
 				if (good)
+				{
 					good = NAV_FFCALL(avcodec_parameters_to_context)(codecContext, stream->codecpar) >= 0;
+					codecContext->get_format = pickPixelFormat;
+				}
+
+				if (good && !settings.disable_hwaccel && stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+				{
+					// Try enable hardware acceleration
+					std::vector<AVHWDeviceType> devices = getHWAccels();
+
+					for (AVHWDeviceType hwacceltype: devices)
+					{
+						for (int j = 0; j < std::numeric_limits<int>::max(); j++)
+						{
+							const AVCodecHWConfig *hwconfig = NAV_FFCALL(avcodec_get_hw_config)(codec, j);
+							if (hwconfig == nullptr)
+								break;
+
+							if (hwconfig->device_type != hwacceltype)
+								continue;
+							
+							if (supportedHWAccelPixFmt.find(hwconfig->pix_fmt) == supportedHWAccelPixFmt.end())
+								// Not a supported hardware pixel format
+								continue;
+
+							if (hwconfig->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+							{
+								if (NAV_FFCALL(av_hwdevice_ctx_create)(
+									&codecContext->hw_device_ctx,
+									hwacceltype,
+									nullptr,
+									nullptr,
+									0
+								) == 0)
+								{
+									// Got one
+									codecContext->pix_fmt = hwconfig->pix_fmt;
+									// FIXME: Query the hardware constraints.
+									// But for now, assume NV12.
+									codecContext->sw_pix_fmt = AV_PIX_FMT_NV12;
+									break;
+								}
+							}
+						}
+
+						if (codecContext->hw_device_ctx)
+							// Got HW accel device
+							break;
+					}
+				}
 
 				if (good)
 				{
@@ -569,23 +706,31 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 					}
 					else
 					{
-						AVPixelFormat originalFormat = (AVPixelFormat) stream->codecpar->format;
+						AVPixelFormat originalFormat = codecContext->hw_device_ctx
+							? codecContext->sw_pix_fmt
+							: ((AVPixelFormat) stream->codecpar->format);
 						AVPixelFormat rescaleFormat = originalFormat;
 						std::tie(sinfo.video.format, rescaleFormat) = getBestPixelFormat(originalFormat);
 
 						// Need to rescale
 						if (rescaleFormat != originalFormat)
 						{
-							rescaler = NAV_FFCALL(sws_getContext)(
-								stream->codecpar->width,
-								stream->codecpar->height,
-								originalFormat,
-								stream->codecpar->width,
-								stream->codecpar->height,
-								rescaleFormat,
-								SWS_BICUBIC, nullptr, nullptr, nullptr
-							);
-							good = rescaler != nullptr;
+							if (codecContext->hw_device_ctx)
+								// This is not what we've agreed beforehand
+								good = false;
+							else
+							{
+								rescaler = NAV_FFCALL(sws_getContext)(
+									stream->codecpar->width,
+									stream->codecpar->height,
+									originalFormat,
+									stream->codecpar->width,
+									stream->codecpar->height,
+									rescaleFormat,
+									SWS_BICUBIC, nullptr, nullptr, nullptr
+								);
+								good = rescaler != nullptr;
+							}
 						}
 
 						if (good)
@@ -677,6 +822,12 @@ bool FFmpegState::setStreamEnabled(size_t index, bool enabled)
 		return false;
 	}
 
+	if (prepared)
+	{
+		nav::error::set("Decoder already initialized");
+		return false;
+	}
+
 	formatContext->streams[index]->discard = enabled ? AVDISCARD_DEFAULT : AVDISCARD_ALL;
 	return true;
 }
@@ -722,7 +873,23 @@ double FFmpegState::setPosition(double off)
 
 bool FFmpegState::prepare()
 {
-	prepared = true;
+	if (!prepared)
+	{
+		// Free inactive stream resources.
+		for (size_t i = 0; i < getStreamCount(); i++)
+		{
+			if (formatContext->streams[i]->discard == AVDISCARD_ALL)
+			{
+				NAV_FFCALL(avcodec_free_context)(&decoders[i]);
+				NAV_FFCALL(swr_free)(&resamplers[i]);
+				NAV_FFCALL(sws_freeContext)(rescalers[i]);
+				// Leave the streaminfo intact though, don't modify it.
+			}
+		}
+
+		prepared = true;
+	}
+
 	return true;
 }
 
@@ -832,7 +999,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 			SwrContext *resampler = resamplers[index];
 			if (resampler == nullptr)
 				// Skipping conversion
-				return new FFmpegFrame(f, streamInfo, tempFrame.get(), position, index);
+				return new FFmpegFrame(f, streamInfo, tempFrame.get(), decoders[index], position, index);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -871,7 +1038,7 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 			SwsContext *rescaler = rescalers[index];
 			if (rescaler == nullptr)
 				// Skipping conversion
-				return new FFmpegFrame(f, streamInfo, tempFrame.get(), position, index);
+				return new FFmpegFrame(f, streamInfo, tempFrame.get(), decoders[index], position, index);
 
 			size_t needSize = streamInfo->video.size();
 			uint8_t *bufferSetup[AV_NUM_DATA_POINTERS] = {nullptr};
@@ -944,6 +1111,33 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 bool FFmpegState::canDecode(size_t index)
 {
 	return streamInfo[index].type != NAV_STREAMTYPE_UNKNOWN && formatContext->streams[index]->discard == AVDISCARD_ALL;
+}
+
+std::vector<AVHWDeviceType> FFmpegState::getHWAccels()
+{
+	std::vector<AVHWDeviceType> devices;
+
+	AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
+	while ((type = NAV_FFCALL(av_hwdevice_iterate_types)(type)) != AV_HWDEVICE_TYPE_NONE)
+		devices.push_back(type);
+
+	std::sort(devices.begin(), devices.end(), [](AVHWDeviceType a, AVHWDeviceType b)
+	{
+		return getHWDevicePriority(a) < getHWDevicePriority(b);
+	});
+
+	return devices;
+}
+
+AVPixelFormat FFmpegState::pickPixelFormat(AVCodecContext *s, const AVPixelFormat *fmt) noexcept
+{
+	for (int i = 0; fmt[i] != AV_PIX_FMT_NONE; i++)
+	{
+		if (supportedHWAccelPixFmt.find(fmt[i]) != supportedHWAccelPixFmt.end())
+			return fmt[i];
+	}
+
+	return AV_PIX_FMT_NONE;
 }
 
 #undef NAV_FFCALL
