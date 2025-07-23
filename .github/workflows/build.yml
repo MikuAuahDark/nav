@@ -74,7 +74,7 @@ jobs:
     - name: Setup
       run: |
         set -e
-        echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list.d/bullseye-backports.list
+        echo "deb http://archive.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list.d/bullseye-backports.list
         apt-get update
         apt-get install -y \
           build-essential \
