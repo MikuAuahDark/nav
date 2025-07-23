@@ -100,20 +100,20 @@ static int64_t inputSeek(void *nav_input, int64_t offset, int origin)
 	return realoff;
 }
 
-[[noreturn]] static std::runtime_error throwFromAVError(decltype(&av_strerror) func_av_strerror, int code)
+[[noreturn]] static void throwFromAVError(decltype(&av_strerror) func_av_strerror, int code) noexcept(false)
 {
 	constexpr size_t BUFSIZE = 256;
 	char temp[BUFSIZE];
 	int r = func_av_strerror(code, temp, BUFSIZE);
 	temp[BUFSIZE - 1] = '\0';
 
-	return std::runtime_error(r == 0 ? temp : "Unknown libav error");
+	throw std::runtime_error(r == 0 ? temp : "Unknown libav error");
 }
 
 inline int checkError(decltype(&av_strerror) func_av_strerror, int err) noexcept(false)
 {
 	if (err < 0)
-		throw throwFromAVError(func_av_strerror, err);
+		throwFromAVError(func_av_strerror, err);
 	return err;
 }
 
@@ -668,8 +668,10 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 								0, nullptr
 							) >= 0;
 #else
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 							resampler = NAV_FFCALL(swr_alloc_set_opts)(
 								nullptr,
 								stream->codecpar->channel_layout,
@@ -680,7 +682,9 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 								stream->codecpar->sample_rate,
 								0, nullptr
 							);
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 							good = resampler;
 #endif
 						}
@@ -696,10 +700,14 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 #if _NAV_FFMPEG_VERSION >= 6
 							sinfo.audio.nchannels = stream->codecpar->ch_layout.nb_channels;
 #else
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated"
+#endif
 							sinfo.audio.nchannels = stream->codecpar->channels;
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 #endif
 							sinfo.type = NAV_STREAMTYPE_AUDIO;
 						}
@@ -1001,8 +1009,10 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 				// Skipping conversion
 				return new FFmpegFrame(f, streamInfo, tempFrame.get(), decoders[index], position, index);
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 			std::unique_ptr<FrameVector> result(new FrameVector(
 				streamInfo,
 				index,
@@ -1018,7 +1028,9 @@ nav_frame_t *FFmpegState::decode(AVFrame *frame, size_t index)
 					* NAV_AUDIOFORMAT_BYTESIZE(streamInfo->audio.format)
 				)
 			));
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 			if (resampler)
 			{
@@ -1209,7 +1221,7 @@ State *FFmpegBackend::open(nav_input *input, const char *filename, const nav_set
 	if ((errcode = NAV_FFCALL(avformat_open_input)(&tempFormatContext, filename, nullptr, nullptr)) < 0)
 	{
 		formatContext.release(); // prevent double-free
-		throw throwFromAVError(NAV_FFCALL(av_strerror), errcode);
+		throwFromAVError(NAV_FFCALL(av_strerror), errcode);
 	}
 
 	return new FFmpegState(this, formatContext, ioContext, *settings);
