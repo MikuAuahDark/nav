@@ -110,9 +110,18 @@ private:
 	DynLib avutil, avcodec, avformat, swscale, swresample;
 	std::string info;
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) decltype(n) *func_##n;
 #include "FFmpegPointers.h"
 #undef _NAV_PROXY_FUNCTION_POINTER
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 };
 
 }

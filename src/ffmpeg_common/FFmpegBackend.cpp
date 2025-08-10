@@ -582,6 +582,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 			{
 				codec = NAV_FFCALL(avcodec_find_decoder)(stream->codecpar->codec_id);
 				good = codec != nullptr;
+				decltype(AVCodecContext::get_format) oldFormat = nullptr;
 
 				if (good)
 				{
@@ -592,6 +593,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 				if (good)
 				{
 					good = NAV_FFCALL(avcodec_parameters_to_context)(codecContext, stream->codecpar) >= 0;
+					oldFormat = codecContext->get_format;
 					codecContext->get_format = pickPixelFormat;
 				}
 
@@ -643,6 +645,9 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 
 				if (good)
 				{
+					if (!codecContext->hw_device_ctx)
+						codecContext->get_format = oldFormat;
+
 					codecContext->thread_count = (int) settings.max_threads;
 					good = NAV_FFCALL(avcodec_open2)(codecContext, codec, nullptr) >= 0;
 				}
@@ -702,7 +707,7 @@ FFmpegState::FFmpegState(FFmpegBackend *backend, UniqueAVFormatContext &fmtctx, 
 #else
 #ifdef __GNUC__
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 							sinfo.audio.nchannels = stream->codecpar->channels;
 #ifdef __GNUC__
@@ -1173,7 +1178,7 @@ FFmpegBackend::FFmpegBackend()
 		!true // needed to fix the preprocessor stuff
 	)
 		throw std::runtime_error("Cannot load FFmpeg function pointer");
-	
+
 	if (!isVersionCompatible<LIBAVCODEC_VERSION_INT>(NAV_FFCALL(avcodec_version)))
 		throw std::runtime_error("avcodec version mismatch");
 	if (!isVersionCompatible<LIBAVFORMAT_VERSION_INT>(NAV_FFCALL(avformat_version)))
