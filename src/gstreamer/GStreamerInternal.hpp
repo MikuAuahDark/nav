@@ -7,7 +7,10 @@
 
 #include <gst/gst.h>
 
+#include <atomic>
+#include <list>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <queue>
@@ -92,7 +95,7 @@ private:
 class GStreamerState: public State
 {
 public:
-	GStreamerState(GStreamerBackend *backend, nav_input *input);
+	GStreamerState(GStreamerBackend *backend, nav_input *input, const nav_settings *settings);
 	~GStreamerState() override;
 	Backend *getBackend() const noexcept override;
 	size_t getStreamCount() const noexcept override;
@@ -110,22 +113,22 @@ private:
 	struct AppSinkWrapper
 	{
 		AppSinkWrapper() = delete;
-		AppSinkWrapper(const AppSinkWrapper &other) = default;
+		AppSinkWrapper(const AppSinkWrapper &other) = delete;
 		AppSinkWrapper(AppSinkWrapper &&other) = default;
 		AppSinkWrapper(GStreamerState *state, size_t streamIndex);
 		~AppSinkWrapper();
 
 		inline bool ok()
 		{
-			return queue && convert && sink && streamInfo.type != NAV_STREAMTYPE_UNKNOWN;
+			return decodebin && convert && sink && streamInfo.type != NAV_STREAMTYPE_UNKNOWN;
 		}
 
 		nav_streaminfo_t streamInfo;
 		size_t streamIndex;
 		GStreamerState *self;
-		GstElement *queue, *convert, *sink;
-		gulong probeID;
-		bool eos, enabled;
+		GstPad *parserPad; // Note: This is owned by GStreamerState parsebin.
+		GstElement *decodebin, *convert, *sink; // Owned by pipeline. Can be either appsink or fakesink
+		bool eos, enabled, sinfoOk;
 	};
 
 	struct FrameComparator
@@ -137,18 +140,24 @@ private:
 	nav_input input;
 	UniqueGstObject<GstBus> bus;
 	UniqueGstElement pipeline;
-	GstElement *source, *decoder;
-	std::vector<std::unique_ptr<AppSinkWrapper>> streams;
+	GstElement *source, *parsebin;
+	std::vector<AppSinkWrapper*> streams;
+	std::mutex streamInfoMutex;
 	std::priority_queue<Frame*, std::deque<Frame*>, FrameComparator> queuedFrames;
-	bool padProbed, eos, prepared;
+	std::atomic<int> padProbeCount;
+	bool eos, prepared, disableHWAccel;
 
 	GstCaps *newVideoCapsForNAV();
 	GstCaps *newAudioCapsForNAV();
 	void clearQueuedFrames();
 	void pollBus(bool noexception = false);
 	Frame *dispatchDecode(GstBuffer *buffer, size_t streamIndex);
+	void linkToFakesink(GstBin *bin, GstPad *pad, AppSinkWrapper &sw);
+	void setupStreamInfo(AppSinkWrapper *sw, bool tryAgainLater);
 	static void padAdded(GstElement *element, GstPad *newPad, GStreamerState *self);
+	static void padAddedSinkWrapper(GstElement *element, GstPad *pad, AppSinkWrapper *sw);
 	static void noMorePads(GstElement *element, GStreamerState *self);
+	static void noMorePadsSinkWrapper(GstElement *element, AppSinkWrapper *sw);
 	static void needData(GstElement *element, guint length, GStreamerState *self);
 	static gboolean seekData(GstElement *element, guint64 pos, GStreamerState *self);
 };
@@ -166,6 +175,8 @@ public:
 private:
 	DynLib glib, gobject, gstreamer, gstvideo;
 	std::string version;
+
+	void checkElementFactory(const char *name);
 
 public:
 #define _NAV_PROXY_FUNCTION_POINTER(lib, n) decltype(n) *ptr_##n;
