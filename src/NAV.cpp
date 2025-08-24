@@ -2,6 +2,8 @@
 #include <mutex>
 #include <numeric>
 #include <thread>
+#include <string>
+#include <sstream>
 #include <vector>
 
 #include "Internal.hpp"
@@ -91,7 +93,7 @@ public:
 		std::vector<std::string> errors;
 		const size_t *order = newSettings.backend_order ? newSettings.backend_order : defaultOrder.data();
 
-		for (size_t backendIndex = *order; *order; order++)
+		for (size_t backendIndex = *order; *order; backendIndex = *++order)
 		{
 			if (backendIndex > 0 && backendIndex <= activeBackend.size())
 			{
@@ -111,7 +113,14 @@ public:
 		if (errors.empty())
 			nav::error::set("No backend available");
 		else
-			nav::error::set(std::reduce(errors.begin(), errors.end(), std::string("\n")));
+		{
+			std::stringstream ss;
+			ss << "Error opening input:";
+			for (const std::string &s: errors)
+				ss << "\n" << s;
+
+			nav::error::set(ss.str());
+		}
 		return nullptr;
 	}
 
@@ -181,13 +190,13 @@ private:
 template<typename T, typename C, typename... Args, typename... UArgs>
 T wrapcall(C *c, T(C::*m)(Args...), T defval, UArgs... args)
 {
-    try
+	try
 	{
 		nav::error::set("");
 		T result = (c->*m)(args...);
 		return result;
 	}
-    catch (const std::exception &e)
+	catch (const std::exception &e)
 	{
 		nav::error::set(e.what());
 		return defval;
