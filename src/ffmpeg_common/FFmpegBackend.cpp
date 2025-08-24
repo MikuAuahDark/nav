@@ -211,6 +211,8 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_YUVA422P12LE:
 		case AV_PIX_FMT_YUVA444P12BE:
 		case AV_PIX_FMT_YUVA444P12LE:
+		case AV_PIX_FMT_NV24:
+		case AV_PIX_FMT_NV42:
 		case AV_PIX_FMT_Y210BE:
 		case AV_PIX_FMT_Y210LE:
 		case AV_PIX_FMT_P210BE:
@@ -232,11 +234,29 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_XV36BE:
 		case AV_PIX_FMT_XV36LE:
 #endif /* _NAV_FFMPEG_VERSION >= 6 */
+#if _NAV_FFMPEG_VERSION >= 7
+		case AV_PIX_FMT_P212BE:
+		case AV_PIX_FMT_P212LE:
+		case AV_PIX_FMT_P412BE:
+		case AV_PIX_FMT_P412LE:
+#endif /* _NAV_FFMPEG_VERSION >= 7 */
+#if _NAV_FFMPEG_VERSION >= 8
+		case AV_PIX_FMT_AYUV:
+		case AV_PIX_FMT_UYVA:
+		case AV_PIX_FMT_VYU444:
+		case AV_PIX_FMT_V30XBE:
+		case AV_PIX_FMT_V30XLE:
+		case AV_PIX_FMT_Y216BE:
+		case AV_PIX_FMT_Y216LE:
+		case AV_PIX_FMT_XV48BE:
+		case AV_PIX_FMT_XV48LE:
+		case AV_PIX_FMT_YUV444P10MSBBE:
+		case AV_PIX_FMT_YUV444P10MSBLE:
+		case AV_PIX_FMT_YUV444P12MSBBE:
+		case AV_PIX_FMT_YUV444P12MSBLE:
+#endif /* _NAV_FFMPEG_VERSION >= 8 */
 			return std::make_tuple(NAV_PIXELFORMAT_YUV444, AV_PIX_FMT_YUV444P);
 		case AV_PIX_FMT_BGR24:
-		case AV_PIX_FMT_GRAY8:
-		case AV_PIX_FMT_MONOWHITE:
-		case AV_PIX_FMT_MONOBLACK:
 		case AV_PIX_FMT_PAL8:
 		case AV_PIX_FMT_BGR8:
 		case AV_PIX_FMT_BGR4:
@@ -248,8 +268,6 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_RGBA:
 		case AV_PIX_FMT_ABGR:
 		case AV_PIX_FMT_BGRA:
-		case AV_PIX_FMT_GRAY16BE:
-		case AV_PIX_FMT_GRAY16LE:
 		case AV_PIX_FMT_RGB48BE:
 		case AV_PIX_FMT_RGB48LE:
 		case AV_PIX_FMT_RGB565BE:
@@ -264,7 +282,6 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_RGB444BE:
 		case AV_PIX_FMT_BGR444LE:
 		case AV_PIX_FMT_BGR444BE:
-		case AV_PIX_FMT_YA8:
 		case AV_PIX_FMT_BGR48BE:
 		case AV_PIX_FMT_BGR48LE:
 		case AV_PIX_FMT_GBRP:
@@ -280,8 +297,6 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_RGBA64LE:
 		case AV_PIX_FMT_BGRA64BE:
 		case AV_PIX_FMT_BGRA64LE:
-		case AV_PIX_FMT_YA16BE:
-		case AV_PIX_FMT_YA16LE:
 		case AV_PIX_FMT_GBRAP:
 		case AV_PIX_FMT_GBRAP16BE:
 		case AV_PIX_FMT_GBRAP16LE:
@@ -309,21 +324,11 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_GBRAP12LE:
 		case AV_PIX_FMT_GBRAP10BE:
 		case AV_PIX_FMT_GBRAP10LE:
-		case AV_PIX_FMT_GRAY12BE:
-		case AV_PIX_FMT_GRAY12LE:
-		case AV_PIX_FMT_GRAY10BE:
-		case AV_PIX_FMT_GRAY10LE:
-		case AV_PIX_FMT_GRAY9BE:
-		case AV_PIX_FMT_GRAY9LE:
 		case AV_PIX_FMT_GBRPF32BE:
 		case AV_PIX_FMT_GBRPF32LE:
 		case AV_PIX_FMT_GBRAPF32BE:
 		case AV_PIX_FMT_GBRAPF32LE:
 #if _NAV_FFMPEG_VERSION >= 5
-		case AV_PIX_FMT_GRAY14BE:
-		case AV_PIX_FMT_GRAY14LE:
-		case AV_PIX_FMT_GRAYF32BE:
-		case AV_PIX_FMT_GRAYF32LE:
 		case AV_PIX_FMT_X2RGB10LE:
 		case AV_PIX_FMT_X2RGB10BE:
 		case AV_PIX_FMT_X2BGR10LE:
@@ -337,14 +342,42 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_RGBAF32BE:
 		case AV_PIX_FMT_RGBAF32LE:
 #endif /* _NAV_FFMPEG_VERSION >= 6 */
+#if _NAV_FFMPEG_VERSION >= 7
+		case AV_PIX_FMT_GBRAP14BE:
+		case AV_PIX_FMT_GBRAP14LE:
+#endif /* _NAV_FFMPEG_VERSION >= 7 */
+#if _NAV_FFMPEG_VERSION >= 8
+		case AV_PIX_FMT_RGBF16BE:
+		case AV_PIX_FMT_RGBF16LE:
+		case AV_PIX_FMT_RGBA128BE:
+		case AV_PIX_FMT_RGBA128LE:
+		case AV_PIX_FMT_RGB96BE:
+		case AV_PIX_FMT_RGB96LE:
+		case AV_PIX_FMT_GBRPF16BE:
+		case AV_PIX_FMT_GBRPF16LE:
+		case AV_PIX_FMT_GBRAPF16BE:
+		case AV_PIX_FMT_GBRAPF16LE:
+		case AV_PIX_FMT_GBRAP32BE:
+		case AV_PIX_FMT_GBRAP32LE:
+		case AV_PIX_FMT_GBRP10MSBBE:
+		case AV_PIX_FMT_GBRP10MSBLE:
+		case AV_PIX_FMT_GBRP12MSBBE:
+		case AV_PIX_FMT_GBRP12MSBLE:
+#endif /* _NAV_FFMPEG_VERSION >= 8 */
 			return std::make_tuple(NAV_PIXELFORMAT_RGB8, AV_PIX_FMT_RGB24);
 		case AV_PIX_FMT_YUV410P:
 		case AV_PIX_FMT_YUV411P:
+		case AV_PIX_FMT_GRAY8:
+		case AV_PIX_FMT_MONOWHITE:
+		case AV_PIX_FMT_MONOBLACK:
 		case AV_PIX_FMT_YUVJ420P:
 		case AV_PIX_FMT_UYYVYY411:
+		case AV_PIX_FMT_GRAY16BE:
+		case AV_PIX_FMT_GRAY16LE:
 		case AV_PIX_FMT_YUVA420P:
 		case AV_PIX_FMT_YUV420P16LE:
 		case AV_PIX_FMT_YUV420P16BE:
+		case AV_PIX_FMT_YA8:
 		case AV_PIX_FMT_YUV420P9BE:
 		case AV_PIX_FMT_YUV420P9LE:
 		case AV_PIX_FMT_YUV420P10BE:
@@ -355,21 +388,41 @@ static std::tuple<nav_pixelformat, AVPixelFormat> getBestPixelFormat(AVPixelForm
 		case AV_PIX_FMT_YUVA420P10LE:
 		case AV_PIX_FMT_YUVA420P16BE:
 		case AV_PIX_FMT_YUVA420P16LE:
+		case AV_PIX_FMT_YA16BE:
+		case AV_PIX_FMT_YA16LE:
 		case AV_PIX_FMT_YUV420P12BE:
 		case AV_PIX_FMT_YUV420P12LE:
 		case AV_PIX_FMT_YUV420P14BE:
 		case AV_PIX_FMT_YUV420P14LE:
 		case AV_PIX_FMT_YUVJ411P:
+		case AV_PIX_FMT_GRAY12BE:
+		case AV_PIX_FMT_GRAY12LE:
+		case AV_PIX_FMT_GRAY10BE:
+		case AV_PIX_FMT_GRAY10LE:
+		case AV_PIX_FMT_GRAY9BE:
+		case AV_PIX_FMT_GRAY9LE:
+#if _NAV_FFMPEG_VERSION >= 5
+		case AV_PIX_FMT_GRAY14BE:
+		case AV_PIX_FMT_GRAY14LE:
+		case AV_PIX_FMT_GRAYF32BE:
+		case AV_PIX_FMT_GRAYF32LE:
+#endif /* _NAV_FFMPEG_VERSION >= 5 */
+#if _NAV_FFMPEG_VERSION >= 8
+		case AV_PIX_FMT_GRAYF16BE:
+		case AV_PIX_FMT_GRAYF16LE:
+		case AV_PIX_FMT_GRAY32BE:
+		case AV_PIX_FMT_GRAY32LE:
+		case AV_PIX_FMT_YAF32BE:
+		case AV_PIX_FMT_YAF32LE:
+		case AV_PIX_FMT_YAF16BE:
+		case AV_PIX_FMT_YAF16LE:
+#endif /* _NAV_FFMPEG_VERSION >= 8 */
 			return std::make_tuple(NAV_PIXELFORMAT_YUV420, AV_PIX_FMT_YUV420P);
 		case AV_PIX_FMT_NV21:
 		case AV_PIX_FMT_P010LE:
 		case AV_PIX_FMT_P010BE:
 		case AV_PIX_FMT_P016LE:
 		case AV_PIX_FMT_P016BE:
-#if _NAV_FFMPEG_VERSION >= 5
-		case AV_PIX_FMT_NV24:
-		case AV_PIX_FMT_NV42:
-#endif /* _NAV_FFMPEG_VERSION >= 5 */
 #if _NAV_FFMPEG_VERSION >= 6
 		case AV_PIX_FMT_P012LE:
 		case AV_PIX_FMT_P012BE:
