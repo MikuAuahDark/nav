@@ -35,9 +35,10 @@ Multiple FFmpeg Version Support
 
 NAV since 0.3.0 can be compiled to support multiple FFmpeg versions.
 
-To compile with multiple FFmpeg versions, pass `-DFFMPEGn_DIR` (where `n` is between 4-7) in CMake command-line to
-location where FFmpeg header files are placed. Note that the directory should be one directory above the `include`.
-For example, if you have FFmpeg 7 includes in `/path/to/ffmpeg7/include`, then do `-DFFMPEG7_DIR=/path/to/ffmpeg7`.
+To compile with multiple FFmpeg versions, pass `-DFFMPEGn_DIR` (where `n` is between 4 to 8, both inclusive) in CMake
+command-line to location where FFmpeg header files are placed. Note that the directory should be one directory above
+the `include`. For example, if you have FFmpeg 7 includes in `/path/to/ffmpeg7/include`, then do
+`-DFFMPEG7_DIR=/path/to/ffmpeg7`.
 
 Example command-line for CMake:
 ```
