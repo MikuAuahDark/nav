@@ -17,6 +17,7 @@ NAV relies on various backends to perform audio and video decoding.
 | [FFmpeg] 5        | 3rd-Party | Windows, Linux, Android | `"ffmpeg5"`          | `FFMPEG5`              | Requires the appropriate header files to be present.\*\* |
 | [FFmpeg] 6        | 3rd-Party | Windows, Linux, Android | `"ffmpeg6"`          | `FFMPEG6`              | Requires the appropriate header files to be present.\*\* |
 | [FFmpeg] 7        | 3rd-Party | Windows, Linux, Android | `"ffmpeg7"`          | `FFMPEG7`              | Requires the appropriate header files to be present.\*\* |
+| [FFmpeg] 8        | 3rd-Party | Windows, Linux, Android | `"ffmpeg8"`          | `FFMPEG8`              | Requires the appropriate header files to be present.\*\* |
 | [GStreamer]       | 3rd-Party | Linux                   | `"gstreamer"`        | `GSTREAMER`            | Requires the appropriate header files to be present.     |
 | [MediaFoundation] | OS API    | Windows                 | `"mediafoundation"`  | `MEDIAFOUNDATION`      | UWP target is not supported.                             |
 

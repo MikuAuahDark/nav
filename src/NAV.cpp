@@ -12,6 +12,7 @@
 #include "ffmpeg5/FFmpeg5Backend.hpp"
 #include "ffmpeg6/FFmpeg6Backend.hpp"
 #include "ffmpeg7/FFmpeg7Backend.hpp"
+#include "ffmpeg8/FFmpeg8Backend.hpp"
 #include "gstreamer/GStreamerBackend.hpp"
 #include "mediafoundation/MediaFoundationBackend.hpp"
 #include "Error.hpp"
@@ -150,8 +151,8 @@ private:
 	std::mutex mutex;
 	nav_settings defaultSettings;
 } backendContainer({
-#ifdef NAV_BACKEND_ANDROIDNDK
-	&nav::androidndk::create,
+#ifdef NAV_BACKEND_FFMPEG_8
+	&nav::ffmpeg8::create,
 #endif
 #ifdef NAV_BACKEND_FFMPEG_7
 	&nav::ffmpeg7::create,
@@ -164,6 +165,9 @@ private:
 #endif
 #ifdef NAV_BACKEND_FFMPEG_4
 	&nav::ffmpeg4::create,
+#endif
+#ifdef NAV_BACKEND_ANDROIDNDK
+	&nav::androidndk::create,
 #endif
 #ifdef NAV_BACKEND_GSTREAMER
 	&nav::gstreamer::create,

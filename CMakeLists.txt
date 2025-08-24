@@ -68,6 +68,8 @@ add_library(nav ${NAV_SHARED_VALUE}
 	src/ffmpeg6/FFmpeg6Backend.hpp
 	src/ffmpeg7/FFmpeg7Backend.cpp
 	src/ffmpeg7/FFmpeg7Backend.hpp
+	src/ffmpeg8/FFmpeg8Backend.cpp
+	src/ffmpeg8/FFmpeg8Backend.hpp
 	src/gstreamer/GStreamerBackend.cpp
 	src/gstreamer/GStreamerBackend.hpp
 	src/gstreamer/GStreamerPointers.h
@@ -126,7 +128,7 @@ if(MSVC)
 endif()
 
 # Find FFmpeg
-if(DEFINED FFMPEG4_DIR OR DEFINED FFMPEG5_DIR OR DEFINED FFMPEG6_DIR OR DEFINED FFMPEG7_DIR)
+if(DEFINED FFMPEG4_DIR OR DEFINED FFMPEG5_DIR OR DEFINED FFMPEG6_DIR OR DEFINED FFMPEG7_DIR OR DEFINED FFMPEG8_DIR)
 	# Multi FFmpeg mode
 	if(DEFINED FFMPEG_DIR)
 		message(FATAL_ERROR "Cannot combine multi-FFmpeg include directories with single FFmpeg")
@@ -134,7 +136,7 @@ if(DEFINED FFMPEG4_DIR OR DEFINED FFMPEG5_DIR OR DEFINED FFMPEG6_DIR OR DEFINED 
 
 	# Ok I trust you
 	message(STATUS "Multi-FFmpeg mode activates:")
-	foreach(i RANGE 4 7)
+	foreach(i RANGE 4 8)
 		if(FFMPEG${i}_DIR)
 			set_source_files_properties(
 				src/ffmpeg${i}/FFmpeg${i}Backend.cpp

@@ -37,6 +37,14 @@ jobs:
         fileName: ffmpeg-7.0-full_build-shared.7z 
         tarBall: false
         zipBall: false
+    - name: Get FFmpeg 8
+      uses: robinraju/release-downloader@v1
+      with:
+        repository: GyanD/codexffmpeg
+        tag: "8.0"
+        fileName: ffmpeg-8.0-full_build-shared.7z 
+        tarBall: false
+        zipBall: false
     # A note to myself and other: FFmpeg build is for x64, but it doesn't matter. Only the include files are
     # necessary for NAV to work as it will use runtime loading.
     - name: Extract FFmpeg
@@ -44,12 +52,14 @@ jobs:
         7z x ffmpeg-5.0-full_build-shared.7z
         7z x ffmpeg-6.0-full_build-shared.7z
         7z x ffmpeg-7.0-full_build-shared.7z
+        7z x ffmpeg-8.0-full_build-shared.7z
     - name: Configure
       run: |
         cmake -Bbuild -S. -A ${{ matrix.PLATFORM }} --install-prefix %CD%\install -DBUILD_SHARED_LIBS=1 ^
         -DFFMPEG5_DIR=%CD%\ffmpeg-5.0-full_build-shared ^
         -DFFMPEG6_DIR=%CD%\ffmpeg-6.0-full_build-shared ^
-        -DFFMPEG7_DIR=%CD%\ffmpeg-7.0-full_build-shared
+        -DFFMPEG7_DIR=%CD%\ffmpeg-7.0-full_build-shared ^
+        -DFFMPEG8_DIR=%CD%\ffmpeg-8.0-full_build-shared
     - name: Install
       run: cmake --build build --config RelWithDebInfo --target install -j%NUMBER_OF_PROCESSORS%
     - name: Artifact
@@ -173,13 +183,36 @@ jobs:
         cd build
         ../configure --disable-doc --disable-encoders --disable-programs --disable-static --enable-shared --disable-x86asm --prefix=$PWD/installdir
         make install -j$(nproc)
+      # FFmpeg 8
+    - name: Checkout FFmpeg 8
+      uses: actions/checkout@v4
+      with:
+        repository: FFmpeg/FFmpeg
+        ref: n8.0
+        path: ffmpeg8
+    - name: Cache FFmpeg 8
+      id: ffmpeg8
+      uses: actions/cache@v4
+      with:
+        path: ffmpeg8/build/installdir
+        key: ffmpeg8
+    - name: Build FFmpeg 8
+      if: steps.ffmpeg8.outputs.cache-hit != 'true'
+      working-directory: ffmpeg8
+      run: |
+        set -e
+        mkdir build
+        cd build
+        ../configure --disable-doc --disable-encoders --disable-programs --disable-static --enable-shared --disable-x86asm --prefix=$PWD/installdir
+        make install -j$(nproc)
     - name: Configure
       run: |
         cmake -Bbuild -S. -DCMAKE_BUILD_TYPE=RelWithDebInfo --install-prefix $PWD/install -DBUILD_SHARED_LIBS=1 \
         -DFFMPEG4_DIR=$PWD/ffmpeg4/build/installdir \
         -DFFMPEG5_DIR=$PWD/ffmpeg5/build/installdir \
         -DFFMPEG6_DIR=$PWD/ffmpeg6/build/installdir \
-        -DFFMPEG7_DIR=$PWD/ffmpeg7/build/installdir
+        -DFFMPEG7_DIR=$PWD/ffmpeg7/build/installdir \
+        -DFFMPEG8_DIR=$PWD/ffmpeg8/build/installdir
     - name: Install
       run: cmake --build build --target install -j$(nproc)
     - name: Artifact
