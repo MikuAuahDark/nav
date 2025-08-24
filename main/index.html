@@ -124,10 +124,14 @@ Backends</h1>
 <h1><a class="anchor" id="autotoc_md1"></a>
 Multiple FFmpeg Version Support</h1>
 <p>NAV since 0.3.0 can be compiled to support multiple FFmpeg versions.</p>
-<p>To compile with multiple FFmpeg versions, pass <code>-DFFMPEGn_DIR</code> (where <code>n</code> is between 4-7) in CMake command-line to location where FFmpeg header files are placed. Note that the directory should be one directory above the <code>include</code>. For example, if you have FFmpeg 7 includes in <code>/path/to/ffmpeg7/include</code>, then do <code>-DFFMPEG7_DIR=/path/to/ffmpeg7</code>.</p>
+<p>To compile with multiple FFmpeg versions, pass <code>-DFFMPEGn_DIR</code> (where <code>n</code> is between 4 to 8, both inclusive) in CMake command-line to location where FFmpeg header files are placed. Note that the directory should be one directory above the <code>include</code>. For example, if you have FFmpeg 7 includes in <code>/path/to/ffmpeg7/include</code>, then do <code>-DFFMPEG7_DIR=/path/to/ffmpeg7</code>.</p>
 <p>Example command-line for CMake: </p><div class="fragment"><div class="line">cmake -Bbuild -S. --install-prefix $PWD/installdir -DFFMPEG6_DIR=/path/to/ffmpeg6 -DFFMPEG7_DIR=/path/to/ffmpeg7</div>
 </div><!-- fragment --><p>For best compatibility, it's recommended to use FFmpeg n.0 header files. Note that NAV only needs functional header files to compile as library files will be loaded at runtime.</p>
 <h1><a class="anchor" id="autotoc_md2"></a>
+Examples</h1>
+<p>Currently there's only 1 example. See <code>examples</code> folder.</p>
+<p>More examples will follow.</p>
+<h1><a class="anchor" id="autotoc_md3"></a>
 License</h1>
 <p>zlib/libpng license. </p>
 </div></div><!-- PageDoc -->

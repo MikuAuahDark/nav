@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['multiple_20ffmpeg_20version_20support_0',['Multiple FFmpeg Version Support',['../index.html#autotoc_md1',1,'']]]
+  ['license_0',['License',['../index.html#autotoc_md3',1,'']]]
 ];
