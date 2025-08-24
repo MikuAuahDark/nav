@@ -48,6 +48,13 @@ cmake -Bbuild -S. --install-prefix $PWD/installdir -DFFMPEG6_DIR=/path/to/ffmpeg
 For best compatibility, it's recommended to use FFmpeg n.0 header files. Note that NAV only needs functional header
 files to compile as library files will be loaded at runtime.
 
+Examples
+-----
+
+Currently there's only 1 example. See `examples` folder.
+
+More examples will follow.
+
 License
 -----
 

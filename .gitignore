@@ -2,3 +2,11 @@
 build
 docs
 install
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.obj
+*.o
+examples/*.wav
+examples/*.png
